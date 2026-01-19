@@ -70,6 +70,7 @@ const DynamicArticleRenderer = ({ article, layout }) => {
                         <div className={configStyles}>
                             <ElementRenderers
                                 type={element.type}
+                                elementId={element.id}
                                 config={element.config}
                                 article={article}
                                 t={t}

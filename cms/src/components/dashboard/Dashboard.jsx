@@ -91,8 +91,16 @@ const Dashboard = () => {
                                         >
                                             {article.is_Published ? 'Unpublish' : 'Publish'}
                                         </button>
-                                        <button className="text-blue-600 hover:text-blue-900 mx-2"><Eye size={18} /></button>
-                                        <button className="text-indigo-600 hover:text-indigo-900 mx-2"><Edit size={18} /></button>
+                                        <a 
+                                            href={`http://localhost:5173/article/${article._id}`} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-900 mx-2 inline-block"
+                                            title="View Article"
+                                        >
+                                            <Eye size={18} />
+                                        </a>
+                                        <Link to={`/edit/${article._id}`} className="text-indigo-600 hover:text-indigo-900 mx-2 inline-block" title="Edit Article"><Edit size={18} /></Link>
                                         <button onClick={() => handleDelete(article._id)} className="text-red-600 hover:text-red-900 mx-2"><Trash2 size={18} /></button>
                                     </td>
                                 </tr>

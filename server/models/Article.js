@@ -17,6 +17,11 @@ const articleSchema = new mongoose.Schema({
   body: { type: String },
   tags: { type: [String] },
 
+  // Element-specific content for custom layouts (maps element ID to content)
+  // This allows multiple elements of the same type to have different content
+  elementContent: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
+  elementContent_en: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
+
   // Common Fields
   photos: { type: [String] }, // Array of image URLs
   video: { type: String }, // Video URL

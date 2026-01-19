@@ -2,26 +2,45 @@ import React, { useRef, useEffect } from 'react';
 import { User, Calendar, Share2, Facebook, Twitter, Linkedin } from 'lucide-react';
 
 /**
+ * Helper function to get element-specific content or fall back to article field
+ */
+const getElementContent = (article, elementId, fieldName, t) => {
+    // Check for element-specific content first (using language-aware lookup)
+    const elementContent = t(article, 'elementContent') || article.elementContent_en;
+    if (elementContent && elementId) {
+        // Handle both Map and plain object
+        const content = elementContent instanceof Map 
+            ? elementContent.get(elementId) 
+            : elementContent[elementId];
+        if (content?.value) {
+            return content.value;
+        }
+    }
+    // Fall back to standard article field
+    return t(article, fieldName);
+};
+
+/**
  * ElementRenderers - Renders different element types for the dynamic layout
  */
-const ElementRenderers = ({ type, config, article, t }) => {
+const ElementRenderers = ({ type, elementId, config, article, t }) => {
     switch (type) {
         case 'header':
-            return <HeaderRenderer article={article} t={t} config={config} />;
+            return <HeaderRenderer article={article} elementId={elementId} t={t} config={config} />;
         case 'summary':
-            return <SummaryRenderer article={article} t={t} config={config} />;
+            return <SummaryRenderer article={article} elementId={elementId} t={t} config={config} />;
         case 'body':
-            return <BodyRenderer article={article} t={t} config={config} />;
+            return <BodyRenderer article={article} elementId={elementId} t={t} config={config} />;
         case 'image':
-            return <ImageRenderer article={article} t={t} config={config} />;
+            return <ImageRenderer article={article} elementId={elementId} t={t} config={config} />;
         case 'video':
-            return <VideoRenderer article={article} config={config} />;
+            return <VideoRenderer article={article} elementId={elementId} config={config} />;
         case 'author':
             return <AuthorRenderer article={article} />;
         case 'date':
             return <DateRenderer article={article} />;
         case 'tags':
-            return <TagsRenderer article={article} t={t} />;
+            return <TagsRenderer article={article} elementId={elementId} t={t} />;
         case 'text':
             return <TextRenderer config={config} />;
         case 'divider':
@@ -36,8 +55,9 @@ const ElementRenderers = ({ type, config, article, t }) => {
 /**
  * Header/Headline Renderer - supports auto-resize when maxHeight is set
  */
-const HeaderRenderer = ({ article, t, config }) => {
+const HeaderRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
+    const content = getElementContent(article, elementId, 'article_header', t);
     
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -52,11 +72,11 @@ const HeaderRenderer = ({ article, t, config }) => {
             currentFontSize -= 2;
             element.style.fontSize = `${currentFontSize}px`;
         }
-    }, [config?.maxHeight, article]);
+    }, [config?.maxHeight, content]);
 
     return (
         <h1 ref={ref} className="text-gray-900 leading-tight">
-            {t(article, 'article_header')}
+            {content}
         </h1>
     );
 };
@@ -64,8 +84,9 @@ const HeaderRenderer = ({ article, t, config }) => {
 /**
  * Summary/Lead Renderer - supports auto-resize when maxHeight is set
  */
-const SummaryRenderer = ({ article, t, config }) => {
+const SummaryRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
+    const content = getElementContent(article, elementId, 'summary', t);
     
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -80,11 +101,11 @@ const SummaryRenderer = ({ article, t, config }) => {
             currentFontSize -= 1;
             element.style.fontSize = `${currentFontSize}px`;
         }
-    }, [config?.maxHeight, article]);
+    }, [config?.maxHeight, content]);
 
     return (
         <p ref={ref} className="text-gray-600 italic">
-            {t(article, 'summary')}
+            {content}
         </p>
     );
 };
@@ -92,10 +113,10 @@ const SummaryRenderer = ({ article, t, config }) => {
 /**
  * Body Content Renderer - supports auto-resize when maxHeight is set
  */
-const BodyRenderer = ({ article, t, config }) => {
+const BodyRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
-    const body = t(article, 'body');
-    const isHTML = /<[a-z][\s\S]*>/i.test(body);
+    const body = getElementContent(article, elementId, 'body', t);
+    const isHTML = body && /<[a-z][\s\S]*>/i.test(body);
     
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -132,8 +153,25 @@ const BodyRenderer = ({ article, t, config }) => {
 /**
  * Image Renderer with lightbox potential
  */
-const ImageRenderer = ({ article, t, config }) => {
-    const image = article.photos && article.photos.length > 0 ? article.photos[0] : null;
+const ImageRenderer = ({ article, elementId, t, config }) => {
+    // Check for element-specific image first
+    const elementContent = t(article, 'elementContent') || article.elementContent_en;
+    let image = null;
+    
+    if (elementContent && elementId) {
+        const content = elementContent instanceof Map 
+            ? elementContent.get(elementId) 
+            : elementContent[elementId];
+        if (content?.value) {
+            // Element-specific image (could be comma-separated)
+            image = content.value.split(',')[0]?.trim();
+        }
+    }
+    
+    // Fall back to article photos
+    if (!image) {
+        image = article.photos && article.photos.length > 0 ? article.photos[0] : null;
+    }
 
     if (!image) {
         return (
@@ -167,7 +205,7 @@ const ImageRenderer = ({ article, t, config }) => {
                 style={imageStyle}
                 loading="lazy"
             />
-            {article.photos.length > 1 && (
+            {article.photos && article.photos.length > 1 && (
                 <figcaption className="text-sm text-gray-500 mt-2 text-center italic">
                     {article.photos.length} photos available
                 </figcaption>
@@ -179,8 +217,26 @@ const ImageRenderer = ({ article, t, config }) => {
 /**
  * Video Renderer
  */
-const VideoRenderer = ({ article, config }) => {
-    if (!article.video) {
+const VideoRenderer = ({ article, elementId, config }) => {
+    // Check for element-specific video first
+    let videoUrl = null;
+    const elementContent = article.elementContent_en;
+    
+    if (elementContent && elementId) {
+        const content = elementContent instanceof Map 
+            ? elementContent.get(elementId) 
+            : elementContent[elementId];
+        if (content?.value) {
+            videoUrl = content.value;
+        }
+    }
+    
+    // Fall back to article video
+    if (!videoUrl) {
+        videoUrl = article.video;
+    }
+
+    if (!videoUrl) {
         return (
             <div
                 className="bg-gray-900 flex items-center justify-center text-gray-400 rounded-md"
@@ -207,7 +263,7 @@ const VideoRenderer = ({ article, config }) => {
         <div style={{ aspectRatio: config?.aspectRatio || '16/9' }}>
             <iframe
                 className="w-full h-full rounded-md"
-                src={getEmbedUrl(article.video)}
+                src={getEmbedUrl(videoUrl)}
                 title="Video"
                 allowFullScreen
                 loading="lazy"
@@ -258,8 +314,25 @@ const DateRenderer = ({ article }) => {
 /**
  * Tags Renderer
  */
-const TagsRenderer = ({ article, t }) => {
-    const tags = t(article, 'tags') || [];
+const TagsRenderer = ({ article, elementId, t }) => {
+    // Check for element-specific tags first
+    let tags = [];
+    const elementContent = t(article, 'elementContent') || article.elementContent_en;
+    
+    if (elementContent && elementId) {
+        const content = elementContent instanceof Map 
+            ? elementContent.get(elementId) 
+            : elementContent[elementId];
+        if (content?.value) {
+            // Element-specific tags (comma-separated string)
+            tags = content.value.split(',').map(t => t.trim()).filter(Boolean);
+        }
+    }
+    
+    // Fall back to article tags
+    if (tags.length === 0) {
+        tags = t(article, 'tags') || [];
+    }
 
     if (tags.length === 0) {
         return null;

@@ -11,6 +11,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/create" element={<CreateArticle />} />
+        <Route path="/edit/:id" element={<CreateArticle />} />
         <Route path="/layouts" element={<LayoutTemplatesList />} />
         <Route path="/layouts/new" element={<LayoutDesigner />} />
         <Route path="/layouts/:id" element={<LayoutDesigner />} />
