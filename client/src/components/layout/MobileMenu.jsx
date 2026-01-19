@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
-import { X, Home, Globe, Newspaper, Briefcase, Laptop, Trophy, Film, MessageSquare, ChevronRight, Search } from 'lucide-react';
+import { X, Globe, Briefcase, Laptop, Trophy, Film, ChevronRight, Search, LayoutGrid, Vote } from 'lucide-react';
 
 /**
  * MobileMenu - Full-screen mobile navigation menu
  */
-const MobileMenu = ({ isOpen, onClose }) => {
+const MobileMenu = ({ isOpen, onClose, onCategoryChange, activeCategory }) => {
     const { language, toggleLanguage } = useLanguage();
     const [searchQuery, setSearchQuery] = useState('');
 
     const menuItems = [
-        { label: 'Home', path: '/', icon: Home },
-        { label: 'India', path: '/', icon: Newspaper },
-        { label: 'World', path: '/', icon: Globe },
-        { label: 'Business', path: '/', icon: Briefcase },
-        { label: 'Tech', path: '/', icon: Laptop },
-        { label: 'Sports', path: '/', icon: Trophy },
-        { label: 'Entertainment', path: '/', icon: Film },
-        { label: 'Opinion', path: '/', icon: MessageSquare },
+        { label: 'All', icon: LayoutGrid },
+        { label: 'Politics', icon: Vote },
+        { label: 'Business', icon: Briefcase },
+        { label: 'Tech', icon: Laptop },
+        { label: 'Sports', icon: Trophy },
+        { label: 'Entertainment', icon: Film },
     ];
 
     if (!isOpen) return null;
@@ -65,21 +63,24 @@ const MobileMenu = ({ isOpen, onClose }) => {
                     <ul className="space-y-1">
                         {menuItems.map((item, index) => {
                             const Icon = item.icon;
+                            const isActive = activeCategory === item.label;
                             return (
                                 <li key={index}>
-                                    <Link
-                                        to={item.path}
-                                        onClick={onClose}
-                                        className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 transition group"
+                                    <button
+                                        onClick={() => {
+                                            onCategoryChange && onCategoryChange(item.label);
+                                            onClose();
+                                        }}
+                                        className={`w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 transition group ${isActive ? 'bg-red-50' : ''}`}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <Icon size={20} className="text-gray-500 group-hover:text-brand-red transition" />
-                                            <span className="font-medium text-gray-800 group-hover:text-brand-red transition">
+                                            <Icon size={20} className={`transition ${isActive ? 'text-brand-red' : 'text-gray-500 group-hover:text-brand-red'}`} />
+                                            <span className={`font-medium transition ${isActive ? 'text-brand-red' : 'text-gray-800 group-hover:text-brand-red'}`}>
                                                 {item.label}
                                             </span>
                                         </div>
                                         <ChevronRight size={18} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
-                                    </Link>
+                                    </button>
                                 </li>
                             );
                         })}

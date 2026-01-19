@@ -100,21 +100,18 @@ const layoutTemplateSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 });
 
-// Middleware to update the updatedAt timestamp
-layoutTemplateSchema.pre('save', function (next) {
+// Middleware to update timestamp and ensure only one default layout exists
+layoutTemplateSchema.pre('save', async function () {
+    // Update timestamp
     this.updatedAt = new Date();
-    next();
-});
-
-// Middleware to ensure only one default layout exists
-layoutTemplateSchema.pre('save', async function (next) {
+    
+    // Ensure only one default layout exists
     if (this.isDefault) {
         await this.constructor.updateMany(
             { _id: { $ne: this._id }, isDefault: true },
             { isDefault: false }
         );
     }
-    next();
 });
 
 // Static method to get default layout

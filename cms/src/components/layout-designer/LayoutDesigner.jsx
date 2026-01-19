@@ -5,7 +5,7 @@ import Layout from '../common/Layout';
 import LayoutCanvas from './LayoutCanvas';
 import LayoutToolbar from './LayoutToolbar';
 import LayoutPropertiesPanel from './LayoutPropertiesPanel';
-import { Save, Eye, ArrowLeft, Undo, Redo } from 'lucide-react';
+import { Save, Eye, ArrowLeft, Undo, Redo, Home } from 'lucide-react';
 
 /**
  * Layout Designer - Main component for creating/editing layout templates
@@ -310,7 +310,7 @@ const LayoutDesigner = () => {
 
     if (loading) {
         return (
-            <Layout>
+            <Layout hideSidebar>
                 <div className="flex justify-center items-center h-96">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                 </div>
@@ -319,17 +319,24 @@ const LayoutDesigner = () => {
     }
 
     return (
-        <Layout>
-            <div className="h-[calc(100vh-80px)] flex flex-col">
+        <Layout hideSidebar>
+            <div className="h-screen flex flex-col">
                 {/* Header Bar */}
                 <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100"
+                            title="Dashboard"
+                        >
+                            <Home size={20} />
+                        </button>
                         <button
                             onClick={() => navigate('/layouts')}
                             className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
                         >
                             <ArrowLeft size={20} />
-                            <span>Back</span>
+                            <span>Back to Layouts</span>
                         </button>
                         <div className="h-6 w-px bg-gray-300"></div>
                         <input

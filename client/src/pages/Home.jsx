@@ -3,7 +3,7 @@ import { getArticles } from '../services/api';
 import NewsLayout from '../components/layout/NewsLayout';
 import NewsCard from '../components/common/NewsCard';
 import { useLanguage } from '../context/LanguageContext';
-import { Loader, ChevronRight, TrendingUp, Clock, Flame } from 'lucide-react';
+import { Loader, ChevronRight, ChevronLeft, TrendingUp, Clock, Flame, Grid, LayoutList } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
@@ -11,6 +11,8 @@ const Home = () => {
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState('All');
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [viewMode, setViewMode] = useState('default'); // 'default' or 'grid'
 
     const categories = ['All', 'Politics', 'Business', 'Tech', 'Sports', 'Entertainment'];
 
@@ -39,10 +41,29 @@ const Home = () => {
             );
         });
 
-    const featuredArticle = filteredArticles[0];
-    const secondaryFeatured = filteredArticles.slice(1, 3);
-    const recentArticles = filteredArticles.slice(3, 9);
-    const moreArticles = filteredArticles.slice(9, 15);
+    // Reset featured index when category changes
+    useEffect(() => {
+        setCurrentIndex(0);
+    }, [activeCategory]);
+
+    // Navigation functions
+    const goToPrevious = () => {
+        setCurrentIndex(prev => (prev === 0 ? filteredArticles.length - 1 : prev - 1));
+    };
+
+    const goToNext = () => {
+        setCurrentIndex(prev => (prev === filteredArticles.length - 1 ? 0 : prev + 1));
+    };
+
+    const goToIndex = (index) => {
+        setCurrentIndex(index);
+    };
+
+    const featuredArticle = filteredArticles[currentIndex];
+    const otherArticles = filteredArticles.filter((_, idx) => idx !== currentIndex);
+    const secondaryFeatured = otherArticles.slice(0, 2);
+    const recentArticles = otherArticles.slice(2, 8);
+    const moreArticles = otherArticles.slice(8, 14);
     const trendingArticles = articles.slice(0, 5);
 
     if (loading) {
@@ -68,73 +89,202 @@ const Home = () => {
     }
 
     return (
-        <NewsLayout>
-            {/* Category Navigation */}
-            <div className="mb-8 border-b border-gray-200 overflow-x-auto scrollbar-hide">
-                <div className="flex gap-1 min-w-max">
-                    {categories.map(category => (
-                        <button
-                            key={category}
-                            onClick={() => setActiveCategory(category)}
-                            className={`px-4 py-3 text-sm font-semibold uppercase tracking-wide transition whitespace-nowrap ${activeCategory === category
-                                    ? 'text-brand-red border-b-2 border-brand-red'
-                                    : 'text-gray-600 hover:text-gray-900'
-                                }`}
-                        >
-                            {category}
-                        </button>
-                    ))}
+        <NewsLayout activeCategory={activeCategory} onCategoryChange={setActiveCategory}>
+            {/* View Toggle */}
+            <div className="flex justify-end mb-6">
+                <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+                    <button
+                        onClick={() => setViewMode('default')}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                            viewMode === 'default'
+                                ? 'bg-white text-brand-red shadow-sm'
+                                : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                    >
+                        <LayoutList size={18} />
+                        <span className="hidden sm:inline">Default</span>
+                    </button>
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                            viewMode === 'grid'
+                                ? 'bg-white text-brand-red shadow-sm'
+                                : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                    >
+                        <Grid size={18} />
+                        <span className="hidden sm:inline">Grid</span>
+                    </button>
                 </div>
             </div>
 
-            {/* Hero Section - Featured Article */}
-            {featuredArticle && (
+            {/* Grid View */}
+            {viewMode === 'grid' && (
                 <section className="mb-12">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        {/* Main Featured */}
-                        <div className="lg:col-span-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredArticles.map((article) => (
                             <Link
-                                to={`/article/${featuredArticle._id}`}
-                                className="group block relative overflow-hidden rounded-lg shadow-lg"
+                                key={article._id}
+                                to={`/article/${article._id}`}
+                                className="group block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition"
                             >
-                                <div className="aspect-[16/9] lg:aspect-[16/10]">
+                                <div className="aspect-[16/10] overflow-hidden">
                                     <img
-                                        src={featuredArticle.photos?.[0] || 'https://placehold.co/800x450?text=Featured'}
-                                        alt={t(featuredArticle, 'article_header')}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                        src={article.photos?.[0] || 'https://placehold.co/400x250?text=News'}
+                                        alt={t(article, 'article_header')}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                                     />
                                 </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        {(t(featuredArticle, 'tags') || []).slice(0, 2).map((tag, idx) => (
-                                            <span key={idx} className="bg-brand-red px-2 py-1 text-xs font-bold uppercase">
-                                                {tag}
-                                            </span>
-                                        ))}
-                                        <span className="flex items-center gap-1 text-sm text-gray-300">
-                                            <Flame size={14} className="text-orange-400" />
-                                            Featured
+                                <div className="p-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-brand-red text-xs font-bold uppercase">
+                                            {(t(article, 'tags') || [])[0] || 'News'}
                                         </span>
                                     </div>
-                                    <h2 className="font-serif font-bold text-2xl md:text-4xl leading-tight mb-3 group-hover:text-gray-200 transition">
-                                        {t(featuredArticle, 'article_header')}
-                                    </h2>
-                                    <p className="text-gray-300 line-clamp-2 text-base hidden md:block">
-                                        {t(featuredArticle, 'summary')}
+                                    <h3 className="font-serif font-bold text-gray-900 line-clamp-2 group-hover:text-brand-red transition">
+                                        {t(article, 'article_header')}
+                                    </h3>
+                                    <p className="text-gray-500 text-sm line-clamp-2 mt-2">
+                                        {t(article, 'summary')}
                                     </p>
-                                    <div className="flex items-center gap-4 mt-4 text-sm text-gray-400">
-                                        <span>{featuredArticle.author}</span>
-                                        <span className="flex items-center gap-1">
-                                            <Clock size={14} />
-                                            {new Date(featuredArticle.createdAt).toLocaleDateString()}
-                                        </span>
+                                    <div className="flex items-center gap-2 mt-3 text-xs text-gray-400">
+                                        <span>{article.author}</span>
+                                        <span>•</span>
+                                        <span>{new Date(article.createdAt).toLocaleDateString()}</span>
                                     </div>
                                 </div>
                             </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Default View */}
+            {viewMode === 'default' && (
+                <>
+            {/* Hero Section - Featured Article with Navigation */}
+            {featuredArticle && (
+                <section className="mb-12">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        {/* Main Featured with External Navigation */}
+                        <div className="lg:col-span-8">
+                            <div className="flex items-center gap-3">
+                                {/* Left Arrow - Outside */}
+                                {filteredArticles.length > 1 && (
+                                    <button
+                                        onClick={goToPrevious}
+                                        className="hidden md:flex flex-shrink-0 bg-gray-100 hover:bg-brand-red hover:text-white text-gray-600 p-3 rounded-full shadow-md transition"
+                                        aria-label="Previous article"
+                                    >
+                                        <ChevronLeft size={24} />
+                                    </button>
+                                )}
+                                
+                                {/* Article Card */}
+                                <div className="flex-1 relative">
+                                    <Link
+                                        to={`/article/${featuredArticle._id}`}
+                                        className="group block relative overflow-hidden rounded-lg shadow-lg"
+                                    >
+                                        <div className="aspect-[16/9] lg:aspect-[16/10]">
+                                            <img
+                                                src={featuredArticle.photos?.[0] || 'https://placehold.co/800x450?text=Featured'}
+                                                alt={t(featuredArticle, 'article_header')}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                            />
+                                        </div>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                                        <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                {(t(featuredArticle, 'tags') || []).slice(0, 2).map((tag, idx) => (
+                                                    <span key={idx} className="bg-brand-red px-2 py-1 text-xs font-bold uppercase">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                                <span className="flex items-center gap-1 text-sm text-gray-300">
+                                                    <Flame size={14} className="text-orange-400" />
+                                                    Featured
+                                                </span>
+                                            </div>
+                                            <h2 className="font-serif font-bold text-2xl md:text-4xl leading-tight mb-3 group-hover:text-gray-200 transition">
+                                                {t(featuredArticle, 'article_header')}
+                                            </h2>
+                                            <p className="text-gray-300 line-clamp-2 text-base hidden md:block">
+                                                {t(featuredArticle, 'summary')}
+                                            </p>
+                                            <div className="flex items-center gap-4 mt-4 text-sm text-gray-400">
+                                                <span>{featuredArticle.author}</span>
+                                                <span className="flex items-center gap-1">
+                                                    <Clock size={14} />
+                                                    {new Date(featuredArticle.createdAt).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Article Counter */}
+                                        <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                                            {currentIndex + 1} / {filteredArticles.length}
+                                        </div>
+                                    </Link>
+                                </div>
+                                
+                                {/* Right Arrow - Outside */}
+                                {filteredArticles.length > 1 && (
+                                    <button
+                                        onClick={goToNext}
+                                        className="hidden md:flex flex-shrink-0 bg-gray-100 hover:bg-brand-red hover:text-white text-gray-600 p-3 rounded-full shadow-md transition"
+                                        aria-label="Next article"
+                                    >
+                                        <ChevronRight size={24} />
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {/* Mobile Navigation Arrows */}
+                            {filteredArticles.length > 1 && (
+                                <div className="flex md:hidden justify-center gap-4 mt-4">
+                                    <button
+                                        onClick={goToPrevious}
+                                        className="bg-gray-100 hover:bg-brand-red hover:text-white text-gray-600 p-2 rounded-full shadow-md transition"
+                                        aria-label="Previous article"
+                                    >
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <button
+                                        onClick={goToNext}
+                                        className="bg-gray-100 hover:bg-brand-red hover:text-white text-gray-600 p-2 rounded-full shadow-md transition"
+                                        aria-label="Next article"
+                                    >
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {/* Pagination Dots */}
+                            {filteredArticles.length > 1 && (
+                                <div className="flex justify-center gap-2 mt-4">
+                                    {filteredArticles.slice(0, Math.min(filteredArticles.length, 10)).map((_, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => goToIndex(index)}
+                                            className={`w-2.5 h-2.5 rounded-full transition ${
+                                                index === currentIndex
+                                                    ? 'bg-brand-red w-6'
+                                                    : 'bg-gray-300 hover:bg-gray-400'
+                                            }`}
+                                            aria-label={`Go to article ${index + 1}`}
+                                        />
+                                    ))}
+                                    {filteredArticles.length > 10 && (
+                                        <span className="text-xs text-gray-500 ml-2">
+                                            +{filteredArticles.length - 10} more
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
-                        {/* Secondary Featured */}
+                        {/* Secondary Articles */}
                         <div className="lg:col-span-4 flex flex-col gap-4">
                             {secondaryFeatured.map(article => (
                                 <Link
@@ -275,6 +425,8 @@ const Home = () => {
                     </div>
                 </aside>
             </div>
+                </>
+            )}
         </NewsLayout>
     );
 };

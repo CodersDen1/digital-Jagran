@@ -103,6 +103,22 @@ const BORDER_RADIUS = [
 ];
 
 /**
+ * Max height options
+ */
+const MAX_HEIGHT_OPTIONS = [
+    { value: '', label: 'None (Auto)' },
+    { value: '24', label: '96px (24)' },
+    { value: '32', label: '128px (32)' },
+    { value: '40', label: '160px (40)' },
+    { value: '48', label: '192px (48)' },
+    { value: '56', label: '224px (56)' },
+    { value: '64', label: '256px (64)' },
+    { value: '72', label: '288px (72)' },
+    { value: '80', label: '320px (80)' },
+    { value: '96', label: '384px (96)' },
+];
+
+/**
  * Text color options
  */
 const TEXT_COLORS = [
@@ -148,6 +164,7 @@ const LayoutPropertiesPanel = ({
     const showTypography = ['header', 'summary', 'body', 'author', 'date', 'tags', 'text'].includes(type);
     const showImageOptions = ['image'].includes(type);
     const showVideoOptions = ['video'].includes(type);
+    const showMaxHeight = ['header', 'summary', 'body', 'text', 'image'].includes(type);
     const showCustomContent = ['text'].includes(type);
     const showSpacing = true; // All elements have spacing
 
@@ -301,6 +318,63 @@ const LayoutPropertiesPanel = ({
                         </div>
                     </div>
                 )}
+
+                {/* Max Height Section */}
+                {showMaxHeight && (
+                    <div className="space-y-4">
+                        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            Size Constraints
+                        </h4>
+
+                        <SelectField
+                            label="Max Height"
+                            value={config.maxHeight}
+                            onChange={(val) => onUpdateConfig({ maxHeight: val })}
+                            options={MAX_HEIGHT_OPTIONS}
+                        />
+
+                        <p className="text-xs text-gray-400">
+                            {showImageOptions 
+                                ? 'Image will resize to fit within max height'
+                                : 'Text will reduce font size if content exceeds max height'
+                            }
+                        </p>
+                    </div>
+                )}
+
+                {/* Border Section */}
+                <div className="space-y-4">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Border
+                    </h4>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id="borderLeft"
+                            checked={config.borderLeft || false}
+                            onChange={(e) => onUpdateConfig({ borderLeft: e.target.checked })}
+                            className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                        />
+                        <label htmlFor="borderLeft" className="text-sm text-gray-700">Left Border</label>
+                    </div>
+
+                    {config.borderLeft && (
+                        <SelectField
+                            label="Border Color"
+                            value={config.borderColor}
+                            onChange={(val) => onUpdateConfig({ borderColor: val })}
+                            options={[
+                                { value: 'gray-300', label: 'Gray Light' },
+                                { value: 'gray-400', label: 'Gray' },
+                                { value: 'gray-500', label: 'Gray Dark' },
+                                { value: 'brand-red', label: 'Brand Red' },
+                                { value: 'red-500', label: 'Red' },
+                                { value: 'blue-500', label: 'Blue' },
+                            ]}
+                        />
+                    )}
+                </div>
 
                 {/* Spacing Section */}
                 {showSpacing && (

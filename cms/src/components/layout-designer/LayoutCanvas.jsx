@@ -172,9 +172,16 @@ const LayoutCanvas = ({
             classes.push(`border-${config.borderColor || 'gray-200'}`);
         }
 
-        // Border left (for summary style)
-        if (config.paddingLeft && config.borderColor) {
+        // Border left (only when explicitly enabled)
+        if (config.borderLeft) {
             classes.push(`border-l-4`);
+            classes.push(`border-${config.borderColor || 'gray-300'}`);
+        }
+
+        // Max height with overflow handling
+        if (config.maxHeight) {
+            classes.push(`max-h-${config.maxHeight}`);
+            classes.push('overflow-hidden');
         }
 
         return classes.join(' ');

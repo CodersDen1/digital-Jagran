@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, PenSquare, LogOut, Palette } from 'lucide-react';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, hideSidebar = false }) => {
     const location = useLocation();
 
     const navItems = [
@@ -10,6 +10,17 @@ const Layout = ({ children }) => {
         { label: 'Create Article', path: '/create', icon: <PenSquare size={20} /> },
         { label: 'Layout Templates', path: '/layouts', icon: <Palette size={20} /> },
     ];
+
+    // Full-width layout without sidebar
+    if (hideSidebar) {
+        return (
+            <div className="h-screen bg-gray-100 flex flex-col">
+                <main className="flex-1 overflow-y-auto">
+                    {children}
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen bg-gray-100">

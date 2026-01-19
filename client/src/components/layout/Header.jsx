@@ -4,7 +4,7 @@ import { Menu, Search, Globe, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MobileMenu from './MobileMenu';
 
-const Header = () => {
+const Header = ({ activeCategory, onCategoryChange }) => {
     const { language, toggleLanguage } = useLanguage();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -23,7 +23,7 @@ const Header = () => {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
-    const navItems = ['Home', 'India', 'World', 'Business', 'Tech', 'Sports', 'Entertainment', 'Opinion'];
+    const categories = ['All', 'Politics', 'Business', 'Tech', 'Sports', 'Entertainment'];
 
     return (
         <>
@@ -104,22 +104,26 @@ const Header = () => {
                     </div>
                 )}
 
-                {/* Navigation - Desktop */}
+                {/* Category Navigation - Desktop */}
                 <nav
                     className={`border-t border-b border-gray-200 py-3 hidden lg:block transition-all duration-300 ${isScrolled
                             ? 'fixed top-0 left-0 right-0 bg-white z-50 shadow-md'
                             : ''
                         }`}
                 >
-                    <ul className="flex justify-center gap-8 font-sans font-bold text-sm uppercase text-gray-800">
-                        {navItems.map(item => (
-                            <li key={item}>
-                                <Link
-                                    to="/"
-                                    className="hover:text-brand-red transition-colors py-1 block relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-brand-red hover:after:w-full after:transition-all"
+                    <ul className="flex justify-center gap-8 font-sans text-sm uppercase">
+                        {categories.map(category => (
+                            <li key={category}>
+                                <button
+                                    onClick={() => onCategoryChange && onCategoryChange(category)}
+                                    className={`transition-colors py-1 block relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-brand-red after:transition-all ${
+                                        activeCategory === category
+                                            ? 'text-brand-red font-black after:w-full'
+                                            : 'text-gray-600 font-semibold hover:text-brand-red after:w-0 hover:after:w-full'
+                                    }`}
                                 >
-                                    {item}
-                                </Link>
+                                    {category}
+                                </button>
                             </li>
                         ))}
                     </ul>
@@ -130,6 +134,8 @@ const Header = () => {
             <MobileMenu
                 isOpen={mobileMenuOpen}
                 onClose={() => setMobileMenuOpen(false)}
+                activeCategory={activeCategory}
+                onCategoryChange={onCategoryChange}
             />
         </>
     );

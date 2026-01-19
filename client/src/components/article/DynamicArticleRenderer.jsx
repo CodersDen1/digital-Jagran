@@ -41,8 +41,14 @@ const DynamicArticleRenderer = ({ article, layout }) => {
         if (config.borderRadius && config.borderRadius !== 'none') {
             classes.push(`rounded-${config.borderRadius}`);
         }
-        if (config.paddingLeft && config.borderColor) {
-            classes.push(`border-l-4 border-${config.borderColor}`);
+        // Border left (only when explicitly enabled)
+        if (config.borderLeft) {
+            classes.push(`border-l-4 border-${config.borderColor || 'gray-300'}`);
+        }
+        // Max height with overflow handling
+        if (config.maxHeight) {
+            classes.push(`max-h-${config.maxHeight}`);
+            classes.push('overflow-hidden');
         }
 
         return classes.join(' ');

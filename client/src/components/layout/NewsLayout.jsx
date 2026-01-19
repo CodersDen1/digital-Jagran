@@ -3,10 +3,10 @@ import Header from './Header';
 import Footer from './Footer';
 import Ticker from '../common/Ticker';
 
-const NewsLayout = ({ children }) => {
+const NewsLayout = ({ children, activeCategory, onCategoryChange }) => {
     return (
         <div className="min-h-screen flex flex-col font-sans">
-            <Header />
+            <Header activeCategory={activeCategory} onCategoryChange={onCategoryChange} />
             <Ticker items={[
                 "Sensex jumps 500 points in early trade",
                 "PM Modi inaugurates new highway project",

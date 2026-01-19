@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { User, Calendar, Share2, Facebook, Twitter, Linkedin } from 'lucide-react';
 
 /**
@@ -7,11 +7,11 @@ import { User, Calendar, Share2, Facebook, Twitter, Linkedin } from 'lucide-reac
 const ElementRenderers = ({ type, config, article, t }) => {
     switch (type) {
         case 'header':
-            return <HeaderRenderer article={article} t={t} />;
+            return <HeaderRenderer article={article} t={t} config={config} />;
         case 'summary':
-            return <SummaryRenderer article={article} t={t} />;
+            return <SummaryRenderer article={article} t={t} config={config} />;
         case 'body':
-            return <BodyRenderer article={article} t={t} />;
+            return <BodyRenderer article={article} t={t} config={config} />;
         case 'image':
             return <ImageRenderer article={article} t={t} config={config} />;
         case 'video':
@@ -34,39 +34,88 @@ const ElementRenderers = ({ type, config, article, t }) => {
 };
 
 /**
- * Header/Headline Renderer
+ * Header/Headline Renderer - supports auto-resize when maxHeight is set
  */
-const HeaderRenderer = ({ article, t }) => {
+const HeaderRenderer = ({ article, t, config }) => {
+    const ref = useRef(null);
+    
+    useEffect(() => {
+        if (!ref.current || !config?.maxHeight) return;
+        
+        const element = ref.current;
+        const maxHeightPx = parseInt(config.maxHeight) * 4;
+        let currentFontSize = 48; // Start from large font
+        
+        element.style.fontSize = `${currentFontSize}px`;
+        
+        while (element.scrollHeight > maxHeightPx && currentFontSize > 14) {
+            currentFontSize -= 2;
+            element.style.fontSize = `${currentFontSize}px`;
+        }
+    }, [config?.maxHeight, article]);
+
     return (
-        <h1 className="text-gray-900 leading-tight">
+        <h1 ref={ref} className="text-gray-900 leading-tight">
             {t(article, 'article_header')}
         </h1>
     );
 };
 
 /**
- * Summary/Lead Renderer
+ * Summary/Lead Renderer - supports auto-resize when maxHeight is set
  */
-const SummaryRenderer = ({ article, t }) => {
+const SummaryRenderer = ({ article, t, config }) => {
+    const ref = useRef(null);
+    
+    useEffect(() => {
+        if (!ref.current || !config?.maxHeight) return;
+        
+        const element = ref.current;
+        const maxHeightPx = parseInt(config.maxHeight) * 4;
+        let currentFontSize = 20;
+        
+        element.style.fontSize = `${currentFontSize}px`;
+        
+        while (element.scrollHeight > maxHeightPx && currentFontSize > 12) {
+            currentFontSize -= 1;
+            element.style.fontSize = `${currentFontSize}px`;
+        }
+    }, [config?.maxHeight, article]);
+
     return (
-        <p className="text-gray-600 italic">
+        <p ref={ref} className="text-gray-600 italic">
             {t(article, 'summary')}
         </p>
     );
 };
 
 /**
- * Body Content Renderer
+ * Body Content Renderer - supports auto-resize when maxHeight is set
  */
-const BodyRenderer = ({ article, t }) => {
+const BodyRenderer = ({ article, t, config }) => {
+    const ref = useRef(null);
     const body = t(article, 'body');
-
-    // Check if body contains HTML
     const isHTML = /<[a-z][\s\S]*>/i.test(body);
+    
+    useEffect(() => {
+        if (!ref.current || !config?.maxHeight) return;
+        
+        const element = ref.current;
+        const maxHeightPx = parseInt(config.maxHeight) * 4;
+        let currentFontSize = 18;
+        
+        element.style.fontSize = `${currentFontSize}px`;
+        
+        while (element.scrollHeight > maxHeightPx && currentFontSize > 11) {
+            currentFontSize -= 1;
+            element.style.fontSize = `${currentFontSize}px`;
+        }
+    }, [config?.maxHeight, body]);
 
     if (isHTML) {
         return (
             <div
+                ref={ref}
                 className="prose prose-lg max-w-none"
                 dangerouslySetInnerHTML={{ __html: body }}
             />
@@ -74,7 +123,7 @@ const BodyRenderer = ({ article, t }) => {
     }
 
     return (
-        <div className="whitespace-pre-wrap text-gray-800">
+        <div ref={ref} className="whitespace-pre-wrap text-gray-800">
             {body}
         </div>
     );
@@ -94,16 +143,28 @@ const ImageRenderer = ({ article, t, config }) => {
         );
     }
 
+    // Build style object for image
+    const imageStyle = {
+        objectFit: config?.objectFit || 'cover',
+        width: '100%'
+    };
+
+    // If maxHeight is set, prioritize it over aspect ratio
+    if (config?.maxHeight) {
+        imageStyle.maxHeight = '100%';
+        imageStyle.height = 'auto';
+        imageStyle.objectFit = 'contain'; // Use contain to show full image within bounds
+    } else if (config?.aspectRatio) {
+        imageStyle.aspectRatio = config.aspectRatio;
+    }
+
     return (
-        <figure>
+        <figure className={config?.maxHeight ? 'h-full' : ''}>
             <img
                 src={image}
                 alt={t(article, 'article_header')}
-                className="w-full h-auto object-cover"
-                style={{
-                    aspectRatio: config?.aspectRatio || '16/9',
-                    objectFit: config?.objectFit || 'cover'
-                }}
+                className="w-full h-auto"
+                style={imageStyle}
                 loading="lazy"
             />
             {article.photos.length > 1 && (
@@ -219,11 +280,28 @@ const TagsRenderer = ({ article, t }) => {
 };
 
 /**
- * Custom Text Renderer
+ * Custom Text Renderer - supports auto-resize when maxHeight is set
  */
 const TextRenderer = ({ config }) => {
+    const ref = useRef(null);
+    
+    useEffect(() => {
+        if (!ref.current || !config?.maxHeight) return;
+        
+        const element = ref.current;
+        const maxHeightPx = parseInt(config.maxHeight) * 4;
+        let currentFontSize = 16;
+        
+        element.style.fontSize = `${currentFontSize}px`;
+        
+        while (element.scrollHeight > maxHeightPx && currentFontSize > 10) {
+            currentFontSize -= 1;
+            element.style.fontSize = `${currentFontSize}px`;
+        }
+    }, [config?.maxHeight, config?.customContent]);
+
     return (
-        <div>
+        <div ref={ref}>
             {config?.customContent || 'Custom content...'}
         </div>
     );
