@@ -1,0 +1,22 @@
+# Client
+client/node_modules/
+client/dist/
+client/build/
+client/.next/
+client/out/
+client/.env*.local
+
+# CMS
+cms/node_modules/
+cms/.cache/
+cms/.tmp/
+cms/build/
+cms/public/uploads/
+cms/exports/
+
+# Server
+server/node_modules/
+server/dist/
+server/build/
+server/.env
+server/logs/
