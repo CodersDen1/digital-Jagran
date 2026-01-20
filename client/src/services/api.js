@@ -31,3 +31,20 @@ export const getDefaultLayout = async () => {
         return null;
     }
 };
+
+// Track article view
+export const trackArticleView = async (id) => {
+    try {
+        const response = await api.post(`/articles/${id}/view`);
+        return response.data;
+    } catch (error) {
+        console.error('Failed to track view:', error);
+        return null;
+    }
+};
+
+// Get trending articles
+export const getTrendingArticles = async (limit = 10) => {
+    const response = await api.get(`/articles/trending?limit=${limit}`);
+    return response.data;
+};

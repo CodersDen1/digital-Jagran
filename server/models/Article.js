@@ -34,6 +34,9 @@ const articleSchema = new mongoose.Schema({
   published_language: { type: String, default: 'en' }, // 'en', 'hi', or 'both'
   author: { type: String, default: 'Nisha Mishra' },
 
+  // View tracking for trending
+  views: { type: Number, default: 0 },
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

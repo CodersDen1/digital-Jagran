@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, PenSquare, LogOut, Palette } from 'lucide-react';
+import useAuthStore from '../../store/authStore';
+import SessionTimer from '../auth/SessionTimer';
 
 const Layout = ({ children, hideSidebar = false }) => {
     const location = useLocation();
+    const { logout, user } = useAuthStore();
 
     const navItems = [
         { label: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
@@ -48,7 +51,10 @@ const Layout = ({ children, hideSidebar = false }) => {
                 </nav>
 
                 <div className="p-4 border-t">
-                    <button className="flex items-center gap-3 px-4 py-3 w-full text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    <button 
+                        onClick={logout}
+                        className="flex items-center gap-3 px-4 py-3 w-full text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
                         <LogOut size={20} />
                         Logout
                     </button>
@@ -62,10 +68,11 @@ const Layout = ({ children, hideSidebar = false }) => {
                         {navItems.find(i => i.path === location.pathname)?.label || 'Admin'}
                     </h2>
                     <div className="flex items-center gap-4">
+                        <SessionTimer />
                         <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                             A
                         </div>
-                        <span className="text-sm font-medium text-gray-700">Admin User</span>
+                        <span className="text-sm font-medium text-gray-700">{user?.email || 'Admin'}</span>
                     </div>
                 </header>
                 <div className="p-8">

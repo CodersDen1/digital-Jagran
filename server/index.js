@@ -23,9 +23,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digital_j
 const articleRouter = express.Router();
 articleRouter.post('/articles', (req, res) => articleController.createArticle(req, res));
 articleRouter.get('/articles', (req, res) => articleController.getAllArticles(req, res));
+articleRouter.get('/articles/trending', (req, res) => articleController.getTrendingArticles(req, res));
 articleRouter.get('/articles/:id', (req, res) => articleController.getArticleById(req, res));
 articleRouter.put('/articles/:id', (req, res) => articleController.updateArticle(req, res));
 articleRouter.delete('/articles/:id', (req, res) => articleController.deleteArticle(req, res));
+articleRouter.post('/articles/:id/view', (req, res) => articleController.incrementViews(req, res));
 
 // Layout Routes
 const layoutRouter = express.Router();

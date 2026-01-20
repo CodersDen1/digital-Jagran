@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { getArticles } from '../services/api';
+import { getArticles, getTrendingArticles } from '../services/api';
 import NewsLayout from '../components/layout/NewsLayout';
 import NewsCard from '../components/common/NewsCard';
 import { useLanguage } from '../context/LanguageContext';
-import { Loader, ChevronRight, ChevronLeft, TrendingUp, Clock, Flame, Grid, LayoutList } from 'lucide-react';
+import { Loader, ChevronRight, ChevronLeft, TrendingUp, Clock, Flame, Grid, LayoutList, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
     const { t } = useLanguage();
     const [articles, setArticles] = useState([]);
+    const [trendingArticles, setTrendingArticles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState('All');
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -22,8 +23,12 @@ const Home = () => {
 
     const fetchArticles = async () => {
         try {
-            const data = await getArticles();
-            setArticles(data);
+            const [articlesData, trendingData] = await Promise.all([
+                getArticles(),
+                getTrendingArticles(5)
+            ]);
+            setArticles(articlesData);
+            setTrendingArticles(trendingData);
         } catch (error) {
             console.error(error);
         } finally {
@@ -64,7 +69,9 @@ const Home = () => {
     const secondaryFeatured = otherArticles.slice(0, 2);
     const recentArticles = otherArticles.slice(2, 8);
     const moreArticles = otherArticles.slice(8, 14);
-    const trendingArticles = articles.slice(0, 5);
+    
+    // Latest 5 published articles for Latest Stories section (independent of category filter)
+    const latestArticles = articles.slice(0, 5);
 
     if (loading) {
         return (
@@ -321,7 +328,7 @@ const Home = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Main Content Column */}
                 <div className="lg:col-span-8">
-                    {/* Latest Stories Section */}
+                    {/* Latest Stories Section - Latest 5 Articles in Grid */}
                     <section className="mb-12">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="font-serif font-bold text-2xl border-l-4 border-brand-red pl-3">
@@ -332,13 +339,47 @@ const Home = () => {
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {recentArticles.length > 0 ? (
-                                recentArticles.map(article => (
-                                    <NewsCard key={article._id} article={article} />
+                        <div className="grid grid-cols-3 gap-5">
+                            {latestArticles.length > 0 ? (
+                                latestArticles.map((article) => (
+                                    <Link
+                                        key={article._id}
+                                        to={`/article/${article._id}`}
+                                        className="group block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition w-full"
+                                    >
+                                        <div className="aspect-[4/3] overflow-hidden">
+                                            <img
+                                                src={article.photos?.[0] || 'https://placehold.co/400x300?text=News'}
+                                                alt={t(article, 'article_header')}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                            />
+                                        </div>
+                                        <div className="p-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="text-brand-red text-xs font-bold uppercase">
+                                                    {(t(article, 'tags') || [])[0] || 'News'}
+                                                </span>
+                                                <span className="text-gray-400 text-xs flex items-center gap-1">
+                                                    <Eye size={12} />
+                                                    {article.views || 0}
+                                                </span>
+                                            </div>
+                                            <h3 className="font-serif font-bold text-gray-900 group-hover:text-brand-red transition text-base line-clamp-2">
+                                                {t(article, 'article_header')}
+                                            </h3>
+                                            <p className="text-gray-500 mt-2 line-clamp-2 text-sm">
+                                                {t(article, 'summary')}
+                                            </p>
+                                            <div className="flex items-center gap-2 mt-3 text-xs text-gray-400">
+                                                <span>{article.author}</span>
+                                                <span>•</span>
+                                                <span>{new Date(article.createdAt).toLocaleDateString()}</span>
+                                            </div>
+                                        </div>
+                                    </Link>
                                 ))
                             ) : (
-                                <p className="text-gray-500 col-span-2">No articles in this category.</p>
+                                <p className="text-gray-500 col-span-3 text-center py-8">No articles published yet.</p>
                             )}
                         </div>
                     </section>
@@ -380,9 +421,13 @@ const Home = () => {
                                         <h4 className="font-medium text-gray-900 line-clamp-2 group-hover:text-brand-red transition">
                                             {t(article, 'article_header')}
                                         </h4>
-                                        <span className="text-xs text-gray-500 mt-1 block">
-                                            {new Date(article.createdAt).toLocaleDateString()}
-                                        </span>
+                                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                                            <span className="flex items-center gap-1">
+                                                <Eye size={12} />
+                                                {article.views || 0} views
+                                            </span>
+                                            <span>{new Date(article.createdAt).toLocaleDateString()}</span>
+                                        </div>
                                     </Link>
                                 </li>
                             ))}

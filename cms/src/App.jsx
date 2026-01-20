@@ -4,17 +4,65 @@ import Dashboard from './components/dashboard/Dashboard';
 import CreateArticle from './components/dashboard/CreateArticle';
 import LayoutTemplatesList from './pages/LayoutTemplatesList';
 import LayoutDesigner from './components/layout-designer/LayoutDesigner';
+import Login from './pages/Login';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/create" element={<CreateArticle />} />
-        <Route path="/edit/:id" element={<CreateArticle />} />
-        <Route path="/layouts" element={<LayoutTemplatesList />} />
-        <Route path="/layouts/new" element={<LayoutDesigner />} />
-        <Route path="/layouts/:id" element={<LayoutDesigner />} />
+        {/* Public Route */}
+        <Route path="/login" element={<Login />} />
+        
+        {/* Protected Routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/create"
+          element={
+            <ProtectedRoute>
+              <CreateArticle />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/edit/:id"
+          element={
+            <ProtectedRoute>
+              <CreateArticle />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/layouts"
+          element={
+            <ProtectedRoute>
+              <LayoutTemplatesList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/layouts/new"
+          element={
+            <ProtectedRoute>
+              <LayoutDesigner />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/layouts/:id"
+          element={
+            <ProtectedRoute>
+              <LayoutDesigner />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getArticleById, getLayoutById, getDefaultLayout, getArticles } from '../services/api';
+import { getArticleById, getLayoutById, getDefaultLayout, getArticles, trackArticleView } from '../services/api';
 import NewsLayout from '../components/layout/NewsLayout';
 import DynamicArticleRenderer from '../components/article/DynamicArticleRenderer';
 import { SocialShare } from '../components/article/ElementRenderers';
@@ -14,11 +14,22 @@ const ArticleDetail = () => {
     const [layout, setLayout] = useState(null);
     const [relatedArticles, setRelatedArticles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const viewTrackedRef = useRef(false);
 
     useEffect(() => {
         fetchArticle();
         window.scrollTo(0, 0);
+        // Reset view tracking when article changes
+        viewTrackedRef.current = false;
     }, [id]);
+
+    // Track view when article is loaded
+    useEffect(() => {
+        if (article && !viewTrackedRef.current) {
+            trackArticleView(id);
+            viewTrackedRef.current = true;
+        }
+    }, [article, id]);
 
     const fetchArticle = async () => {
         setLoading(true);

@@ -54,6 +54,26 @@ class ArticleController {
             res.status(500).json({ error: error.message });
         }
     }
+
+    async incrementViews(req, res) {
+        try {
+            const article = await articleRepository.incrementViews(req.params.id);
+            if (!article) return res.status(404).json({ message: 'Article not found' });
+            res.status(200).json({ views: article.views });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    async getTrendingArticles(req, res) {
+        try {
+            const limit = parseInt(req.query.limit) || 10;
+            const articles = await articleRepository.findTrending(limit);
+            res.status(200).json(articles);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
 }
 
 module.exports = new ArticleController();
