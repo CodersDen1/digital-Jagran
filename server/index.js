@@ -43,6 +43,8 @@ layoutRouter.post('/layouts/:id/duplicate', (req, res) => layoutController.dupli
 app.use('/api', articleRouter);
 app.use('/api', layoutRouter);
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
 });

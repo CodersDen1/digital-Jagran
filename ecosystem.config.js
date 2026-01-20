@@ -4,9 +4,12 @@ module.exports = {
       name: 'client',
       cwd: './client',
       script: 'npm',
-      // CHANGE: Added '-- --host' to force 0.0.0.0 binding
-      args: 'run dev -- --host',
+      args: 'run dev -- --host --mode production',
       env: {
+        PORT: 5173,
+        NODE_ENV: 'production'
+      },
+      env_development: {
         PORT: 5173,
         NODE_ENV: 'development'
       },
@@ -17,9 +20,12 @@ module.exports = {
       name: 'cms',
       cwd: './cms',
       script: 'npm',
-      // CHANGE: Added '-- --host' here as well
-      args: 'run dev -- --host',
+      args: 'run dev -- --host --mode production',
       env: {
+        PORT: 5174,
+        NODE_ENV: 'production'
+      },
+      env_development: {
         PORT: 5174,
         NODE_ENV: 'development'
       },
@@ -33,8 +39,12 @@ module.exports = {
       args: 'start',
       env: {
         PORT: 5001,
-        // Ensure your server code (index.js/server.js) listens on 0.0.0.0
-        // e.g., app.listen(5001, '0.0.0.0')
+        HOST: '0.0.0.0',
+        NODE_ENV: 'production'
+      },
+      env_development: {
+        PORT: 5001,
+        HOST: 'localhost',
         NODE_ENV: 'development'
       },
       watch: false,
