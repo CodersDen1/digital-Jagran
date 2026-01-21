@@ -33,6 +33,7 @@ const articleSchema = new mongoose.Schema({
   is_Drafted: { type: Boolean, default: true },
   published_language: { type: String, default: 'en' }, // 'en', 'hi', or 'both'
   author: { type: String, default: 'Nisha Mishra' },
+  isTranslating: { type: Boolean, default: false },
 
   // View tracking for trending
   views: { type: Number, default: 0 },

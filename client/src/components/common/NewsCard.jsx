@@ -12,6 +12,18 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
 
     if (!article) return null;
 
+    // Skeleton Loader for Translating State
+    if (article.isTranslating) {
+        return (
+            <div className="animate-pulse bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100 h-full p-4">
+                <div className="bg-gray-200 h-48 w-full rounded-md mb-4"></div>
+                <div className="bg-gray-200 h-6 w-3/4 rounded mb-2"></div>
+                <div className="bg-gray-200 h-4 w-1/2 rounded mb-4"></div>
+                <div className="bg-gray-200 h-4 w-full rounded"></div>
+            </div>
+        );
+    }
+
     const header = t(article, 'article_header');
     const summary = t(article, 'summary');
     const tags = t(article, 'tags') || [];

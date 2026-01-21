@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:5001/api';
 
 export const api = axios.create({
     baseURL: API_URL,
@@ -25,6 +25,10 @@ export const articleService = {
     },
     delete: async (id) => {
         const response = await api.delete(`/articles/${id}`);
+        return response.data;
+    },
+    translate: async (id) => {
+        const response = await api.post(`/articles/${id}/translate`, {});
         return response.data;
     }
 };

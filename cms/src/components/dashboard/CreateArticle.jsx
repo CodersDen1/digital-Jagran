@@ -14,23 +14,26 @@ const CreateArticle = () => {
     const { id } = useParams(); // Get article ID from URL for edit mode
     const isEditMode = Boolean(id);
     const [formData, setFormData] = useState({
-        article_header_en: '',
-        metadata_en: '',
-        keywords_en: '',
-        summary_en: '',
-        body_en: '',
-        tags_en: '',
+        article_header: '', // Generic key
+        metadata: '',
+        keywords: '',
+        summary: '',
+        body: '',
+        tags: '',
         photos: '',
         video: '',
         is_Published: false,
         author: 'Nisha Mishra',
         layoutTemplate: ''
     });
-    // Track content by element ID for layouts with multiple elements of same type
+    // Track content by element ID
     const [elementData, setElementData] = useState({});
     const [loading, setLoading] = useState(false);
     const [layouts, setLayouts] = useState([]);
     const [showSettings, setShowSettings] = useState(false);
+
+    // Language State ('en' or 'HN')
+    const [language, setLanguage] = useState('en');
 
     // Get the currently selected layout object
     const selectedLayout = layouts.find(l => l._id === formData.layoutTemplate) || null;
@@ -50,20 +53,35 @@ const CreateArticle = () => {
         try {
             setLoading(true);
             const article = await articleService.getById(id);
+
+            // Determine language from existing article
+            // Map 'hi' -> 'HN' for consistency
+            const articleLang = article.published_language === 'hi' ? 'HN' : (article.published_language || 'en');
+            setLanguage(articleLang);
+
+            // Helper to get field based on language
+            const getField = (enField, hiField) => {
+                return articleLang === 'en' ? article[enField] : (article[hiField] || '');
+            };
+
             setFormData({
-                article_header_en: article.article_header_en || '',
-                metadata_en: article.metadata_en || '',
-                keywords_en: Array.isArray(article.keywords_en) ? article.keywords_en.join(', ') : (article.keywords_en || ''),
-                summary_en: article.summary_en || '',
-                body_en: article.body_en || '',
-                tags_en: Array.isArray(article.tags_en) ? article.tags_en.join(', ') : (article.tags_en || ''),
+                article_header: getField('article_header_en', 'article_header') || '',
+                metadata: getField('metadata_en', 'metadata') || '',
+                keywords: Array.isArray(getField('keywords_en', 'keywords'))
+                    ? getField('keywords_en', 'keywords').join(', ')
+                    : (getField('keywords_en', 'keywords') || ''),
+                summary: getField('summary_en', 'summary') || '',
+                body: getField('body_en', 'body') || '',
+                tags: Array.isArray(getField('tags_en', 'tags'))
+                    ? getField('tags_en', 'tags').join(', ')
+                    : (getField('tags_en', 'tags') || ''),
                 photos: Array.isArray(article.photos) ? article.photos.join(', ') : (article.photos || ''),
                 video: article.video || '',
                 is_Published: article.is_Published || false,
                 author: article.author || 'Nisha Mishra',
                 layoutTemplate: article.layoutTemplate || ''
             });
-            // Load element-specific content if it exists
+            // Load element-specific content if it exists (legacy check for en, eventually generic)
             if (article.elementContent_en) {
                 setElementData(article.elementContent_en);
             }
@@ -80,7 +98,6 @@ const CreateArticle = () => {
         try {
             const data = await layoutService.getAll();
             setLayouts(data);
-            // Only set default layout for new articles (not in edit mode)
             if (!isEditMode) {
                 const defaultLayout = data.find(l => l.isDefault);
                 if (defaultLayout) {
@@ -106,17 +123,15 @@ const CreateArticle = () => {
 
     // Get value for an element - first check elementData by ID, then fall back to formData by type
     const getElementValue = (element) => {
-        // If we have element-specific data, use it
         if (elementData[element.id]?.value !== undefined) {
             return elementData[element.id].value;
         }
-        // Otherwise fall back to type-based formData (for backward compatibility)
         const typeToField = {
-            'header': 'article_header_en',
-            'summary': 'summary_en',
-            'body': 'body_en',
+            'header': 'article_header',
+            'summary': 'summary',
+            'body': 'body',
             'author': 'author',
-            'tags': 'tags_en',
+            'tags': 'tags',
             'image': 'photos',
             'video': 'video'
         };
@@ -126,18 +141,18 @@ const CreateArticle = () => {
     // Consolidate element data by type for submission
     const consolidateElementData = () => {
         const result = { ...formData };
-        
+
         // Group element values by type
         const typeToField = {
-            'header': 'article_header_en',
-            'summary': 'summary_en',
-            'body': 'body_en',
+            'header': 'article_header',
+            'summary': 'summary',
+            'body': 'body',
             'author': 'author',
-            'tags': 'tags_en',
+            'tags': 'tags',
             'image': 'photos',
             'video': 'video'
         };
-        
+
         // Collect all values by type
         const valuesByType = {};
         Object.values(elementData).forEach(({ type, value }) => {
@@ -148,27 +163,23 @@ const CreateArticle = () => {
                 valuesByType[type].push(value);
             }
         });
-        
-        // Merge into result - for text fields, join with newlines; for image/video arrays, join with commas
+
+        // Merge into result
         Object.entries(valuesByType).forEach(([type, values]) => {
             const fieldName = typeToField[type];
             if (fieldName) {
                 if (type === 'body') {
-                    // Join multiple body sections with double newlines
                     result[fieldName] = values.join('\n\n');
                 } else if (type === 'header') {
-                    // Use first header as main title
-                    result[fieldName] = values[0];
+                    result[fieldName] = values[0]; // First header is main
                 } else if (type === 'image') {
-                    // Combine all image URLs
                     result[fieldName] = values.join(',');
                 } else {
-                    // For other types, use first value
                     result[fieldName] = values[0];
                 }
             }
         });
-        
+
         return result;
     };
 
@@ -176,27 +187,48 @@ const CreateArticle = () => {
         e.preventDefault();
         setLoading(true);
 
-        // Merge elementData into formData for custom layouts
         const mergedData = consolidateElementData();
-        
+
+        // Construct final payload mapping generic fields to Language-Specific fields
         const payload = {
-            ...mergedData,
-            keywords_en: mergedData.keywords_en.split(',').map(s => s.trim()),
-            tags_en: mergedData.tags_en.split(',').map(s => s.trim()),
+            // Unmapped fields
             photos: mergedData.photos.split(',').map(s => s.trim()).filter(Boolean),
+            video: mergedData.video,
             is_Drafted: !mergedData.is_Published,
+            is_Published: mergedData.is_Published,
+            author: mergedData.author,
             layoutTemplate: mergedData.layoutTemplate || undefined,
-            // Include element-specific content for custom layouts
-            elementContent_en: elementData
+            published_language: language, // Explicitly set language
+            elementContent_en: elementData, // Keep structure (legacy name ok for now)
         };
+
+        // Map textual fields based on selected language
+        const isEn = language === 'en';
+
+        if (isEn) {
+            payload.article_header_en = mergedData.article_header;
+            payload.summary_en = mergedData.summary;
+            payload.body_en = mergedData.body;
+            payload.metadata_en = mergedData.metadata;
+            payload.keywords_en = mergedData.keywords.split(',').map(s => s.trim());
+            payload.tags_en = mergedData.tags.split(',').map(s => s.trim());
+        } else {
+            // Hindi/Other
+            payload.article_header = mergedData.article_header;
+            payload.summary = mergedData.summary;
+            payload.body = mergedData.body;
+            payload.metadata = mergedData.metadata;
+            payload.keywords = mergedData.keywords.split(',').map(s => s.trim());
+            payload.tags = mergedData.tags.split(',').map(s => s.trim());
+        }
 
         try {
             if (isEditMode) {
                 await articleService.update(id, payload);
-                alert('Article Updated Successfully! Translations are being processed in background.');
+                alert('Article Updated Successfully!');
             } else {
                 await articleService.create(payload);
-                alert('Article Created Successfully! Translations are being processed in background.');
+                alert('Article Created Successfully!');
             }
             navigate('/');
         } catch (error) {
@@ -485,6 +517,25 @@ const CreateArticle = () => {
                 <div className="bg-white border-b sticky top-0 z-10 px-6 py-3 flex items-center justify-between mb-6 -mx-6 -mt-6">
                     <div className="flex items-center gap-4">
                         <h1 className="text-xl font-bold text-gray-800">{isEditMode ? 'Edit Article' : 'Create Article'}</h1>
+
+                        {/* Language Selector */}
+                        <div className="flex items-center bg-gray-100 rounded-md p-1 border">
+                            <button
+                                type="button"
+                                onClick={() => setLanguage('en')}
+                                className={`px-3 py-1 text-sm font-medium rounded ${language === 'en' ? 'bg-white shadow text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                English
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setLanguage('HN')}
+                                className={`px-3 py-1 text-sm font-medium rounded ${language === 'HN' ? 'bg-white shadow text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Hindi
+                            </button>
+                        </div>
+
                         {selectedLayout && (
                             <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full">
                                 {selectedLayout.name}
@@ -541,8 +592,8 @@ const CreateArticle = () => {
                             </label>
                             <input
                                 type="text"
-                                value={formData.metadata_en}
-                                onChange={(e) => handleChange('metadata_en', e.target.value)}
+                                value={formData.metadata}
+                                onChange={(e) => handleChange('metadata', e.target.value)}
                                 placeholder="Meta description..."
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                             />
@@ -556,8 +607,8 @@ const CreateArticle = () => {
                             </label>
                             <input
                                 type="text"
-                                value={formData.keywords_en}
-                                onChange={(e) => handleChange('keywords_en', e.target.value)}
+                                value={formData.keywords}
+                                onChange={(e) => handleChange('keywords', e.target.value)}
                                 placeholder="SEO keywords (comma separated)..."
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                             />
@@ -599,21 +650,21 @@ const CreateArticle = () => {
                             {/* Tags */}
                             <div className="group relative">
                                 <div className="flex flex-wrap gap-2 items-center">
-                                    {formData.tags_en && formData.tags_en.split(',').map((tag, idx) => (
+                                    {formData.tags && formData.tags.split(',').map((tag, idx) => (
                                         tag.trim() && (
                                             <span key={idx} className="text-red-600 font-bold uppercase text-xs tracking-wider">
                                                 {tag.trim()}
                                             </span>
                                         )
                                     ))}
-                                    {!formData.tags_en && (
+                                    {!formData.tags && (
                                         <span className="text-gray-400 text-xs">Tags will appear here</span>
                                     )}
                                 </div>
                                 <input
                                     type="text"
-                                    value={formData.tags_en}
-                                    onChange={(e) => handleChange('tags_en', e.target.value)}
+                                    value={formData.tags}
+                                    onChange={(e) => handleChange('tags', e.target.value)}
                                     placeholder="Enter tags (comma separated)..."
                                     className="mt-2 w-full bg-gray-50 border border-dashed border-gray-300 rounded px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                 />
@@ -623,8 +674,8 @@ const CreateArticle = () => {
                             <div className="group relative">
                                 <input
                                     type="text"
-                                    value={formData.article_header_en}
-                                    onChange={(e) => handleChange('article_header_en', e.target.value)}
+                                    value={formData.article_header}
+                                    onChange={(e) => handleChange('article_header', e.target.value)}
                                     placeholder="Enter your headline here..."
                                     className="w-full text-3xl md:text-4xl font-serif font-bold text-gray-900 placeholder-gray-300 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2"
                                 />
@@ -636,8 +687,8 @@ const CreateArticle = () => {
                             {/* Summary */}
                             <div className="group relative border-l-4 border-gray-300 pl-4">
                                 <textarea
-                                    value={formData.summary_en}
-                                    onChange={(e) => handleChange('summary_en', e.target.value)}
+                                    value={formData.summary}
+                                    onChange={(e) => handleChange('summary', e.target.value)}
                                     placeholder="Write a compelling summary..."
                                     rows={3}
                                     className="w-full text-lg text-gray-600 italic placeholder-gray-400 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-none"
@@ -718,7 +769,7 @@ const CreateArticle = () => {
                                         <iframe
                                             className="w-full rounded-md"
                                             style={{ aspectRatio: '16/9' }}
-                                            src={formData.video.includes('youtube.com/watch') 
+                                            src={formData.video.includes('youtube.com/watch')
                                                 ? formData.video.replace('watch?v=', 'embed/')
                                                 : formData.video.includes('youtu.be/')
                                                     ? `https://www.youtube.com/embed/${formData.video.split('youtu.be/')[1]}`
@@ -757,8 +808,8 @@ const CreateArticle = () => {
                             {/* Body */}
                             <div className="group relative">
                                 <textarea
-                                    value={formData.body_en}
-                                    onChange={(e) => handleChange('body_en', e.target.value)}
+                                    value={formData.body}
+                                    onChange={(e) => handleChange('body', e.target.value)}
                                     placeholder="Write your article content here...
 
 You can use multiple paragraphs, and the content will be displayed exactly as you write it.
@@ -778,11 +829,11 @@ Start typing to see your article come to life!"
                 {/* Floating Action Bar */}
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white shadow-xl rounded-full px-6 py-3 flex items-center gap-4 border">
                     <span className="text-sm text-gray-500">
-                        {(formData.article_header_en || Object.values(elementData).some(e => e.type === 'header' && e.value)) ? '✓ Headline' : '○ Headline'}
+                        {(formData.article_header || Object.values(elementData).some(e => e.type === 'header' && e.value)) ? '✓ Headline' : '○ Headline'}
                     </span>
                     <span className="text-gray-300">|</span>
                     <span className="text-sm text-gray-500">
-                        {(formData.body_en || Object.values(elementData).some(e => e.type === 'body' && e.value)) ? '✓ Body' : '○ Body'}
+                        {(formData.body || Object.values(elementData).some(e => e.type === 'body' && e.value)) ? '✓ Body' : '○ Body'}
                     </span>
                     <span className="text-gray-300">|</span>
                     <span className="text-sm text-gray-500">

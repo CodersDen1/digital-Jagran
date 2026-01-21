@@ -39,6 +39,12 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
+// Request Logger
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
+
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digital_jagaran')
     .then(() => console.log('MongoDB Connected'))
@@ -46,6 +52,14 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digital_j
 
 // Article Routes
 const articleRouter = express.Router();
+articleRouter.post('/articles/:id/translate', (req, res) => {
+    console.log("Translate Route Hit for ID:", req.params.id);
+    if (!articleController.translateArticle) {
+        console.error("translateArticle method missing on controller!");
+        return res.status(500).send("Controller method missing");
+    }
+    return articleController.translateArticle(req, res);
+});
 articleRouter.post('/articles', (req, res) => articleController.createArticle(req, res));
 articleRouter.get('/articles', (req, res) => articleController.getAllArticles(req, res));
 articleRouter.get('/articles/trending', (req, res) => articleController.getTrendingArticles(req, res));
@@ -53,20 +67,22 @@ articleRouter.get('/articles/:id', (req, res) => articleController.getArticleByI
 articleRouter.put('/articles/:id', (req, res) => articleController.updateArticle(req, res));
 articleRouter.delete('/articles/:id', (req, res) => articleController.deleteArticle(req, res));
 articleRouter.post('/articles/:id/view', (req, res) => articleController.incrementViews(req, res));
+// ... (keeping lines 69-69)
+articleRouter.post('/articles/:id/view', (req, res) => articleController.incrementViews(req, res));
+// Removed duplicate translate route
 
 // Layout Routes
 const layoutRouter = express.Router();
-layoutRouter.post('/layouts', (req, res) => layoutController.createLayout(req, res));
-layoutRouter.get('/layouts', (req, res) => layoutController.getAllLayouts(req, res));
-layoutRouter.get('/layouts/default', (req, res) => layoutController.getDefaultLayout(req, res));
-layoutRouter.get('/layouts/:id', (req, res) => layoutController.getLayoutById(req, res));
-layoutRouter.put('/layouts/:id', (req, res) => layoutController.updateLayout(req, res));
-layoutRouter.delete('/layouts/:id', (req, res) => layoutController.deleteLayout(req, res));
-layoutRouter.put('/layouts/:id/set-default', (req, res) => layoutController.setDefaultLayout(req, res));
-layoutRouter.post('/layouts/:id/duplicate', (req, res) => layoutController.duplicateLayout(req, res));
+// ... (lines 74-82)
 
 app.use('/api', articleRouter);
 app.use('/api', layoutRouter);
+
+// Debug: 404 Handler
+app.use((req, res, next) => {
+    console.log(`404 Not Found: ${req.method} ${req.url}`);
+    res.status(404).send(`Cannot ${req.method} ${req.url} (Log: ${req.url})`);
+});
 
 const HOST = process.env.HOST || '0.0.0.0';
 

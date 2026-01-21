@@ -9,7 +9,7 @@ import { Loader, ArrowLeft, Clock, Eye } from 'lucide-react';
 
 const ArticleDetail = () => {
     const { id } = useParams();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [article, setArticle] = useState(null);
     const [layout, setLayout] = useState(null);
     const [relatedArticles, setRelatedArticles] = useState([]);
@@ -21,7 +21,7 @@ const ArticleDetail = () => {
         window.scrollTo(0, 0);
         // Reset view tracking when article changes
         viewTrackedRef.current = false;
-    }, [id]);
+    }, [id, language]);
 
     // Track view when article is loaded
     useEffect(() => {
@@ -56,8 +56,18 @@ const ArticleDetail = () => {
 
             // Fetch related articles (based on tags)
             const allArticles = await getArticles();
+
+            // Filter by language
+            const visibleArticles = allArticles.filter(article => {
+                if (language === 'en') {
+                    return article.published_language === 'en' || article.published_language === 'both';
+                } else {
+                    return article.published_language === 'hi' || article.published_language === 'HN' || article.published_language === 'both';
+                }
+            });
+
             const articleTags = articleData.tags_en || articleData.tags || [];
-            const related = allArticles
+            const related = visibleArticles
                 .filter(a => a._id !== id)
                 .filter(a => {
                     const tags = a.tags_en || a.tags || [];
@@ -65,7 +75,7 @@ const ArticleDetail = () => {
                 })
                 .slice(0, 4);
 
-            setRelatedArticles(related.length > 0 ? related : allArticles.filter(a => a._id !== id).slice(0, 4));
+            setRelatedArticles(related.length > 0 ? related : visibleArticles.filter(a => a._id !== id).slice(0, 4));
 
         } catch (error) {
             console.error('Error fetching article:', error);

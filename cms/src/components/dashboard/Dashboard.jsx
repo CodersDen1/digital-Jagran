@@ -42,6 +42,20 @@ const Dashboard = () => {
         }
     };
 
+    const handleTranslate = async (id) => {
+        if (window.confirm('Create a translated copy of this article?')) {
+            try {
+                await articleService.translate(id);
+                // Refresh list on success
+                alert('Translation started! A new draft article has been created.');
+                loadArticles();
+            } catch (error) {
+                console.error("Translation error", error);
+                alert('Error triggering translation');
+            }
+        }
+    };
+
     // Calculate total views
     const totalViews = articles.reduce((sum, article) => sum + (article.views || 0), 0);
     const publishedCount = articles.filter(a => a.is_Published).length;
@@ -103,7 +117,7 @@ const Dashboard = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title (EN)</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Views</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -115,8 +129,13 @@ const Dashboard = () => {
                             {articles.map((article) => (
                                 <tr key={article._id} className="hover:bg-gray-50 text-black">
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900 truncate max-w-xs">{article.article_header_en}</div>
-                                        <div className="text-xs text-gray-500 truncate max-w-xs">{article.article_header}</div>
+                                        <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                                            {/* Show header consistent with published language preference */}
+                                            {article.published_language === 'HN' || article.published_language === 'hi'
+                                                ? (article.article_header || article.article_header_en)
+                                                : (article.article_header_en || article.article_header)
+                                            }
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{article.author}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -130,8 +149,25 @@ const Dashboard = () => {
                                             {article.is_Published ? 'Published' : 'Draft'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 uppercase">{article.published_language}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 uppercase">
+                                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${article.published_language === 'en' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
+                                            {article.published_language || 'EN'}
+                                        </span>
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        {/* Translate Button */}
+                                        <button
+                                            onClick={() => handleTranslate(article._id)}
+                                            className="text-purple-600 hover:text-purple-900 mx-2 inline-block"
+                                            title="Translate"
+                                        >
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-xs uppercase font-bold border border-purple-200 rounded px-1">
+                                                    {article.published_language === 'en' ? 'EN→HN' : 'HN→EN'}
+                                                </span>
+                                            </div>
+                                        </button>
+
                                         <button
                                             onClick={() => handlePublish(article._id, article.is_Published)}
                                             className={`mx-2 font-bold ${article.is_Published ? 'text-orange-600 hover:text-orange-900' : 'text-green-600 hover:text-green-900'}`}
@@ -139,9 +175,9 @@ const Dashboard = () => {
                                         >
                                             {article.is_Published ? 'Unpublish' : 'Publish'}
                                         </button>
-                                        <a 
-                                            href={`http://localhost:5173/article/${article._id}`} 
-                                            target="_blank" 
+                                        <a
+                                            href={`http://localhost:5173/article/${article._id}`}
+                                            target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-blue-600 hover:text-blue-900 mx-2 inline-block"
                                             title="View Article"
