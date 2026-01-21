@@ -13,18 +13,18 @@ const Footer = () => {
                 <div>
                     <h4 className="font-bold mb-4 uppercase text-sm tracking-wider text-gray-500">Sections</h4>
                     <ul className="space-y-2 text-sm text-gray-300">
-                        <li><a href="#" className="hover:text-white">India</a></li>
-                        <li><a href="#" className="hover:text-white">World</a></li>
-                        <li><a href="#" className="hover:text-white">Business</a></li>
-                        <li><a href="#" className="hover:text-white">Technology</a></li>
+                        <li><a href="#" className="hover:text-white" title="India News">India</a></li>
+                        <li><a href="#" className="hover:text-white" title="World News">World</a></li>
+                        <li><a href="#" className="hover:text-white" title="Business News">Business</a></li>
+                        <li><a href="#" className="hover:text-white" title="Technology News">Technology</a></li>
                     </ul>
                 </div>
                 <div>
                     <h4 className="font-bold mb-4 uppercase text-sm tracking-wider text-gray-500">About Us</h4>
                     <ul className="space-y-2 text-sm text-gray-300">
-                        <li><a href="#" className="hover:text-white">Contact Us</a></li>
-                        <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
-                        <li><a href="#" className="hover:text-white">Terms of Service</a></li>
+                        <li><a href="#" className="hover:text-white" title="Contact Us">Contact Us</a></li>
+                        <li><a href="#" className="hover:text-white" title="Privacy Policy">Privacy Policy</a></li>
+                        <li><a href="#" className="hover:text-white" title="Terms of Service">Terms of Service</a></li>
                     </ul>
                 </div>
                 <div>

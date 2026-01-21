@@ -104,6 +104,7 @@ const ArticleDetail = () => {
                     <p className="text-gray-500 mb-6">The article you're looking for doesn't exist or has been removed.</p>
                     <Link
                         to="/"
+                        title="Back to Home"
                         className="inline-flex items-center gap-2 text-brand-red hover:underline"
                     >
                         <ArrowLeft size={20} />
@@ -143,6 +144,7 @@ const ArticleDetail = () => {
             <div className="mb-6">
                 <Link
                     to="/"
+                    title="Back to News"
                     className="inline-flex items-center gap-2 text-gray-600 hover:text-brand-red transition"
                 >
                     <ArrowLeft size={20} />
@@ -179,6 +181,7 @@ const ArticleDetail = () => {
                             <Link
                                 key={relatedArticle._id}
                                 to={`/article/${relatedArticle._id}`}
+                                title={t(relatedArticle, 'article_header')}
                                 className="group block bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition"
                             >
                                 {relatedArticle.photos && relatedArticle.photos[0] && (
@@ -186,6 +189,7 @@ const ArticleDetail = () => {
                                         <img
                                             src={relatedArticle.photos[0]}
                                             alt={t(relatedArticle, 'article_header')}
+                                            title={t(relatedArticle, 'article_header')}
                                             className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                                         />
                                     </div>

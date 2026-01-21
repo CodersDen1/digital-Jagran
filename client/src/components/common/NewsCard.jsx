@@ -39,12 +39,14 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
         return (
             <Link
                 to={`/article/${article._id}`}
+                title={header}
                 className="group flex gap-4 p-4 bg-white rounded-lg border border-gray-100 hover:shadow-md transition"
             >
                 <div className="w-32 h-24 flex-shrink-0 overflow-hidden rounded-md">
                     <img
                         src={image}
                         alt={header}
+                        title={header}
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                         loading="lazy"
                     />
@@ -78,12 +80,14 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
         return (
             <Link
                 to={`/article/${article._id}`}
+                title={header}
                 className="group block md:grid md:grid-cols-2 md:gap-8 h-full"
             >
                 <div className="overflow-hidden rounded-lg relative h-64 md:h-full">
                     <img
                         src={image}
                         alt={header}
+                        title={header}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     {tags[0] && (
@@ -127,6 +131,7 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
         return (
             <Link
                 to={`/article/${article._id}`}
+                title={header}
                 className="group block py-3 border-b border-gray-100 last:border-0"
             >
                 <h4 className="font-medium text-gray-900 line-clamp-2 group-hover:text-brand-red transition">
@@ -143,12 +148,14 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
     return (
         <Link
             to={`/article/${article._id}`}
+            title={header}
             className="group block bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition h-full"
         >
             <div className="aspect-video overflow-hidden relative">
                 <img
                     src={image}
                     alt={header}
+                    title={header}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                 />

@@ -190,12 +190,14 @@ const Home = () => {
                             <Link
                                 key={article._id}
                                 to={`/article/${article._id}`}
+                                title={t(article, 'article_header')}
                                 className="group block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition"
                             >
                                 <div className="aspect-[16/10] overflow-hidden">
                                     <img
                                         src={article.photos?.[0] || 'https://placehold.co/400x250?text=News'}
                                         alt={t(article, 'article_header')}
+                                        title={t(article, 'article_header')}
                                         className={`w-full h-full object-cover group-hover:scale-105 transition duration-300 ${article.isTranslating ? 'animate-pulse bg-gray-200 opacity-50' : ''}`}
                                     />
                                 </div>
@@ -208,14 +210,6 @@ const Home = () => {
                                         </div>
                                     ) : (
                                         <>
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <span className="text-brand-red text-xs font-bold uppercase">
-                                                    {(t(article, 'tags') || [])[0] || 'News'}
-                                                </span>
-                                            </div>
-                                            <h3 className="font-serif font-bold text-gray-900 line-clamp-2 group-hover:text-brand-red transition">
-                                                {t(article, 'article_header')}
-                                            </h3>
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span className="text-brand-red text-xs font-bold uppercase">
                                                     {(t(article, 'tags') || [])[0] || 'News'}
@@ -260,6 +254,7 @@ const Home = () => {
                                             {filteredArticles.length > 1 && (
                                                 <button
                                                     onClick={goToPrevious}
+                                                    title="Previous Article"
                                                     className="hidden md:flex flex-shrink-0 bg-gray-100 hover:bg-brand-red hover:text-white text-gray-600 p-3 rounded-full shadow-md transition"
                                                     aria-label="Previous article"
                                                 >
@@ -271,12 +266,14 @@ const Home = () => {
                                             <div className="flex-1 relative">
                                                 <Link
                                                     to={`/article/${featuredArticle._id}`}
+                                                    title={t(featuredArticle, 'article_header')}
                                                     className="group block relative overflow-hidden rounded-lg shadow-lg"
                                                 >
                                                     <div className="aspect-[16/9] lg:aspect-[16/10]">
                                                         <img
                                                             src={featuredArticle.photos?.[0] || 'https://placehold.co/800x450?text=Featured'}
                                                             alt={t(featuredArticle, 'article_header')}
+                                                            title={t(featuredArticle, 'article_header')}
                                                             className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                                                         />
                                                     </div>
@@ -319,6 +316,7 @@ const Home = () => {
                                             {filteredArticles.length > 1 && (
                                                 <button
                                                     onClick={goToNext}
+                                                    title="Next Article"
                                                     className="hidden md:flex flex-shrink-0 bg-gray-100 hover:bg-brand-red hover:text-white text-gray-600 p-3 rounded-full shadow-md transition"
                                                     aria-label="Next article"
                                                 >
@@ -332,6 +330,7 @@ const Home = () => {
                                             <div className="flex md:hidden justify-center gap-4 mt-4">
                                                 <button
                                                     onClick={goToPrevious}
+                                                    title="Previous Article"
                                                     className="bg-gray-100 hover:bg-brand-red hover:text-white text-gray-600 p-2 rounded-full shadow-md transition"
                                                     aria-label="Previous article"
                                                 >
@@ -339,6 +338,7 @@ const Home = () => {
                                                 </button>
                                                 <button
                                                     onClick={goToNext}
+                                                    title="Next Article"
                                                     className="bg-gray-100 hover:bg-brand-red hover:text-white text-gray-600 p-2 rounded-full shadow-md transition"
                                                     aria-label="Next article"
                                                 >
@@ -354,6 +354,7 @@ const Home = () => {
                                                     <button
                                                         key={index}
                                                         onClick={() => goToIndex(index)}
+                                                        title={`Go to slide ${index + 1}`}
                                                         className={`w-2.5 h-2.5 rounded-full transition ${index === currentIndex
                                                             ? 'bg-brand-red w-6'
                                                             : 'bg-gray-300 hover:bg-gray-400'
@@ -376,12 +377,14 @@ const Home = () => {
                                             <Link
                                                 key={`${article._id}-${idx}`}
                                                 to={`/article/${article._id}`}
+                                                title={t(article, 'article_header')}
                                                 className="group flex gap-4 p-4 bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition"
                                             >
                                                 <div className="w-24 h-24 flex-shrink-0 overflow-hidden rounded-md">
                                                     <img
                                                         src={article.photos?.[0] || 'https://placehold.co/100x100?text=News'}
                                                         alt={t(article, 'article_header')}
+                                                        title={t(article, 'article_header')}
                                                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                                                     />
                                                 </div>
@@ -408,6 +411,7 @@ const Home = () => {
                                         {/* View More Button for Side List */}
                                         <button
                                             onClick={() => setViewMode('grid')}
+                                            title="View All Articles in Grid"
                                             className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
                                         >
                                             View More <Grid size={16} />
@@ -428,7 +432,10 @@ const Home = () => {
                                     <h2 className="font-serif font-bold text-2xl border-l-4 border-brand-red pl-3">
                                         Latest Stories
                                     </h2>
-                                    <button className="text-brand-red text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all">
+                                    <button
+                                        onClick={() => setViewMode('grid')}
+                                        title="View All Stories"
+                                        className="text-brand-red text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all">
                                         View All <ChevronRight size={16} />
                                     </button>
                                 </div>
@@ -439,12 +446,14 @@ const Home = () => {
                                             <Link
                                                 key={article._id}
                                                 to={`/article/${article._id}`}
+                                                title={t(article, 'article_header')}
                                                 className="group block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition w-full"
                                             >
                                                 <div className="aspect-[4/3] overflow-hidden">
                                                     <img
                                                         src={article.photos?.[0] || 'https://placehold.co/400x300?text=News'}
                                                         alt={t(article, 'article_header')}
+                                                        title={t(article, 'article_header')}
                                                         className={`w-full h-full object-cover group-hover:scale-105 transition duration-300 ${article.isTranslating ? 'animate-pulse bg-gray-200 opacity-50' : ''}`}
                                                     />
                                                 </div>
@@ -505,6 +514,7 @@ const Home = () => {
 
                                     <button
                                         onClick={() => setViewMode('grid')}
+                                        title="View All Stories in Grid"
                                         className="w-full py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition flex items-center justify-center gap-2"
                                     >
                                         View All Stories <Grid size={18} />
@@ -529,6 +539,7 @@ const Home = () => {
                                             </span>
                                             <Link
                                                 to={`/article/${article._id}`}
+                                                title={t(article, 'article_header')}
                                                 className="flex-1"
                                             >
                                                 <h4 className="font-medium text-gray-900 line-clamp-2 group-hover:text-brand-red transition">

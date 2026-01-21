@@ -57,7 +57,7 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                         <Menu size={28} />
                     </button>
 
-                    <Link to="/" className="text-center flex-1 lg:flex-none">
+                    <Link to="/" title="Digital Jagaran Home" className="text-center flex-1 lg:flex-none">
                         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-gray-900 uppercase">
                             Digital <span className="text-brand-red">Jagaran</span>
                         </h1>
@@ -107,8 +107,8 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                 {/* Category Navigation - Desktop */}
                 <nav
                     className={`border-t border-b border-gray-200 py-3 hidden lg:block transition-all duration-300 ${isScrolled
-                            ? 'fixed top-0 left-0 right-0 bg-white z-50 shadow-md'
-                            : ''
+                        ? 'fixed top-0 left-0 right-0 bg-white z-50 shadow-md'
+                        : ''
                         }`}
                 >
                     <ul className="flex justify-center gap-8 font-sans text-sm uppercase">
@@ -116,11 +116,10 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                             <li key={category}>
                                 <button
                                     onClick={() => onCategoryChange && onCategoryChange(category)}
-                                    className={`transition-colors py-1 block relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-brand-red after:transition-all ${
-                                        activeCategory === category
+                                    className={`transition-colors py-1 block relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-brand-red after:transition-all ${activeCategory === category
                                             ? 'text-brand-red font-black after:w-full'
                                             : 'text-gray-600 font-semibold hover:text-brand-red after:w-0 hover:after:w-full'
-                                    }`}
+                                        }`}
                                 >
                                     {category}
                                 </button>
