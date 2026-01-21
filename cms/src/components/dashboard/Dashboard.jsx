@@ -7,6 +7,8 @@ import { Edit, Trash2, Eye, TrendingUp } from 'lucide-react';
 const Dashboard = () => {
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         loadArticles();
@@ -59,6 +61,16 @@ const Dashboard = () => {
     // Calculate total views
     const totalViews = articles.reduce((sum, article) => sum + (article.views || 0), 0);
     const publishedCount = articles.filter(a => a.is_Published).length;
+
+    // Pagination Logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentArticles = articles.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(articles.length / itemsPerPage);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+    const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
     return (
         <Layout>
@@ -126,7 +138,7 @@ const Dashboard = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {articles.map((article) => (
+                            {currentArticles.map((article) => (
                                 <tr key={article._id} className="hover:bg-gray-50 text-black">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
@@ -191,6 +203,37 @@ const Dashboard = () => {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {!loading && articles.length > itemsPerPage && (
+                <div className="flex justify-center items-center mt-6 gap-2">
+                    <button
+                        onClick={prevPage}
+                        disabled={currentPage === 1}
+                        className={`px-3 py-1 rounded border ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                        Previous
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                            key={i + 1}
+                            onClick={() => paginate(i + 1)}
+                            className={`px-3 py-1 rounded border ${currentPage === i + 1 ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                        >
+                            {i + 1}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={nextPage}
+                        disabled={currentPage === totalPages}
+                        className={`px-3 py-1 rounded border ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                        Next
+                    </button>
                 </div>
             )}
         </Layout>

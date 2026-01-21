@@ -85,10 +85,37 @@ const Home = () => {
     };
 
     const featuredArticle = filteredArticles[currentIndex];
-    const otherArticles = filteredArticles.filter((_, idx) => idx !== currentIndex);
-    const secondaryFeatured = otherArticles.slice(0, 2);
-    const recentArticles = otherArticles.slice(2, 8);
-    const moreArticles = otherArticles.slice(8, 14);
+
+    // Calculate next 3 articles for the side list (wrapping around)
+    const secondaryFeatured = [];
+    if (filteredArticles.length > 1) {
+        for (let i = 1; i <= 3; i++) {
+            secondaryFeatured.push(filteredArticles[(currentIndex + i) % filteredArticles.length]);
+        }
+    }
+
+    // Exclude featured and secondary from "More Stories" to avoid duplication if desired, 
+    // BUT the prompt says "more stories section only show 6".
+    // "More Stories" usually implies articles NOT currently highlighted.
+    // Let's simpler logic: filteredArticles keys off 'currentIndex'.
+    // Actually, widespread practice: "More Stories" might be just the recent list. 
+    // The current code defined `otherArticles` filtering out current.
+    // Let's redefine `moreArticles` to simply be the next 6 articles AFTER the secondary ones to avoid duplicates visually if possible,
+    // OR just take 6 articles from the pool not including the featured one.
+    // Current code: `const recentArticles = otherArticles.slice(2, 8);` (6 items).
+    // Let's stick to `otherArticles` logic but ensure we take 6.
+
+    // Simplest approach satisfying "More Stories section only show 6 news":
+    // The previous code had `recentArticles` (6 items) and `moreArticles` (another 6). 
+    // I will adhere to "show 6 news".
+    // I'll filter out the *currently displayed* hero and side articles to be clean?
+    // The prompt just says "more stories section". 
+    // Let's use `otherArticles` (everything except main featured) and take slice(3, 9) (skipping the 3 side ones ideally? or just naive slice).
+    // To match user intent of "More Stories", usually means "Recent News".
+    // I will update `moreArticles` to be a slice of 6 items.
+
+    const moreArticles = filteredArticles.filter((_, idx) => idx !== currentIndex
+        && !secondaryFeatured.includes(filteredArticles[idx])).slice(0, 6);
 
     // Latest 5 published articles for Latest Stories section (independent of category filter)
     const latestArticles = visibleArticles.slice(0, 5);
@@ -333,11 +360,11 @@ const Home = () => {
 
                                     {/* Secondary Articles */}
                                     <div className="lg:col-span-4 flex flex-col gap-4">
-                                        {secondaryFeatured.map(article => (
+                                        {secondaryFeatured.map((article, idx) => (
                                             <Link
-                                                key={article._id}
+                                                key={`${article._id}-${idx}`}
                                                 to={`/article/${article._id}`}
-                                                className="group flex gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                                                className="group flex gap-4 p-4 bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition"
                                             >
                                                 <div className="w-24 h-24 flex-shrink-0 overflow-hidden rounded-md">
                                                     <img
@@ -346,29 +373,33 @@ const Home = () => {
                                                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                                                     />
                                                 </div>
-                                                <div className="flex-1 min-w-0">
+                                                <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                     {article.isTranslating ? (
                                                         <div className="animate-pulse space-y-2">
                                                             <div className="h-3 bg-gray-200 rounded w-1/2 mb-1"></div>
                                                             <div className="h-5 bg-gray-200 rounded w-full"></div>
-                                                            <div className="h-3 bg-gray-200 rounded w-2/3 mt-2"></div>
                                                         </div>
                                                     ) : (
                                                         <>
-                                                            <span className="text-brand-red text-xs font-bold uppercase">
+                                                            <span className="text-brand-red text-xs font-bold uppercase mb-1 block">
                                                                 {(t(article, 'tags') || [])[0] || 'News'}
                                                             </span>
-                                                            <h3 className="font-serif font-bold text-gray-900 line-clamp-2 mt-1 group-hover:text-brand-red transition">
+                                                            <h3 className="font-serif font-bold text-gray-900 line-clamp-2 text-sm group-hover:text-brand-red transition">
                                                                 {t(article, 'article_header')}
                                                             </h3>
-                                                            <span className="text-xs text-gray-500 mt-2 block">
-                                                                {new Date(article.createdAt).toLocaleDateString()}
-                                                            </span>
                                                         </>
                                                     )}
                                                 </div>
                                             </Link>
                                         ))}
+
+                                        {/* View More Button for Side List */}
+                                        <button
+                                            onClick={() => setViewMode('grid')}
+                                            className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+                                        >
+                                            View More <Grid size={16} />
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -448,15 +479,24 @@ const Home = () => {
                             {/* More Stories Section */}
                             {moreArticles.length > 0 && (
                                 <section>
-                                    <h2 className="font-serif font-bold text-2xl mb-6 border-l-4 border-gray-800 pl-3">
-                                        More Stories
-                                    </h2>
+                                    <div className="flex items-center justify-between mb-6 border-l-4 border-gray-800 pl-3">
+                                        <h2 className="font-serif font-bold text-2xl">
+                                            More Stories
+                                        </h2>
+                                    </div>
 
-                                    <div className="space-y-4">
+                                    <div className="space-y-4 mb-6">
                                         {moreArticles.map(article => (
                                             <NewsCard key={article._id} article={article} variant="horizontal" />
                                         ))}
                                     </div>
+
+                                    <button
+                                        onClick={() => setViewMode('grid')}
+                                        className="w-full py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition flex items-center justify-center gap-2"
+                                    >
+                                        View All Stories <Grid size={18} />
+                                    </button>
                                 </section>
                             )}
                         </div>
