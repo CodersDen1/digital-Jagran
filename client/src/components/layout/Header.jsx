@@ -31,7 +31,7 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                 {/* Top Bar */}
                 <div className="bg-gray-100 py-1.5 px-4 lg:px-8 flex justify-between items-center text-xs text-gray-600 font-sans">
                     <span className="hidden sm:block">{date}</span>
-                    <span className="sm:hidden text-brand-red font-bold"><span style={{color: '#567C8D'}}>Digital</span><span style={{color:'#2F4156'}} >Jagaran </span></span>
+                    <span className="sm:hidden text-brand-red font-bold"><span style={{ color: '#567C8D' }}>Digital</span><span style={{ color: '#2F4156' }} >Jagaran </span></span>
                     <div className="flex gap-4 items-center">
                         <button
                             onClick={toggleLanguage}
@@ -58,8 +58,8 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                     </button>
 
                     <Link to="/" title="Digital Jagaran Home" className="text-center flex-1 lg:flex-none">
-                        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight uppercase" style={{color:'#567C8D'}}>
-                            Digital <span className="text-brand-red" style={{color:'#2F4156'}}>Jagaran</span>
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight uppercase" style={{ color: '#567C8D' }}>
+                            Digital <span className="text-brand-red" style={{ color: '#2F4156' }}>Jagaran</span>
                         </h1>
                         <p className="hidden sm:block text-xs uppercase tracking-widest text-gray-500 mt-1 text-right">
                             Information, Information and Information
@@ -117,8 +117,8 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                                 <button
                                     onClick={() => onCategoryChange && onCategoryChange(category)}
                                     className={`transition-colors py-1 block relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-brand-red after:transition-all ${activeCategory === category
-                                            ? 'text-brand-red font-black after:w-full'
-                                            : 'text-gray-600 font-semibold hover:text-brand-red after:w-0 hover:after:w-full'
+                                        ? 'text-brand-red font-black after:w-full'
+                                        : 'text-gray-600 font-semibold hover:text-brand-red after:w-0 hover:after:w-full'
                                         }`}
                                 >
                                     {category}
