@@ -42,7 +42,7 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
                 title={header}
                 className="group flex gap-4 p-4 bg-white rounded-lg border border-gray-100 hover:shadow-md transition"
             >
-                <div className="w-32 h-24 flex-shrink-0 overflow-hidden rounded-md">
+                <div className="w-24 h-24 sm:w-32 sm:h-24 flex-shrink-0 overflow-hidden rounded-md">
                     <img
                         src={image}
                         alt={header}

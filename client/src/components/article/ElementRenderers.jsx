@@ -9,8 +9,8 @@ const getElementContent = (article, elementId, fieldName, t) => {
     const elementContent = t(article, 'elementContent') || article.elementContent_en;
     if (elementContent && elementId) {
         // Handle both Map and plain object
-        const content = elementContent instanceof Map 
-            ? elementContent.get(elementId) 
+        const content = elementContent instanceof Map
+            ? elementContent.get(elementId)
             : elementContent[elementId];
         if (content?.value) {
             return content.value;
@@ -58,16 +58,16 @@ const ElementRenderers = ({ type, elementId, config, article, t }) => {
 const HeaderRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
     const content = getElementContent(article, elementId, 'article_header', t);
-    
+
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
-        
+
         const element = ref.current;
         const maxHeightPx = parseInt(config.maxHeight) * 4;
         let currentFontSize = 48; // Start from large font
-        
+
         element.style.fontSize = `${currentFontSize}px`;
-        
+
         while (element.scrollHeight > maxHeightPx && currentFontSize > 14) {
             currentFontSize -= 2;
             element.style.fontSize = `${currentFontSize}px`;
@@ -87,16 +87,16 @@ const HeaderRenderer = ({ article, elementId, t, config }) => {
 const SummaryRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
     const content = getElementContent(article, elementId, 'summary', t);
-    
+
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
-        
+
         const element = ref.current;
         const maxHeightPx = parseInt(config.maxHeight) * 4;
         let currentFontSize = 20;
-        
+
         element.style.fontSize = `${currentFontSize}px`;
-        
+
         while (element.scrollHeight > maxHeightPx && currentFontSize > 12) {
             currentFontSize -= 1;
             element.style.fontSize = `${currentFontSize}px`;
@@ -117,16 +117,16 @@ const BodyRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
     const body = getElementContent(article, elementId, 'body', t);
     const isHTML = body && /<[a-z][\s\S]*>/i.test(body);
-    
+
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
-        
+
         const element = ref.current;
         const maxHeightPx = parseInt(config.maxHeight) * 4;
         let currentFontSize = 18;
-        
+
         element.style.fontSize = `${currentFontSize}px`;
-        
+
         while (element.scrollHeight > maxHeightPx && currentFontSize > 11) {
             currentFontSize -= 1;
             element.style.fontSize = `${currentFontSize}px`;
@@ -137,7 +137,7 @@ const BodyRenderer = ({ article, elementId, t, config }) => {
         return (
             <div
                 ref={ref}
-                className="prose prose-lg max-w-none"
+                className="prose md:prose-lg max-w-none"
                 dangerouslySetInnerHTML={{ __html: body }}
             />
         );
@@ -157,17 +157,17 @@ const ImageRenderer = ({ article, elementId, t, config }) => {
     // Check for element-specific image first
     const elementContent = t(article, 'elementContent') || article.elementContent_en;
     let image = null;
-    
+
     if (elementContent && elementId) {
-        const content = elementContent instanceof Map 
-            ? elementContent.get(elementId) 
+        const content = elementContent instanceof Map
+            ? elementContent.get(elementId)
             : elementContent[elementId];
         if (content?.value) {
             // Element-specific image (could be comma-separated)
             image = content.value.split(',')[0]?.trim();
         }
     }
-    
+
     // Fall back to article photos
     if (!image) {
         image = article.photos && article.photos.length > 0 ? article.photos[0] : null;
@@ -221,16 +221,16 @@ const VideoRenderer = ({ article, elementId, config }) => {
     // Check for element-specific video first
     let videoUrl = null;
     const elementContent = article.elementContent_en;
-    
+
     if (elementContent && elementId) {
-        const content = elementContent instanceof Map 
-            ? elementContent.get(elementId) 
+        const content = elementContent instanceof Map
+            ? elementContent.get(elementId)
             : elementContent[elementId];
         if (content?.value) {
             videoUrl = content.value;
         }
     }
-    
+
     // Fall back to article video
     if (!videoUrl) {
         videoUrl = article.video;
@@ -318,17 +318,17 @@ const TagsRenderer = ({ article, elementId, t }) => {
     // Check for element-specific tags first
     let tags = [];
     const elementContent = t(article, 'elementContent') || article.elementContent_en;
-    
+
     if (elementContent && elementId) {
-        const content = elementContent instanceof Map 
-            ? elementContent.get(elementId) 
+        const content = elementContent instanceof Map
+            ? elementContent.get(elementId)
             : elementContent[elementId];
         if (content?.value) {
             // Element-specific tags (comma-separated string)
             tags = content.value.split(',').map(t => t.trim()).filter(Boolean);
         }
     }
-    
+
     // Fall back to article tags
     if (tags.length === 0) {
         tags = t(article, 'tags') || [];
@@ -357,16 +357,16 @@ const TagsRenderer = ({ article, elementId, t }) => {
  */
 const TextRenderer = ({ config }) => {
     const ref = useRef(null);
-    
+
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
-        
+
         const element = ref.current;
         const maxHeightPx = parseInt(config.maxHeight) * 4;
         let currentFontSize = 16;
-        
+
         element.style.fontSize = `${currentFontSize}px`;
-        
+
         while (element.scrollHeight > maxHeightPx && currentFontSize > 10) {
             currentFontSize -= 1;
             element.style.fontSize = `${currentFontSize}px`;

@@ -48,7 +48,7 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                 </div>
 
                 {/* Main Header */}
-                <div className="py-4 md:py-6 px-4 lg:px-8 flex justify-between items-center">
+                <div className="sticky top-0 z-40 bg-white lg:static py-4 md:py-6 px-4 lg:px-8 flex justify-between items-center shadow-sm lg:shadow-none">
                     <button
                         onClick={() => setMobileMenuOpen(true)}
                         className="lg:hidden text-gray-800 p-2 -ml-2 hover:bg-gray-100 rounded-lg transition"

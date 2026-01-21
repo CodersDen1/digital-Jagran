@@ -20,7 +20,8 @@ const allowedOrigins = [
     'https://www.digitaljagran.com',
     'https://crm.digitaljagran.com',
     'https://server.digitaljagran.com',
-    'https://cms.digitaljagran.com'
+    'https://cms.digitaljagran.com',
+    'https://dev.digitaljagran.com'
 ];
 
 const corsOptions = {
