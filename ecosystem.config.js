@@ -4,7 +4,7 @@ module.exports = {
       name: 'client',
       cwd: './client',
       script: 'npm',
-      args: 'run dev -- --host --mode production',
+      args: 'run preview -- --host',
       env: {
         PORT: 5173,
         NODE_ENV: 'production'
@@ -20,7 +20,7 @@ module.exports = {
       name: 'cms',
       cwd: './cms',
       script: 'npm',
-      args: 'run dev -- --host --mode production',
+      args: 'run preview -- --host',
       env: {
         PORT: 5174,
         NODE_ENV: 'production'
