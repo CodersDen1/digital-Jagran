@@ -38,6 +38,13 @@ const articleSchema = new mongoose.Schema({
   // View tracking for trending
   views: { type: Number, default: 0 },
 
+  // SEO Fields
+  slug: { type: String, unique: true, sparse: true }, // Auto-generated URL-friendly string
+  metaTitle: { type: String },
+  metaDescription: { type: String },
+  metaKeywords: { type: [String] },
+  canonicalUrl: { type: String },
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

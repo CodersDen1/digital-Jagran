@@ -5,10 +5,35 @@ class ArticleController {
     async createArticle(req, res) {
         try {
             const articleData = req.body;
+
+            // SEO: Generate Slug if not provided
+            if (!articleData.slug) {
+                const titleToSlug = articleData.article_header_en || articleData.article_header || 'article';
+                articleData.slug = titleToSlug
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/(^-|-$)+/g, '') + '-' + Date.now();
+            }
+
+            // SEO: Default Meta Title
+            if (!articleData.metaTitle) {
+                articleData.metaTitle = articleData.article_header_en || articleData.article_header;
+            }
+
+            // SEO: Default Meta Description
+            if (!articleData.metaDescription) {
+                const summary = articleData.summary_en || articleData.summary || '';
+                articleData.metaDescription = summary.substring(0, 160);
+            }
+
             // Create single article based on payload (Language is decided by client)
             const newArticle = await articleRepository.create(articleData);
             res.status(201).json(newArticle);
         } catch (error) {
+            // Handle duplicate key error for slug
+            if (error.code === 11000 && error.keyPattern && error.keyPattern.slug) {
+                return res.status(400).json({ error: 'Slug must be unique.' });
+            }
             res.status(500).json({ error: error.message });
         }
     }
@@ -40,7 +65,9 @@ class ArticleController {
                 // Clear fields to avoid mixed content (very simple approach)
                 article_header_en: 'Translating...',
                 summary_en: undefined,
-                body_en: undefined
+                body_en: undefined,
+                // Regenerate slug for the translated article to avoid collision
+                slug: (originalArticle.slug || 'article') + '-' + targetLangCode + '-' + Date.now()
             };
 
             const newArticle = await articleRepository.create(newArticleData);
@@ -108,10 +135,24 @@ class ArticleController {
 
     async updateArticle(req, res) {
         try {
-            const updatedArticle = await articleRepository.update(req.params.id, req.body);
+            const updates = req.body;
+
+            // SEO: Update slug if title changes and slug is not explicitly provided (optional logic, kept simple for now)
+            // For now, only auto-generate slug on creation to preserve URLs.
+            // If user wants to update slug, they must send it explicitly.
+
+            // SEO: Default Meta Title sync (optional, only if metaTitle is empty)
+            if (updates.article_header_en && !updates.metaTitle) {
+                updates.metaTitle = updates.article_header_en;
+            }
+
+            const updatedArticle = await articleRepository.update(req.params.id, updates);
             if (!updatedArticle) return res.status(404).json({ message: 'Article not found' });
             res.status(200).json(updatedArticle);
         } catch (error) {
+            if (error.code === 11000 && error.keyPattern && error.keyPattern.slug) {
+                return res.status(400).json({ error: 'Slug must be unique.' });
+            }
             res.status(500).json({ error: error.message });
         }
     }

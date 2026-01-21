@@ -5,6 +5,7 @@ import NewsCard from '../components/common/NewsCard';
 import { useLanguage } from '../context/LanguageContext';
 import { Loader, ChevronRight, ChevronLeft, TrendingUp, Clock, Flame, Grid, LayoutList, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 
 const Home = () => {
     const { t, language } = useLanguage();
@@ -144,6 +145,17 @@ const Home = () => {
 
     return (
         <NewsLayout activeCategory={activeCategory} onCategoryChange={setActiveCategory}>
+            <Helmet>
+                <title>Digital Jagaran | Latest News, Politics, Tech & Sports</title>
+                <meta name="description" content="Digital Jagaran is your trusted source for the latest news in Hindi and English. Covering Politics, Business, Technology, Sports, and Entertainment." />
+                <meta name="keywords" content="News, Hindi News, English News, India News, Digital Jagaran, Latest Updates" />
+                <meta property="og:title" content="Digital Jagaran | Latest News" />
+                <meta property="og:description" content="Your trusted source for the latest news." />
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content={window.location.href} />
+                <meta name="twitter:card" content="summary_large_image" />
+            </Helmet>
+
             {/* View Toggle */}
             <div className="flex justify-end mb-6">
                 <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">

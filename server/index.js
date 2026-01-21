@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const articleController = require('./controllers/articleController');
 const layoutController = require('./controllers/layoutController');
+const sitemapController = require('./controllers/sitemapController');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -76,6 +77,9 @@ layoutRouter.post('/layouts/:id/duplicate', (req, res) => layoutController.dupli
 
 app.use('/api', articleRouter);
 app.use('/api', layoutRouter);
+
+// Sitemap Route (Root level)
+app.get('/sitemap.xml', (req, res) => sitemapController.generateSitemap(req, res));
 
 const HOST = process.env.HOST || '0.0.0.0';
 

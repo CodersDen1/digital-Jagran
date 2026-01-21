@@ -7,6 +7,8 @@ import { SocialShare } from '../components/article/ElementRenderers';
 import { useLanguage } from '../context/LanguageContext';
 import { Loader, ArrowLeft, Clock, Eye } from 'lucide-react';
 
+import { Helmet } from 'react-helmet-async';
+
 const ArticleDetail = () => {
     const { id } = useParams();
     const { t, language } = useLanguage();
@@ -114,6 +116,29 @@ const ArticleDetail = () => {
 
     return (
         <NewsLayout>
+            {article && (
+                <Helmet>
+                    {/* Basic SEO */}
+                    <title>{article.metaTitle || t(article, 'article_header')} | Digital Jagaran</title>
+                    <meta name="description" content={article.metaDescription || t(article, 'summary')} />
+                    <meta name="keywords" content={(article.metaKeywords || article.keywords || []).join(', ')} />
+                    {article.canonicalUrl && <link rel="canonical" href={article.canonicalUrl} />}
+
+                    {/* Open Graph / Facebook */}
+                    <meta property="og:type" content="article" />
+                    <meta property="og:title" content={article.metaTitle || t(article, 'article_header')} />
+                    <meta property="og:description" content={article.metaDescription || t(article, 'summary')} />
+                    {article.photos && article.photos.length > 0 && <meta property="og:image" content={article.photos[0]} />}
+                    <meta property="og:url" content={window.location.href} />
+
+                    {/* Twitter */}
+                    <meta name="twitter:card" content="summary_large_image" />
+                    <meta name="twitter:title" content={article.metaTitle || t(article, 'article_header')} />
+                    <meta name="twitter:description" content={article.metaDescription || t(article, 'summary')} />
+                    {article.photos && article.photos.length > 0 && <meta name="twitter:image" content={article.photos[0]} />}
+                </Helmet>
+            )}
+
             {/* Back Button */}
             <div className="mb-6">
                 <Link
