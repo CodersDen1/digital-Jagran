@@ -249,6 +249,19 @@ const LayoutDesigner = () => {
         }
     };
 
+    // Reorder elements (Drag and Drop)
+    const reorderElements = (startIndex, endIndex) => {
+        const result = Array.from(elements);
+        const [removed] = result.splice(startIndex, 1);
+        result.splice(endIndex, 0, removed);
+
+        // Update row numbers
+        result.forEach((el, i) => el.row = i);
+
+        setElements(result);
+        pushToHistory(result); // Using local pushToHistory wrapper
+    };
+
     // History management
     const pushToHistory = (newElements) => {
         const newHistory = history.slice(0, historyIndex + 1);
@@ -369,8 +382,8 @@ const LayoutDesigner = () => {
                         <button
                             onClick={() => setPreviewMode(!previewMode)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md transition ${previewMode
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
                             <Eye size={18} />
@@ -404,6 +417,7 @@ const LayoutDesigner = () => {
                             onDeleteElement={deleteElement}
                             onMoveUp={moveElementUp}
                             onMoveDown={moveElementDown}
+                            onReorder={reorderElements}
                             gridGap={gridGap}
                             maxWidth={maxWidth}
                             previewMode={previewMode}

@@ -30,6 +30,7 @@ const LayoutCanvas = ({
     onDeleteElement,
     onMoveUp,
     onMoveDown,
+    onReorder,
     gridGap,
     maxWidth,
     previewMode
@@ -199,6 +200,7 @@ const LayoutCanvas = ({
                         <LayoutElement
                             key={element.id}
                             element={element}
+                            index={index}
                             isSelected={isSelected}
                             previewMode={previewMode}
                             onSelect={() => onSelectElement(element.id)}
@@ -206,6 +208,7 @@ const LayoutCanvas = ({
                             onDelete={() => onDeleteElement(element.id)}
                             onMoveUp={() => onMoveUp(element.id)}
                             onMoveDown={() => onMoveDown(element.id)}
+                            onReorder={onReorder}
                             isFirst={index === 0}
                             isLast={index === sortedElements.length - 1}
                         >

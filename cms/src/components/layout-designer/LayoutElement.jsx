@@ -31,6 +31,8 @@ const LayoutElement = ({
     onDelete,
     onMoveUp,
     onMoveDown,
+    onReorder,
+    index,
     isFirst,
     isLast,
     children
@@ -40,6 +42,40 @@ const LayoutElement = ({
             e.stopPropagation();
             onSelect();
         }
+    };
+
+    // Drag and Drop Handlers
+    const handleDragStart = (e) => {
+        if (previewMode) return;
+        e.dataTransfer.setData('text/plain', index);
+        e.dataTransfer.effectAllowed = 'move';
+        // Set opacity to make it look like it's being moved
+        e.target.style.opacity = '0.5';
+    };
+
+    const handleDragOver = (e) => {
+        if (previewMode) return;
+        e.preventDefault(); // Necessary to allow dropping
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e) => {
+        if (previewMode) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.target.style.opacity = '1';
+
+        const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+        const targetIndex = index;
+
+        if (sourceIndex !== targetIndex && !isNaN(sourceIndex)) {
+            onReorder(sourceIndex, targetIndex);
+        }
+    };
+
+    // Reset opacity if drag ends without drop
+    const handleDragEnd = (e) => {
+        e.target.style.opacity = '1';
     };
 
     // Calculate grid column span
@@ -58,18 +94,23 @@ const LayoutElement = ({
 
     return (
         <div
+            draggable={!previewMode}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onDragEnd={handleDragEnd}
             onClick={handleClick}
             style={gridColumnStyle}
             className={`relative group transition-all ${isSelected
-                    ? 'ring-2 ring-primary ring-offset-2 rounded-lg'
-                    : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-1 rounded-lg'
-                }`}
+                ? 'ring-2 ring-primary ring-offset-2 rounded-lg'
+                : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-1 rounded-lg'
+                } ${!previewMode ? 'cursor-move' : ''}`}
         >
             {/* Element Type Label */}
             <div
                 className={`absolute -top-6 left-0 text-xs font-medium px-2 py-0.5 rounded transition-opacity ${isSelected
-                        ? 'bg-primary text-white opacity-100'
-                        : 'bg-gray-100 text-gray-500 opacity-0 group-hover:opacity-100'
+                    ? 'bg-primary text-white opacity-100'
+                    : 'bg-gray-100 text-gray-500 opacity-0 group-hover:opacity-100'
                     }`}
             >
                 {TYPE_LABELS[element.type] || element.type}
@@ -121,7 +162,7 @@ const LayoutElement = ({
                 </button>
             </div>
 
-            {/* Drag Handle (visual only for now) */}
+            {/* Drag Handle (Visual and functional cue) */}
             <div
                 className={`absolute -left-8 top-1/2 -translate-y-1/2 cursor-grab transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                     }`}
