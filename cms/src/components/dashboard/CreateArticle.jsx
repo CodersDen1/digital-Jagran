@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { articleService, layoutService } from '../../services/api';
+import { ReactTransliterate } from "react-transliterate";
+import "react-transliterate/dist/index.css";
 import Layout from '../common/Layout';
 import Button from '../common/Button';
 import { Palette, Settings, Image, Video, Tag, FileText } from 'lucide-react';
@@ -34,6 +36,7 @@ const CreateArticle = () => {
 
     // Language State ('en' or 'HN')
     const [language, setLanguage] = useState('en');
+    const isHindi = language === 'HN';
 
     // Get the currently selected layout object
     const selectedLayout = layouts.find(l => l._id === formData.layoutTemplate) || null;
@@ -270,19 +273,32 @@ const CreateArticle = () => {
         const { id, type, config } = element;
         const configStyles = getConfigStyles(config);
         const elementValue = getElementValue(element);
+        const isHindi = language === 'HN';
 
         switch (type) {
             case 'header':
                 return (
                     <div className={`${configStyles} group relative`}>
-                        <input
-                            type="text"
-                            value={elementValue}
-                            onChange={(e) => handleElementChange(id, type, e.target.value)}
-                            placeholder="Click to enter headline..."
-                            className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2"
-                            style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
-                        />
+                        {isHindi ? (
+                            <ReactTransliterate
+                                value={elementValue}
+                                onChangeText={(text) => handleElementChange(id, type, text)}
+                                lang="hi"
+                                placeholder="Click to enter headline..."
+                                className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2"
+                                containerClassName="w-full"
+                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                            />
+                        ) : (
+                            <input
+                                type="text"
+                                value={elementValue}
+                                onChange={(e) => handleElementChange(id, type, e.target.value)}
+                                placeholder="Click to enter headline..."
+                                className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2"
+                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                            />
+                        )}
                         <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
                             Headline
                         </span>
@@ -292,14 +308,27 @@ const CreateArticle = () => {
             case 'summary':
                 return (
                     <div className={`${configStyles} group relative`}>
-                        <textarea
-                            value={elementValue}
-                            onChange={(e) => handleElementChange(id, type, e.target.value)}
-                            placeholder="Click to enter summary..."
-                            rows={3}
-                            className="w-full bg-transparent border-none outline-none text-gray-600 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-none"
-                            style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
-                        />
+                        {isHindi ? (
+                            <ReactTransliterate
+                                value={elementValue}
+                                onChangeText={(text) => handleElementChange(id, type, text)}
+                                lang="hi"
+                                placeholder="Click to enter summary..."
+                                className="w-full bg-transparent border-none outline-none text-gray-600 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-none"
+                                containerClassName="w-full"
+                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                                renderComponent={(props) => <textarea {...props} rows={3} />}
+                            />
+                        ) : (
+                            <textarea
+                                value={elementValue}
+                                onChange={(e) => handleElementChange(id, type, e.target.value)}
+                                placeholder="Click to enter summary..."
+                                rows={3}
+                                className="w-full bg-transparent border-none outline-none text-gray-600 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-none"
+                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                            />
+                        )}
                         <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
                             Summary
                         </span>
@@ -309,14 +338,27 @@ const CreateArticle = () => {
             case 'body':
                 return (
                     <div className={`${configStyles} group relative`}>
-                        <textarea
-                            value={elementValue}
-                            onChange={(e) => handleElementChange(id, type, e.target.value)}
-                            placeholder="Click to write article body content..."
-                            rows={10}
-                            className="w-full bg-transparent border-none outline-none text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-y min-h-[200px]"
-                            style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
-                        />
+                        {isHindi ? (
+                            <ReactTransliterate
+                                value={elementValue}
+                                onChangeText={(text) => handleElementChange(id, type, text)}
+                                lang="hi"
+                                placeholder="Click to write article body content..."
+                                className="w-full bg-transparent border-none outline-none text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-y min-h-[200px]"
+                                containerClassName="w-full"
+                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                                renderComponent={(props) => <textarea {...props} rows={10} />}
+                            />
+                        ) : (
+                            <textarea
+                                value={elementValue}
+                                onChange={(e) => handleElementChange(id, type, e.target.value)}
+                                placeholder="Click to write article body content..."
+                                rows={10}
+                                className="w-full bg-transparent border-none outline-none text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-y min-h-[200px]"
+                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                            />
+                        )}
                         <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
                             Body Content
                         </span>
@@ -330,13 +372,24 @@ const CreateArticle = () => {
                             {elementValue?.charAt(0) || 'A'}
                         </div>
                         <div className="flex-1">
-                            <input
-                                type="text"
-                                value={elementValue}
-                                onChange={(e) => handleElementChange(id, type, e.target.value)}
-                                placeholder="Author name..."
-                                className="w-full bg-transparent border-none outline-none font-semibold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-1"
-                            />
+                            {isHindi ? (
+                                <ReactTransliterate
+                                    value={elementValue}
+                                    onChangeText={(text) => handleElementChange(id, type, text)}
+                                    lang="hi"
+                                    placeholder="Author name..."
+                                    className="w-full bg-transparent border-none outline-none font-semibold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-1"
+                                    containerClassName="w-full"
+                                />
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={elementValue}
+                                    onChange={(e) => handleElementChange(id, type, e.target.value)}
+                                    placeholder="Author name..."
+                                    className="w-full bg-transparent border-none outline-none font-semibold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-1"
+                                />
+                            )}
                             <div className="text-xs text-gray-500">Author</div>
                         </div>
                         <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
@@ -373,13 +426,24 @@ const CreateArticle = () => {
                                     )
                                 ))
                             ) : null}
-                            <input
-                                type="text"
-                                value={elementValue}
-                                onChange={(e) => handleElementChange(id, type, e.target.value)}
-                                placeholder="Enter tags (comma separated)..."
-                                className="flex-1 min-w-[150px] bg-transparent border-none outline-none text-sm placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1"
-                            />
+                            {isHindi ? (
+                                <ReactTransliterate
+                                    value={elementValue}
+                                    onChangeText={(text) => handleElementChange(id, type, text)}
+                                    lang="hi"
+                                    placeholder="Enter tags (comma separated)..."
+                                    className="flex-1 min-w-[150px] bg-transparent border-none outline-none text-sm placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1"
+                                    containerClassName="flex-1"
+                                />
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={elementValue}
+                                    onChange={(e) => handleElementChange(id, type, e.target.value)}
+                                    placeholder="Enter tags (comma separated)..."
+                                    className="flex-1 min-w-[150px] bg-transparent border-none outline-none text-sm placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1"
+                                />
+                            )}
                         </div>
                         <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
                             Tags
@@ -661,24 +725,46 @@ const CreateArticle = () => {
                                         <span className="text-gray-400 text-xs">Tags will appear here</span>
                                     )}
                                 </div>
-                                <input
-                                    type="text"
-                                    value={formData.tags}
-                                    onChange={(e) => handleChange('tags', e.target.value)}
-                                    placeholder="Enter tags (comma separated)..."
-                                    className="mt-2 w-full bg-gray-50 border border-dashed border-gray-300 rounded px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                                />
+                                {isHindi ? (
+                                    <ReactTransliterate
+                                        value={formData.tags}
+                                        onChangeText={(text) => handleChange('tags', text)}
+                                        lang="hi"
+                                        placeholder="Enter tags (comma separated)..."
+                                        className="mt-2 w-full bg-gray-50 border border-dashed border-gray-300 rounded px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        containerClassName="mt-2 w-full"
+                                    />
+                                ) : (
+                                    <input
+                                        type="text"
+                                        value={formData.tags}
+                                        onChange={(e) => handleChange('tags', e.target.value)}
+                                        placeholder="Enter tags (comma separated)..."
+                                        className="mt-2 w-full bg-gray-50 border border-dashed border-gray-300 rounded px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    />
+                                )}
                             </div>
 
                             {/* Headline */}
                             <div className="group relative">
-                                <input
-                                    type="text"
-                                    value={formData.article_header}
-                                    onChange={(e) => handleChange('article_header', e.target.value)}
-                                    placeholder="Enter your headline here..."
-                                    className="w-full text-3xl md:text-4xl font-serif font-bold text-gray-900 placeholder-gray-300 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2"
-                                />
+                                {isHindi ? (
+                                    <ReactTransliterate
+                                        value={formData.article_header}
+                                        onChangeText={(text) => handleChange('article_header', text)}
+                                        lang="hi"
+                                        placeholder="Enter your headline here..."
+                                        className="w-full text-3xl md:text-4xl font-serif font-bold text-gray-900 placeholder-gray-300 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2"
+                                        containerClassName="w-full"
+                                    />
+                                ) : (
+                                    <input
+                                        type="text"
+                                        value={formData.article_header}
+                                        onChange={(e) => handleChange('article_header', e.target.value)}
+                                        placeholder="Enter your headline here..."
+                                        className="w-full text-3xl md:text-4xl font-serif font-bold text-gray-900 placeholder-gray-300 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2"
+                                    />
+                                )}
                                 <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
                                     Headline *
                                 </span>
@@ -686,13 +772,25 @@ const CreateArticle = () => {
 
                             {/* Summary */}
                             <div className="group relative border-l-4 border-gray-300 pl-4">
-                                <textarea
-                                    value={formData.summary}
-                                    onChange={(e) => handleChange('summary', e.target.value)}
-                                    placeholder="Write a compelling summary..."
-                                    rows={3}
-                                    className="w-full text-lg text-gray-600 italic placeholder-gray-400 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-none"
-                                />
+                                {isHindi ? (
+                                    <ReactTransliterate
+                                        value={formData.summary}
+                                        onChangeText={(text) => handleChange('summary', text)}
+                                        lang="hi"
+                                        placeholder="Write a compelling summary..."
+                                        className="w-full text-lg text-gray-600 italic placeholder-gray-400 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-none"
+                                        containerClassName="w-full"
+                                        renderComponent={(props) => <textarea {...props} rows={3} />}
+                                    />
+                                ) : (
+                                    <textarea
+                                        value={formData.summary}
+                                        onChange={(e) => handleChange('summary', e.target.value)}
+                                        placeholder="Write a compelling summary..."
+                                        rows={3}
+                                        className="w-full text-lg text-gray-600 italic placeholder-gray-400 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-none"
+                                    />
+                                )}
                                 <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
                                     Summary
                                 </span>
@@ -705,13 +803,24 @@ const CreateArticle = () => {
                                         {formData.author?.charAt(0) || 'A'}
                                     </div>
                                     <div>
-                                        <input
-                                            type="text"
-                                            value={formData.author}
-                                            onChange={(e) => handleChange('author', e.target.value)}
-                                            placeholder="Author name"
-                                            className="font-bold text-sm text-gray-900 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-1"
-                                        />
+                                        {isHindi ? (
+                                            <ReactTransliterate
+                                                value={formData.author}
+                                                onChangeText={(text) => handleChange('author', text)}
+                                                lang="hi"
+                                                placeholder="Author name"
+                                                className="font-bold text-sm text-gray-900 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-1"
+                                                containerClassName="inline-block"
+                                            />
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={formData.author}
+                                                onChange={(e) => handleChange('author', e.target.value)}
+                                                placeholder="Author name"
+                                                className="font-bold text-sm text-gray-900 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-1"
+                                            />
+                                        )}
                                         <div className="text-xs text-gray-500">{new Date().toLocaleString()}</div>
                                     </div>
                                     <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
@@ -807,17 +916,33 @@ const CreateArticle = () => {
 
                             {/* Body */}
                             <div className="group relative">
-                                <textarea
-                                    value={formData.body}
-                                    onChange={(e) => handleChange('body', e.target.value)}
-                                    placeholder="Write your article content here...
+                                {isHindi ? (
+                                    <ReactTransliterate
+                                        value={formData.body}
+                                        onChangeText={(text) => handleChange('body', text)}
+                                        lang="hi"
+                                        placeholder="Write your article content here...
 
 You can use multiple paragraphs, and the content will be displayed exactly as you write it.
 
 Start typing to see your article come to life!"
-                                    rows={15}
-                                    className="w-full text-lg text-gray-800 leading-relaxed font-serif placeholder-gray-400 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-y min-h-[300px]"
-                                />
+                                        className="w-full text-lg text-gray-800 leading-relaxed font-serif placeholder-gray-400 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-y min-h-[300px]"
+                                        containerClassName="w-full"
+                                        renderComponent={(props) => <textarea {...props} rows={15} />}
+                                    />
+                                ) : (
+                                    <textarea
+                                        value={formData.body}
+                                        onChange={(e) => handleChange('body', e.target.value)}
+                                        placeholder="Write your article content here...
+
+You can use multiple paragraphs, and the content will be displayed exactly as you write it.
+
+Start typing to see your article come to life!"
+                                        rows={15}
+                                        className="w-full text-lg text-gray-800 leading-relaxed font-serif placeholder-gray-400 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-y min-h-[300px]"
+                                    />
+                                )}
                                 <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
                                     Article Body
                                 </span>
