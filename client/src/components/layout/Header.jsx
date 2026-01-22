@@ -42,8 +42,8 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                                 {language === 'en' ? 'हिंदी' : 'English'}
                             </span>
                         </button>
-                        <span className="hidden md:inline hover:text-brand-red cursor-pointer transition">Follow Us</span>
-                        <span className="hidden md:inline hover:text-brand-red cursor-pointer transition">Login</span>
+                        {/* <span className="hidden md:inline hover:text-brand-red cursor-pointer transition">Follow Us</span>
+                        <span className="hidden md:inline hover:text-brand-red cursor-pointer transition">Login</span> */}
                     </div>
                 </div>
 
