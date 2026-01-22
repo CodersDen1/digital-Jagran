@@ -64,6 +64,7 @@ articleRouter.get('/articles/:id', (req, res) => articleController.getArticleByI
 articleRouter.put('/articles/:id', (req, res) => articleController.updateArticle(req, res));
 articleRouter.delete('/articles/:id', (req, res) => articleController.deleteArticle(req, res));
 articleRouter.post('/articles/:id/view', (req, res) => articleController.incrementViews(req, res));
+articleRouter.post('/articles/:id/translate', (req, res) => articleController.translateArticle(req, res));
 
 // Layout Routes
 const layoutRouter = express.Router();

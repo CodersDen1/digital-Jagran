@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const articleSchema = new mongoose.Schema({
   // English Fields
-  article_header_en: { type: String, required: true },
+  article_header_en: { type: String },
   metadata_en: { type: String },
   keywords_en: { type: [String] },
   summary_en: { type: String },
@@ -47,6 +47,13 @@ const articleSchema = new mongoose.Schema({
 
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
+});
+
+articleSchema.pre('validate', function () {
+  if (!this.article_header_en && !this.article_header) {
+    this.invalidate('article_header_en', 'Either English or Hindi header is required');
+    this.invalidate('article_header', 'Either English or Hindi header is required');
+  }
 });
 
 module.exports = mongoose.model('Article', articleSchema);
