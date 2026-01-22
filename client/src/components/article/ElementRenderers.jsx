@@ -6,7 +6,17 @@ import { User, Calendar, Share2, Facebook, Twitter, Linkedin } from 'lucide-reac
  */
 const getElementContent = (article, elementId, fieldName, t) => {
     // Check for element-specific content first (using language-aware lookup)
-    const elementContent = t(article, 'elementContent') || article.elementContent_en;
+    let elementContent = t(article, 'elementContent');
+
+    // If elementContent is an empty object (Mongoose default), try fallback to en
+    // This handles the case where content is saved in elementContent_en but t() returns empty elementContent
+    if (elementContent && typeof elementContent === 'object' && !Array.isArray(elementContent) && Object.keys(elementContent).length === 0) {
+        elementContent = article.elementContent_en;
+    }
+
+    // Explicit fallback to English map if still missing/empty
+    elementContent = elementContent || article.elementContent_en;
+
     if (elementContent && elementId) {
         // Handle both Map and plain object
         const content = elementContent instanceof Map
@@ -235,7 +245,14 @@ const BodyRenderer = ({ article, elementId, t, config }) => {
  */
 const ImageRenderer = ({ article, elementId, t, config }) => {
     // Check for element-specific image first
-    const elementContent = t(article, 'elementContent') || article.elementContent_en;
+    let elementContent = t(article, 'elementContent');
+
+    // Fix for empty object returned by Mongoose/t()
+    if (elementContent && typeof elementContent === 'object' && !Array.isArray(elementContent) && Object.keys(elementContent).length === 0) {
+        elementContent = article.elementContent_en;
+    }
+    elementContent = elementContent || article.elementContent_en;
+
     let image = null;
     let objectPosition = 'center';
 
@@ -259,10 +276,10 @@ const ImageRenderer = ({ article, elementId, t, config }) => {
         }
     }
 
-    // Fall back to article photos
-    if (!image) {
-        image = article.photos && article.photos.length > 0 ? article.photos[0] : null;
-    }
+    // Fall back removed to prevent duplication of main image in custom blocks
+    // if (!image) {
+    //    image = article.photos && article.photos.length > 0 ? article.photos[0] : null;
+    // }
 
     if (!image) {
         return (
@@ -417,7 +434,13 @@ const DateRenderer = ({ article }) => {
 const TagsRenderer = ({ article, elementId, t }) => {
     // Check for element-specific tags first
     let tags = [];
-    const elementContent = t(article, 'elementContent') || article.elementContent_en;
+    let elementContent = t(article, 'elementContent');
+
+    // Fix for empty object returned by Mongoose/t()
+    if (elementContent && typeof elementContent === 'object' && !Array.isArray(elementContent) && Object.keys(elementContent).length === 0) {
+        elementContent = article.elementContent_en;
+    }
+    elementContent = elementContent || article.elementContent_en;
 
     if (elementContent && elementId) {
         const content = elementContent instanceof Map
