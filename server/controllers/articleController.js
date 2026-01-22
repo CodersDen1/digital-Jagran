@@ -50,65 +50,69 @@ class ArticleController {
 
             // Determine target language code
             const targetLangCode = targetLanguage || (originalArticle.published_language === 'en' ? 'HN' : 'en');
-            console.log(`Starting synchronous translation for Article ID: ${id} to ${targetLangCode}`);
 
-            let translations = {};
-            if (targetLangCode === 'HN' || targetLangCode === 'hi') {
-                translations = await translationService.getHindiTranslation(originalArticle);
-            } else if (targetLangCode === 'en') {
-                translations = await translationService.getEnglishTranslation(originalArticle);
-            } else {
-                return res.status(400).json({ error: "Translation to " + targetLangCode + " not supported yet" });
-            }
-
-            if (Object.keys(translations).length === 0) {
-                return res.status(500).json({ error: "Translation returned empty result." });
-            }
-
-            // Create new article data, clearing old language fields
+            // Create a skeleton for the new article
             const newArticleData = {
                 ...originalArticle.toObject(),
                 _id: undefined, // New ID
                 createdAt: undefined,
                 updatedAt: undefined,
                 published_language: targetLangCode,
-                isTranslating: false,
-
-                // Clear fields to avoid mixed content
-                article_header: undefined,
-                summary: undefined,
-                body: undefined,
-                metadata: undefined,
-                keywords: [],
-                tags: [],
-                article_header_en: undefined,
+                isTranslating: true,
+                article_header: 'Translating...',
+                summary: 'Translating content...',
+                body: 'Please wait, content is being translated.',
+                // Clear fields to avoid mixed content (very simple approach)
+                article_header_en: 'Translating...',
                 summary_en: undefined,
                 body_en: undefined,
-                metadata_en: undefined,
-                keywords_en: [],
-                tags_en: [],
-                elementContent: {},
-                elementContent_en: {},
-
-                // Apply translations
-                ...translations,
-
-                // Regenerate slug
+                // Regenerate slug for the translated article to avoid collision
                 slug: (originalArticle.slug || 'article') + '-' + targetLangCode + '-' + Date.now()
             };
 
             const newArticle = await articleRepository.create(newArticleData);
-            console.log(`Translation completed and article created: ${newArticle._id}`);
 
+            // Respond immediately with the new skeleton article
             res.status(201).json(newArticle);
 
+            // Perform Async Translation
+            (async () => {
+                try {
+                    console.log(`Starting background translation for Article ID: ${newArticle._id} to ${targetLangCode}`);
+
+                    let translations = {};
+                    if (targetLangCode === 'HN' || targetLangCode === 'hi') {
+                        translations = await translationService.getHindiTranslation(originalArticle);
+                    } else {
+                        console.log("English translation not fully implemented yet in this flow");
+                    }
+
+                    if (Object.keys(translations).length > 0) {
+                        await articleRepository.update(newArticle._id, {
+                            ...translations,
+                            isTranslating: false
+                        });
+                        console.log(`Translation completed for Article ID: ${newArticle._id}`);
+                    } else {
+                        await articleRepository.update(newArticle._id, {
+                            isTranslating: false,
+                            article_header: "Translation returned empty result"
+                        });
+                    }
+
+                } catch (err) {
+                    console.error("Background translation failed:", err);
+                    await articleRepository.update(newArticle._id, {
+                        article_header: "Translation Failed",
+                        isTranslating: false
+                    });
+                }
+            })();
+
         } catch (error) {
-            console.error("Translation failed:", error);
             res.status(500).json({ error: error.message });
         }
     }
-
-
 
     async getAllArticles(req, res) {
         try {

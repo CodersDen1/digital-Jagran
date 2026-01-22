@@ -40,31 +40,6 @@ class TranslationService {
     }
 
     /**
-     * Translates Hindi fields to English and returns ONLY the translated fields.
-     */
-    async getEnglishTranslation(data) {
-        const hiToEnPayload = {};
-        // Map Hindi fields to English equivalents
-        if (data.article_header) hiToEnPayload.article_header_en = data.article_header;
-        if (data.summary) hiToEnPayload.summary_en = data.summary;
-        if (data.body) hiToEnPayload.body_en = data.body;
-        if (data.metadata) hiToEnPayload.metadata_en = data.metadata;
-        if (data.keywords && data.keywords.length > 0) hiToEnPayload.keywords_en = data.keywords;
-        // Note: 'tags' in Hindi article maps to 'tags_en' in English article
-        if (data.tags && data.tags.length > 0) hiToEnPayload.tags_en = data.tags;
-
-        if (Object.keys(hiToEnPayload).length === 0) return {};
-
-        try {
-            console.log("Translating Hindi to English (Async)...", Object.keys(hiToEnPayload));
-            return await this.callGemini(hiToEnPayload, "Hindi", "English");
-        } catch (error) {
-            console.error("Translation error:", error);
-            return {};
-        }
-    }
-
-    /**
      * Helper to call Gemini API
      */
     async callGemini(payload, sourceLang, targetLang) {
@@ -79,8 +54,6 @@ Rules:
 3. For 'body' or content fields, preserve any HTML tags or Markdown formatting.
 4. Use a formal, journalistic tone appropriate for news articles.
 5. Ensure the translation is sensible and contextually accurate.
-6. TRANSLATE EACH FIELD INDEPENDENTLY. Do NOT include the article header or summary in the 'body' translation unless it was present in the source 'body' text.
-7. Do not repeat content from one field into another.
 
 Input JSON:
 ${JSON.stringify(payload)}
