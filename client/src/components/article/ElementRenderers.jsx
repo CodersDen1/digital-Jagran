@@ -157,14 +157,20 @@ const ImageRenderer = ({ article, elementId, t, config }) => {
     // Check for element-specific image first
     const elementContent = t(article, 'elementContent') || article.elementContent_en;
     let image = null;
+    let objectPosition = 'center';
 
     if (elementContent && elementId) {
         const content = elementContent instanceof Map
             ? elementContent.get(elementId)
             : elementContent[elementId];
+
         if (content?.value) {
             // Element-specific image (could be comma-separated)
             image = content.value.split(',')[0]?.trim();
+            // Get position if available
+            if (content.objectPosition) {
+                objectPosition = content.objectPosition;
+            }
         }
     }
 
@@ -184,7 +190,8 @@ const ImageRenderer = ({ article, elementId, t, config }) => {
     // Build style object for image
     const imageStyle = {
         objectFit: config?.objectFit || 'cover',
-        width: '100%'
+        width: '100%',
+        objectPosition: objectPosition
     };
 
     // If maxHeight is set, prioritize it over aspect ratio
@@ -192,6 +199,7 @@ const ImageRenderer = ({ article, elementId, t, config }) => {
         imageStyle.maxHeight = '100%';
         imageStyle.height = 'auto';
         imageStyle.objectFit = 'contain'; // Use contain to show full image within bounds
+        imageStyle.objectPosition = 'center'; // Reset position for contain mode
     } else if (config?.aspectRatio) {
         imageStyle.aspectRatio = config.aspectRatio;
     }
@@ -201,7 +209,7 @@ const ImageRenderer = ({ article, elementId, t, config }) => {
             <img
                 src={image}
                 alt={t(article, 'article_header')}
-                className="w-full h-auto"
+                className="w-full h-auto experiment-image"
                 style={imageStyle}
                 loading="lazy"
             />

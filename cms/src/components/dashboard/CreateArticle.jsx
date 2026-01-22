@@ -141,6 +141,22 @@ const CreateArticle = () => {
         return formData[typeToField[element.type]] || '';
     };
 
+    // Helper to get element metadata (like objectPosition)
+    const getElementMetadata = (elementId, key) => {
+        return elementData[elementId]?.[key];
+    };
+
+    // Update specific metadata for an element
+    const handleElementMetadataChange = (elementId, key, value) => {
+        setElementData(prev => ({
+            ...prev,
+            [elementId]: {
+                ...(prev[elementId] || {}),
+                [key]: value
+            }
+        }));
+    };
+
     // Consolidate element data by type for submission
     const consolidateElementData = () => {
         const result = { ...formData };
@@ -453,6 +469,22 @@ const CreateArticle = () => {
 
             case 'image': {
                 const imageUrl = elementValue?.split(',')[0]?.trim() || '';
+                // Default to 'center' if not set
+                const objectPosition = getElementMetadata(id, 'objectPosition') || 'center center';
+
+                // Position options
+                const positions = [
+                    { label: 'Top Left', value: 'left top' },
+                    { label: 'Top Center', value: 'center top' },
+                    { label: 'Top Right', value: 'right top' },
+                    { label: 'Center Left', value: 'left center' },
+                    { label: 'Center', value: 'center center' },
+                    { label: 'Center Right', value: 'right center' },
+                    { label: 'Bottom Left', value: 'left bottom' },
+                    { label: 'Bottom Center', value: 'center bottom' },
+                    { label: 'Bottom Right', value: 'right bottom' },
+                ];
+
                 return (
                     <div className={`${configStyles} group relative`}>
                         {imageUrl ? (
@@ -460,24 +492,46 @@ const CreateArticle = () => {
                                 <img
                                     src={imageUrl}
                                     alt="Featured"
-                                    className="w-full rounded-md"
+                                    className="w-full rounded-md transition-all duration-300"
                                     style={{
                                         aspectRatio: config?.aspectRatio || '16/9',
-                                        objectFit: config?.objectFit || 'cover'
+                                        objectFit: config?.objectFit || 'cover',
+                                        objectPosition: objectPosition
                                     }}
                                     onError={(e) => {
                                         e.target.onerror = null;
                                         e.target.src = 'https://placehold.co/800x450?text=Invalid+Image+URL';
                                     }}
                                 />
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-4 p-4">
                                     <input
                                         type="text"
                                         value={elementValue}
                                         onChange={(e) => handleElementChange(id, type, e.target.value)}
                                         placeholder="Image URL..."
-                                        className="w-3/4 bg-white/90 rounded px-3 py-2 text-sm"
+                                        className="w-1/2 bg-white/90 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                     />
+
+                                    {/* Position Picker */}
+                                    <div className="bg-white p-2 rounded shadow-lg">
+                                        <p className="text-[10px] text-gray-500 mb-1 font-bold text-center uppercase tracking-wider">Position</p>
+                                        <div className="grid grid-cols-3 gap-1">
+                                            {positions.map(pos => (
+                                                <button
+                                                    key={pos.value}
+                                                    type="button"
+                                                    title={pos.label}
+                                                    onClick={() => handleElementMetadataChange(id, 'objectPosition', pos.value)}
+                                                    className={`w-6 h-6 rounded flex items-center justify-center transition border ${objectPosition === pos.value
+                                                            ? 'bg-primary border-primary text-white'
+                                                            : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
+                                                        }`}
+                                                >
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${objectPosition === pos.value ? 'bg-white' : 'bg-current'}`} />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
