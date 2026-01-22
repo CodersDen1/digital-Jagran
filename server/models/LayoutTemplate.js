@@ -9,7 +9,7 @@ const layoutElementSchema = new mongoose.Schema({
     type: {
         type: String,
         required: true,
-        enum: ['header', 'summary', 'body', 'image', 'video', 'author', 'date', 'tags', 'text', 'divider', 'spacer']
+        enum: ['header', 'summary', 'body', 'image', 'video', 'author', 'date', 'tags', 'text', 'divider', 'spacer', 'section']
     },
     // Grid positioning (12-column grid system)
     row: { type: Number, required: true, default: 0 },
@@ -19,6 +19,10 @@ const layoutElementSchema = new mongoose.Schema({
 
     // Element configuration
     config: {
+        // Section/Grid specific
+        columns: { type: Number, default: 2 },
+        ratio: { type: String, default: 'equal' },
+
         // Typography
         fontSize: { type: String, default: 'base' }, // 'xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl'
         fontWeight: { type: String, default: 'normal' }, // 'light', 'normal', 'medium', 'semibold', 'bold'
@@ -44,6 +48,7 @@ const layoutElementSchema = new mongoose.Schema({
         // Image specific
         aspectRatio: { type: String, default: '16/9' }, // '1/1', '4/3', '16/9', '21/9', 'auto'
         objectFit: { type: String, default: 'cover' }, // 'cover', 'contain', 'fill', 'none'
+        maxHeight: { type: String, default: '' }, // '', '24', '32', etc.
 
         // Custom content (for text type)
         customContent: { type: String, default: '' },
@@ -104,7 +109,7 @@ const layoutTemplateSchema = new mongoose.Schema({
 layoutTemplateSchema.pre('save', async function () {
     // Update timestamp
     this.updatedAt = new Date();
-    
+
     // Ensure only one default layout exists
     if (this.isDefault) {
         await this.constructor.updateMany(

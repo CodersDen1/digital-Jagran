@@ -27,6 +27,8 @@ const ELEMENT_TYPES = [
     { type: 'text', label: 'Custom Text', icon: Type, description: 'Custom text block' },
     { type: 'divider', label: 'Divider', icon: Minus, description: 'Horizontal line' },
     { type: 'spacer', label: 'Spacer', icon: Square, description: 'Empty space' },
+    { type: 'section-2', label: '2-Column Grid', icon: Square, description: 'Container with 2 columns' },
+    { type: 'section-3', label: '3-Column Grid', icon: Square, description: 'Container with 3 columns' },
 ];
 
 /**
@@ -42,10 +44,15 @@ const LayoutToolbar = ({ onAddElement }) => {
 
                 <div className="space-y-2">
                     {ELEMENT_TYPES.map(({ type, label, icon: Icon, description }) => (
-                        <button
+                        <div
                             key={type}
+                            draggable
+                            onDragStart={(e) => {
+                                e.dataTransfer.setData('application/react-dnd-type', type);
+                                e.dataTransfer.effectAllowed = 'copy';
+                            }}
                             onClick={() => onAddElement(type)}
-                            className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-primary hover:bg-blue-50 transition group text-left"
+                            className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-primary hover:bg-blue-50 transition group text-left cursor-grab active:cursor-grabbing"
                         >
                             <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition">
                                 <Icon size={20} />
@@ -54,7 +61,7 @@ const LayoutToolbar = ({ onAddElement }) => {
                                 <div className="font-medium text-gray-900 text-sm">{label}</div>
                                 <div className="text-xs text-gray-500">{description}</div>
                             </div>
-                        </button>
+                        </div>
                     ))}
                 </div>
             </div>

@@ -53,11 +53,84 @@ const ElementRenderers = ({ type, elementId, config, article, t }) => {
 };
 
 /**
+ * Helper to generate Tailwind classes from config
+ */
+/**
+ * Helper to get Tailwind classes from config using explicit maps
+ * (Dynamic string interpolation like `text-${size}` often fails with Tailwind JIT)
+ */
+const FONT_SIZES = {
+    'xs': 'text-xs', 'sm': 'text-sm', 'base': 'text-base', 'lg': 'text-lg',
+    'xl': 'text-xl', '2xl': 'text-2xl', '3xl': 'text-3xl', '4xl': 'text-4xl', '5xl': 'text-5xl'
+};
+const FONT_WEIGHTS = {
+    'light': 'font-light', 'normal': 'font-normal', 'medium': 'font-medium',
+    'semibold': 'font-semibold', 'bold': 'font-bold'
+};
+const TEXT_ALIGNS = {
+    'left': 'text-left', 'center': 'text-center', 'right': 'text-right', 'justify': 'text-justify'
+};
+const FONT_FAMILIES = {
+    'serif': 'font-serif', 'sans': 'font-sans'
+};
+
+const getConfigClasses = (config, defaultSize = 'base') => {
+    if (!config) return '';
+    const classes = [];
+
+    // Typography
+    if (config.fontSize && FONT_SIZES[config.fontSize]) {
+        classes.push(FONT_SIZES[config.fontSize]);
+    } else {
+        classes.push(FONT_SIZES[defaultSize] || `text-${defaultSize}`);
+    }
+
+    if (config.fontWeight && FONT_WEIGHTS[config.fontWeight]) classes.push(FONT_WEIGHTS[config.fontWeight]);
+    if (config.fontFamily && FONT_FAMILIES[config.fontFamily]) classes.push(FONT_FAMILIES[config.fontFamily]);
+    if (config.textAlign && TEXT_ALIGNS[config.textAlign]) classes.push(TEXT_ALIGNS[config.textAlign]);
+
+    // Text Color
+    const TEXT_COLORS = {
+        'gray-900': 'text-gray-900', 'gray-700': 'text-gray-700', 'gray-600': 'text-gray-600',
+        'gray-500': 'text-gray-500', 'brand-red': 'text-brand-red', 'white': 'text-white',
+        'red-500': 'text-red-500', 'blue-500': 'text-blue-500'
+    };
+    if (config.textColor) {
+        if (TEXT_COLORS[config.textColor]) classes.push(TEXT_COLORS[config.textColor]);
+        else classes.push(config.textColor.startsWith('text-') ? config.textColor : `text-${config.textColor}`);
+    }
+
+    // Spacing (dynamic usually fine for numbers or safelisted keys)
+    const SPACING_MAP = {
+        '0': '0', '1': '1', '2': '2', '3': '3', '4': '4',
+        '6': '6', '8': '8', '10': '10', '12': '12', '16': '16'
+    };
+
+    const addSpacing = (prop, prefix) => {
+        if (config[prop] && SPACING_MAP[config[prop]]) {
+            classes.push(`${prefix}-${config[prop]}`);
+        }
+    };
+
+    addSpacing('marginTop', 'mt');
+    addSpacing('marginBottom', 'mb');
+    addSpacing('paddingTop', 'pt');
+    addSpacing('paddingBottom', 'pb');
+    addSpacing('paddingLeft', 'pl');
+    addSpacing('paddingRight', 'pr');
+
+    return classes.join(' ');
+};
+
+/**
  * Header/Headline Renderer - supports auto-resize when maxHeight is set
  */
 const HeaderRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
     const content = getElementContent(article, elementId, 'article_header', t);
+
+    // Apply config styles
+    const className = getConfigClasses(config, '4xl'); // Default to 4xl for headers if not set
 
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -75,7 +148,7 @@ const HeaderRenderer = ({ article, elementId, t, config }) => {
     }, [config?.maxHeight, content]);
 
     return (
-        <h1 ref={ref} className="text-gray-900 leading-tight">
+        <h1 ref={ref} className={`leading-tight ${className}`}>
             {content}
         </h1>
     );
@@ -87,6 +160,8 @@ const HeaderRenderer = ({ article, elementId, t, config }) => {
 const SummaryRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
     const content = getElementContent(article, elementId, 'summary', t);
+
+    const className = getConfigClasses(config, 'xl'); // Default to xl for summary
 
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -104,7 +179,7 @@ const SummaryRenderer = ({ article, elementId, t, config }) => {
     }, [config?.maxHeight, content]);
 
     return (
-        <p ref={ref} className="text-gray-600 italic">
+        <p ref={ref} className={`italic ${className}`}>
             {content}
         </p>
     );
@@ -117,6 +192,11 @@ const BodyRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
     const body = getElementContent(article, elementId, 'body', t);
     const isHTML = body && /<[a-z][\s\S]*>/i.test(body);
+
+    // For body, we usually don't want to enforce font-size on the wrapper if it's HTML, 
+    // but user wants control. 'prose' class usually controls size.
+    // If we add text-lg or text-xl to prose, it should scale.
+    const className = getConfigClasses(config, 'lg'); // Default to lg
 
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -137,14 +217,14 @@ const BodyRenderer = ({ article, elementId, t, config }) => {
         return (
             <div
                 ref={ref}
-                className="prose md:prose-lg max-w-none"
+                className={`prose md:prose-lg max-w-none ${className}`}
                 dangerouslySetInnerHTML={{ __html: body }}
             />
         );
     }
 
     return (
-        <div ref={ref} className="whitespace-pre-wrap text-gray-800">
+        <div ref={ref} className={`whitespace-pre-wrap ${className}`}>
             {body}
         </div>
     );
@@ -159,10 +239,15 @@ const ImageRenderer = ({ article, elementId, t, config }) => {
     let image = null;
     let objectPosition = 'center';
 
+    /* DEBUG: Check data flow */
+    // console.log('DEBUG ImageRenderer:', { elementId, hasContent: !!elementContent, contentType: typeof elementContent });
+
     if (elementContent && elementId) {
         const content = elementContent instanceof Map
             ? elementContent.get(elementId)
             : elementContent[elementId];
+
+        // console.log('DEBUG Image Content Lookup:', { elementId, found: !!content, value: content?.value });
 
         if (content?.value) {
             // Element-specific image (could be comma-separated)
@@ -206,6 +291,13 @@ const ImageRenderer = ({ article, elementId, t, config }) => {
 
     return (
         <figure className={config?.maxHeight ? 'h-full' : ''}>
+            {/* DEBUG: Remove after fixing */}
+            <div className="text-xs text-red-500 bg-white border border-red-500 p-1 mb-1 hidden">
+                ID: {elementId} <br />
+                Found: {elementContent && (elementContent instanceof Map ? elementContent.has(elementId) : elementContent[elementId] ? 'YES' : 'NO')} <br />
+                Keys: {elementContent ? Object.keys(elementContent instanceof Map ? Object.fromEntries(elementContent) : elementContent).join(', ').substring(0, 50) : 'None'}
+            </div>
+
             <img
                 src={image}
                 alt={t(article, 'article_header')}
@@ -365,6 +457,7 @@ const TagsRenderer = ({ article, elementId, t }) => {
  */
 const TextRenderer = ({ config }) => {
     const ref = useRef(null);
+    const className = getConfigClasses(config, 'base'); // Default to base
 
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -382,7 +475,7 @@ const TextRenderer = ({ config }) => {
     }, [config?.maxHeight, config?.customContent]);
 
     return (
-        <div ref={ref}>
+        <div ref={ref} className={className}>
             {config?.customContent || 'Custom content...'}
         </div>
     );

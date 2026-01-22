@@ -1,5 +1,6 @@
 import React from 'react';
 import LayoutElement from './LayoutElement';
+import LayoutSection from './LayoutSection';
 
 /**
  * Sample article data for preview mode
@@ -31,16 +32,37 @@ const LayoutCanvas = ({
     onMoveUp,
     onMoveDown,
     onReorder,
+    onMoveToContainer,
+    onAddElementToContainer,
     gridGap,
     maxWidth,
     previewMode
 }) => {
-    // Sort elements by row for proper display order
-    const sortedElements = [...elements].sort((a, b) => a.row - b.row);
+    // Only render root elements (no parentId)
+    const rootElements = elements.filter(el => !el.parentId).sort((a, b) => a.row - b.row);
 
-    // Get element content based on type
+    // Get element content based on type (Shared logic needed?)
     const getElementContent = (element) => {
         const { type, config } = element;
+        // Import LayoutSection locally if possible or handle here
+        if (type === 'section') {
+            return (
+                <LayoutSection
+                    sectionElement={element}
+                    allElements={elements}
+                    previewMode={previewMode}
+                    onSelectElement={onSelectElement}
+                    onUpdateElement={onUpdateElement}
+                    onDeleteElement={onDeleteElement}
+                    onMoveUp={onMoveUp}
+                    onMoveDown={onMoveDown}
+                    onReorder={onReorder}
+                    onMoveToContainer={onMoveToContainer}
+                    onAddElementToContainer={onAddElementToContainer}
+                    selectedElementId={selectedElementId}
+                />
+            );
+        }
 
         switch (type) {
             case 'header':
@@ -98,12 +120,40 @@ const LayoutCanvas = ({
                 );
 
             case 'video':
+                const videoUrl = config.videoUrl || '';
+                const isIframe = videoUrl.includes('<iframe');
+                const isVideoFile = videoUrl.match(/\.(mp4|webm|ogg)$/i);
+
                 return (
                     <div
-                        className="bg-gray-900 flex items-center justify-center text-white"
-                        style={{ aspectRatio: config.aspectRatio || '16/9' }}
+                        className="bg-black flex items-center justify-center text-white overflow-hidden relative"
+                        style={{ aspectRatio: config.aspectRatio || '16/9', borderRadius: config.borderRadius !== 'none' ? '0.375rem' : '0' }}
                     >
-                        <span className="text-lg">▶ Video Player</span>
+                        {!videoUrl ? (
+                            <div className="flex flex-col items-center opacity-50">
+                                <span className="text-4xl mb-2">▶</span>
+                                <span className="text-sm">Add Video URL</span>
+                            </div>
+                        ) : isIframe ? (
+                            <div
+                                className="w-full h-full [&>iframe]:w-full [&>iframe]:h-full"
+                                dangerouslySetInnerHTML={{ __html: videoUrl }}
+                            />
+                        ) : isVideoFile ? (
+                            <video
+                                src={videoUrl}
+                                controls
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            // Assume generic URL is an iframe source (Cloudflare/YouTube)
+                            <iframe
+                                src={videoUrl}
+                                className="w-full h-full"
+                                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
+                        )}
                     </div>
                 );
 
@@ -125,76 +175,72 @@ const LayoutCanvas = ({
 
     // Generate CSS classes from config
     const getConfigStyles = (config) => {
+        if (!config) return '';
         const classes = [];
-
-        // Font size
+        // ... (Keep existing logic if preferred, or rely on existing function)
+        // For brevity preserving existing logic by reference or assuming untouched
+        // RE-IMPLEMENTING for safety in replacement
         if (config.fontSize) classes.push(`text-${config.fontSize}`);
-
-        // Font weight
         if (config.fontWeight) classes.push(`font-${config.fontWeight}`);
-
-        // Font family
         if (config.fontFamily) classes.push(`font-${config.fontFamily}`);
-
-        // Text align
         if (config.textAlign) classes.push(`text-${config.textAlign}`);
-
-        // Text color
         if (config.textColor) classes.push(`text-${config.textColor}`);
-
-        // Line height
-        if (config.lineHeight && config.lineHeight !== 'normal') {
-            classes.push(`leading-${config.lineHeight}`);
-        }
-
-        // Padding
+        if (config.lineHeight && config.lineHeight !== 'normal') classes.push(`leading-${config.lineHeight}`);
         if (config.paddingTop && config.paddingTop !== '0') classes.push(`pt-${config.paddingTop}`);
         if (config.paddingBottom && config.paddingBottom !== '0') classes.push(`pb-${config.paddingBottom}`);
         if (config.paddingLeft && config.paddingLeft !== '0') classes.push(`pl-${config.paddingLeft}`);
         if (config.paddingRight && config.paddingRight !== '0') classes.push(`pr-${config.paddingRight}`);
-
-        // Margin
         if (config.marginTop && config.marginTop !== '0') classes.push(`mt-${config.marginTop}`);
         if (config.marginBottom && config.marginBottom !== '0') classes.push(`mb-${config.marginBottom}`);
-
-        // Background
-        if (config.backgroundColor && config.backgroundColor !== 'transparent') {
-            classes.push(`bg-${config.backgroundColor}`);
-        }
-
-        // Border radius
-        if (config.borderRadius && config.borderRadius !== 'none') {
-            classes.push(`rounded-${config.borderRadius}`);
-        }
-
-        // Border
+        if (config.backgroundColor && config.backgroundColor !== 'transparent') classes.push(`bg-${config.backgroundColor}`);
+        if (config.borderRadius && config.borderRadius !== 'none') classes.push(`rounded-${config.borderRadius}`);
         if (config.borderWidth && config.borderWidth !== '0') {
             classes.push(`border-${config.borderWidth}`);
             classes.push(`border-${config.borderColor || 'gray-200'}`);
         }
-
-        // Border left (only when explicitly enabled)
         if (config.borderLeft) {
             classes.push(`border-l-4`);
             classes.push(`border-${config.borderColor || 'gray-300'}`);
         }
-
-        // Max height with overflow handling
         if (config.maxHeight) {
             classes.push(`max-h-${config.maxHeight}`);
             classes.push('overflow-hidden');
         }
-
         return classes.join(' ');
     };
 
     return (
         <div className={`mx-auto bg-white shadow-lg rounded-lg p-8 max-w-${maxWidth}`}>
             <div className={`grid grid-cols-12 gap-${gridGap}`}>
-                {sortedElements.map((element, index) => {
+                {rootElements.map((element, index) => {
                     const isSelected = element.id === selectedElementId;
                     const content = getElementContent(element);
                     const configStyles = getConfigStyles(element.config);
+
+                    // Root elements span their full width
+                    // Sections handle their own grid
+
+                    if (element.type === 'section') {
+                        return (
+                            <LayoutElement
+                                key={element.id}
+                                element={element}
+                                index={index}
+                                isSelected={isSelected}
+                                previewMode={previewMode}
+                                onSelect={() => onSelectElement(element.id)}
+                                onUpdate={(updates) => onUpdateElement(element.id, updates)}
+                                onDelete={() => onDeleteElement(element.id)}
+                                onMoveUp={() => onMoveUp(element.id)}
+                                onMoveDown={() => onMoveDown(element.id)}
+                                onReorder={onReorder}
+                                isFirst={index === 0}
+                                isLast={index === rootElements.length - 1}
+                            >
+                                {content}
+                            </LayoutElement>
+                        );
+                    }
 
                     return (
                         <LayoutElement
@@ -210,7 +256,7 @@ const LayoutCanvas = ({
                             onMoveDown={() => onMoveDown(element.id)}
                             onReorder={onReorder}
                             isFirst={index === 0}
-                            isLast={index === sortedElements.length - 1}
+                            isLast={index === rootElements.length - 1}
                         >
                             <div className={configStyles}>
                                 {content}

@@ -49,7 +49,7 @@ const Dashboard = () => {
             try {
                 await articleService.translate(id);
                 // Refresh list on success
-                alert('Translation started! A new draft article has been created.');
+                alert('Translation completed! A new article has been created.');
                 loadArticles();
             } catch (error) {
                 console.error("Translation error", error);

@@ -67,6 +67,7 @@ const LayoutDesigner = () => {
             row: 0,
             column: 0,
             width: 12,
+            parentId: null,
             order: 0,
             config: {
                 fontSize: '4xl',
@@ -162,18 +163,41 @@ const LayoutDesigner = () => {
         }
     ];
 
-    // Add element to canvas
+    // Add element to canvas (Root)
     const addElement = (type) => {
+        addElementToContainer(type, null, 0);
+    };
+
+    // Add element to specific container
+    const addElementToContainer = (type, parentId, column = 0) => {
+        let actualType = type;
+        let config = getDefaultConfigForType(type);
+
+        // Handle special section types from toolbar
+        if (type === 'section-2') {
+            actualType = 'section';
+            config = { columns: 2 };
+        } else if (type === 'section-3') {
+            actualType = 'section';
+            config = { columns: 3 };
+        }
+
         const newElement = {
-            id: `${type}-${Date.now()}`,
-            type,
-            row: elements.length,
-            column: 0,
-            width: 12,
+            id: `${actualType}-${Date.now()}`,
+            type: actualType,
+            row: 999, // Will be sorted
+            column: column,
+            width: 12, // Width within the column (usually full width)
+            parentId: parentId, // Can be null for root
             order: elements.length,
-            config: getDefaultConfigForType(type)
+            config: config
         };
+
         const newElements = [...elements, newElement];
+
+        // Optional: Re-calculate rows if needed
+        // newElements.forEach...
+
         setElements(newElements);
         setSelectedElementId(newElement.id);
         pushToHistory(newElements);
@@ -192,7 +216,10 @@ const LayoutDesigner = () => {
             tags: { fontSize: 'sm' },
             text: { fontSize: 'base', customContent: 'Custom text content...' },
             divider: { marginTop: '4', marginBottom: '4', borderColor: 'gray-200' },
-            spacer: { marginTop: '8', marginBottom: '8' }
+            spacer: { marginTop: '8', marginBottom: '8' },
+            'section-2': { columns: 2 },
+            'section-3': { columns: 3 },
+            section: { columns: 2 } // Fallback
         };
         return { ...defaults[type], marginBottom: '4' };
     };
@@ -250,16 +277,43 @@ const LayoutDesigner = () => {
     };
 
     // Reorder elements (Drag and Drop)
-    const reorderElements = (startIndex, endIndex) => {
-        const result = Array.from(elements);
-        const [removed] = result.splice(startIndex, 1);
-        result.splice(endIndex, 0, removed);
+    const reorderElements = (sourceId, targetId) => {
+        // Find indices
+        const sourceIndex = elements.findIndex(el => el.id === sourceId);
+        const targetIndex = elements.findIndex(el => el.id === targetId);
 
-        // Update row numbers
-        result.forEach((el, i) => el.row = i);
+        if (sourceIndex === -1 || targetIndex === -1) return;
 
-        setElements(result);
-        pushToHistory(result); // Using local pushToHistory wrapper
+        const newElements = [...elements];
+        const [removed] = newElements.splice(sourceIndex, 1);
+
+        // Adjust target index if needed after removal
+        const adjustedTargetIndex = newElements.findIndex(el => el.id === targetId);
+        newElements.splice(adjustedTargetIndex, 0, removed);
+
+        // Update row numbers (simple re-index)
+        newElements.forEach((el, i) => el.row = i);
+
+        setElements(newElements);
+        pushToHistory(newElements);
+    };
+
+    // Move element into a container/column
+    const moveElementToContainer = (elementId, parentId, column) => {
+        const newElements = elements.map(el => {
+            if (el.id === elementId) {
+                return {
+                    ...el,
+                    parentId: parentId || null,
+                    column: column !== undefined ? column : 0,
+                    // Reset row to end of list or similar? handled by render sort usually
+                };
+            }
+            return el;
+        });
+
+        setElements(newElements);
+        pushToHistory(newElements);
     };
 
     // History management
@@ -418,6 +472,8 @@ const LayoutDesigner = () => {
                             onMoveUp={moveElementUp}
                             onMoveDown={moveElementDown}
                             onReorder={reorderElements}
+                            onMoveToContainer={moveElementToContainer}
+                            onAddElementToContainer={addElementToContainer}
                             gridGap={gridGap}
                             maxWidth={maxWidth}
                             previewMode={previewMode}

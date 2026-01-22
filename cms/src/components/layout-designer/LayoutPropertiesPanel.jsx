@@ -249,6 +249,44 @@ const LayoutPropertiesPanel = ({
                     </div>
                 )}
 
+                {/* Grid Layout Settings */}
+                {type === 'section' && (
+                    <div className="space-y-4">
+                        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            Grid Layout
+                        </h4>
+
+                        <SelectField
+                            label="Columns"
+                            value={config.columns || 2}
+                            onChange={(val) => onUpdateConfig({ columns: parseInt(val) })}
+                            options={[
+                                { value: 1, label: '1 Column' },
+                                { value: 2, label: '2 Columns' },
+                                { value: 3, label: '3 Columns' },
+                                { value: 4, label: '4 Columns' },
+                            ]}
+                        />
+
+                        <SelectField
+                            label="Column Ratio"
+                            value={config.ratio || 'equal'}
+                            onChange={(val) => onUpdateConfig({ ratio: val })}
+                            options={[
+                                { value: 'equal', label: 'Equal Widths' },
+                                { value: '1:2', label: 'Left Sidebar (1:2)' },
+                                { value: '2:1', label: 'Right Sidebar (2:1)' },
+                                { value: '1:3', label: 'Small Sidebar Left' },
+                                { value: '3:1', label: 'Small Sidebar Right' },
+                            ]}
+                        />
+
+                        <div className="text-xs text-gray-400">
+                            Grid items stretch to fill height by default.
+                        </div>
+                    </div>
+                )}
+
                 {/* Image Options */}
                 {showImageOptions && (
                     <div className="space-y-4">
@@ -296,6 +334,17 @@ const LayoutPropertiesPanel = ({
                             onChange={(val) => onUpdateConfig({ aspectRatio: val })}
                             options={ASPECT_RATIOS}
                         />
+
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Video Source (URL or Iframe)</label>
+                            <input
+                                type="text"
+                                value={config.videoUrl || ''}
+                                onChange={(e) => onUpdateConfig({ videoUrl: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                placeholder="Paste Cloudflare/YouTube URL or Iframe code..."
+                            />
+                        </div>
                     </div>
                 )}
 
@@ -334,7 +383,7 @@ const LayoutPropertiesPanel = ({
                         />
 
                         <p className="text-xs text-gray-400">
-                            {showImageOptions 
+                            {showImageOptions
                                 ? 'Image will resize to fit within max height'
                                 : 'Text will reduce font size if content exceeds max height'
                             }
