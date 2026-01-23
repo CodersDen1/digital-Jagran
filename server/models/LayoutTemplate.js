@@ -16,6 +16,7 @@ const layoutElementSchema = new mongoose.Schema({
     column: { type: Number, required: true, default: 0, min: 0, max: 11 },
     width: { type: Number, required: true, default: 12, min: 1, max: 12 }, // Column span
     order: { type: Number, default: 0 }, // Display order within same row
+    parentId: { type: String, default: null }, // ID of parent section (if any)
 
     // Element configuration
     config: {
@@ -49,6 +50,9 @@ const layoutElementSchema = new mongoose.Schema({
         aspectRatio: { type: String, default: '16/9' }, // '1/1', '4/3', '16/9', '21/9', 'auto'
         objectFit: { type: String, default: 'cover' }, // 'cover', 'contain', 'fill', 'none'
         maxHeight: { type: String, default: '' }, // '', '24', '32', etc.
+
+        // Content specific
+        tag: { type: String, default: '' }, // For headers: h1, h2, etc.
 
         // Custom content (for text type)
         customContent: { type: String, default: '' },

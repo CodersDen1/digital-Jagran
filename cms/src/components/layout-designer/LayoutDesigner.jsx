@@ -48,7 +48,11 @@ const LayoutDesigner = () => {
             const layout = await layoutService.getById(id);
             setLayoutName(layout.name);
             setLayoutDescription(layout.description || '');
-            setElements(layout.elements || []);
+
+            // Fix existing layouts: Ensure only one H1
+            const fixedElements = fixHeaderTags(layout.elements || []);
+            setElements(fixedElements);
+
             setGridGap(layout.gridGap || '4');
             setMaxWidth(layout.maxWidth || '4xl');
         } catch (error) {
@@ -57,6 +61,31 @@ const LayoutDesigner = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Helper to enforce single H1 in existing layouts
+    const fixHeaderTags = (elements) => {
+        let h1Found = false;
+        return elements.map(el => {
+            if (el.type === 'header') {
+                const currentTag = el.config.tag || 'h1';
+
+                // If it's an H1 (explicit or implicit)
+                if (currentTag === 'h1') {
+                    if (h1Found) {
+                        // Already have an H1, downgrade this one to h2
+                        return { ...el, config: { ...el.config, tag: 'h2' } };
+                    }
+                    h1Found = true; // Mark first H1
+
+                    // Ensure tag is explicitly set
+                    if (!el.config.tag) {
+                        return { ...el, config: { ...el.config, tag: 'h1' } };
+                    }
+                }
+            }
+            return el;
+        });
     };
 
     // Default elements for a new layout

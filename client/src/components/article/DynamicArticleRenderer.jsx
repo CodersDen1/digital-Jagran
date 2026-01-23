@@ -54,13 +54,57 @@ const DynamicArticleRenderer = ({ article, layout }) => {
         return classes.join(' ');
     };
 
+
+    // Filter root elements (those without a parent)
+    const rootElements = sortedElements.filter(el => !el.parentId);
+
     return (
         <div
             className={`grid grid-cols-12 gap-${layout.gridGap || '4'} max-w-${layout.maxWidth || '4xl'} mx-auto`}
         >
-            {sortedElements.map((element) => {
+            {rootElements.map((element) => {
                 const configStyles = getConfigStyles(element.config);
 
+                // Handle nested sections
+                if (element.type === 'section') {
+                    // Find children of this section
+                    const children = sortedElements.filter(el => el.parentId === element.id);
+                    const columns = element.config.columns || 2;
+
+                    return (
+                        <div
+                            key={element.id}
+                            style={{ gridColumn: `span ${element.width} / span ${element.width}` }}
+                            className={`${!element.config.showOnMobile ? 'hidden md:block' : ''} ${!element.config.showOnDesktop ? 'md:hidden' : ''}`}
+                        >
+                            <div className={`grid grid-cols-1 md:grid-cols-${columns} gap-4`}>
+                                {Array.from({ length: columns }, (_, i) => i).map(colIndex => {
+                                    const colElements = children
+                                        .filter(child => child.column === colIndex)
+                                        .sort((a, b) => a.row - b.row || a.order - b.order);
+
+                                    return (
+                                        <div key={colIndex} className="flex flex-col gap-4">
+                                            {colElements.map(child => (
+                                                <div key={child.id} className={getConfigStyles(child.config)}>
+                                                    <ElementRenderers
+                                                        type={child.type}
+                                                        elementId={child.id}
+                                                        config={child.config}
+                                                        article={article}
+                                                        t={t}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                }
+
+                // Regular Top-Level Element
                 return (
                     <div
                         key={element.id}
@@ -81,6 +125,7 @@ const DynamicArticleRenderer = ({ article, layout }) => {
             })}
         </div>
     );
+
 };
 
 /**

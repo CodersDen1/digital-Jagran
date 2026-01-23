@@ -523,8 +523,8 @@ const CreateArticle = () => {
                                                     title={pos.label}
                                                     onClick={() => handleElementMetadataChange(id, 'objectPosition', pos.value)}
                                                     className={`w-6 h-6 rounded flex items-center justify-center transition border ${objectPosition === pos.value
-                                                            ? 'bg-primary border-primary text-white'
-                                                            : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
+                                                        ? 'bg-primary border-primary text-white'
+                                                        : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
                                                         }`}
                                                 >
                                                     <div className={`w-1.5 h-1.5 rounded-full ${objectPosition === pos.value ? 'bg-white' : 'bg-current'}`} />
@@ -753,14 +753,57 @@ const CreateArticle = () => {
                     {selectedLayout && selectedLayout.elements?.length > 0 ? (
                         // Custom Layout Editor - inline to prevent focus loss
                         <div className={`grid grid-cols-12 gap-${selectedLayout?.gridGap || '4'}`}>
-                            {[...selectedLayout.elements].sort((a, b) => a.row - b.row).map((element) => (
-                                <div
-                                    key={element.id}
-                                    style={{ gridColumn: `span ${element.width} / span ${element.width}` }}
-                                >
-                                    {renderInlineInput(element)}
-                                </div>
-                            ))}
+                            {(() => {
+                                const allElements = [...selectedLayout.elements].sort((a, b) => a.row - b.row);
+                                const rootElements = allElements.filter(el => !el.parentId);
+
+                                return rootElements.map((element) => {
+                                    if (element.type === 'section') {
+                                        const children = allElements.filter(el => el.parentId === element.id);
+                                        const columns = element.config.columns || 2;
+
+                                        return (
+                                            <div
+                                                key={element.id}
+                                                style={{ gridColumn: `span ${element.width} / span ${element.width}` }}
+                                                className="border border-dashed border-gray-200 rounded-lg p-4 bg-gray-50/50"
+                                            >
+                                                <div className={`grid grid-cols-1 md:grid-cols-${columns} gap-4`}>
+                                                    {Array.from({ length: columns }, (_, i) => i).map(colIndex => {
+                                                        const colElements = children
+                                                            .filter(child => child.column === colIndex)
+                                                            .sort((a, b) => a.row - b.row || a.order - b.order);
+
+                                                        return (
+                                                            <div key={colIndex} className="flex flex-col gap-4 min-h-[50px]">
+                                                                {colElements.map(child => (
+                                                                    <div key={child.id}>
+                                                                        {renderInlineInput(child)}
+                                                                    </div>
+                                                                ))}
+                                                                {colElements.length === 0 && (
+                                                                    <div className="flex-1 border-2 border-dashed border-gray-100 rounded flex items-center justify-center text-xs text-gray-300 py-4">
+                                                                        Col {colIndex + 1} Empty
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <div
+                                            key={element.id}
+                                            style={{ gridColumn: `span ${element.width} / span ${element.width}` }}
+                                        >
+                                            {renderInlineInput(element)}
+                                        </div>
+                                    );
+                                });
+                            })()}
                         </div>
                     ) : (
                         // Default Inline Layout - inline to prevent focus loss
