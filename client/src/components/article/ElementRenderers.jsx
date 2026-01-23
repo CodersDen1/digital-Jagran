@@ -141,6 +141,7 @@ const HeaderRenderer = ({ article, elementId, t, config }) => {
 
     // Apply config styles
     const className = getConfigClasses(config, '4xl'); // Default to 4xl for headers if not set
+    const Tag = config?.tag || 'h1';
 
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -158,9 +159,9 @@ const HeaderRenderer = ({ article, elementId, t, config }) => {
     }, [config?.maxHeight, content]);
 
     return (
-        <h1 ref={ref} className={`leading-tight ${className}`}>
+        <Tag ref={ref} className={`leading-tight ${className}`}>
             {content}
-        </h1>
+        </Tag>
     );
 };
 

@@ -182,6 +182,14 @@ const LayoutDesigner = () => {
             config = { columns: 3 };
         }
 
+        // Logic to prevent multiple H1s
+        if (type === 'header') {
+            const hasH1 = elements.some(el => el.type === 'header' && el.config.tag === 'h1');
+            if (hasH1) {
+                config.tag = 'h2';
+            }
+        }
+
         const newElement = {
             id: `${actualType}-${Date.now()}`,
             type: actualType,
@@ -206,7 +214,7 @@ const LayoutDesigner = () => {
     // Get default config based on element type
     const getDefaultConfigForType = (type) => {
         const defaults = {
-            header: { fontSize: '4xl', fontWeight: 'bold', fontFamily: 'serif' },
+            header: { fontSize: '4xl', fontWeight: 'bold', fontFamily: 'serif', tag: 'h1' }, // Default tag is h1
             summary: { fontSize: 'xl', fontFamily: 'serif', textColor: 'gray-600', paddingLeft: '4' },
             body: { fontSize: 'lg', fontFamily: 'serif', lineHeight: 'relaxed' },
             image: { aspectRatio: '16/9', objectFit: 'cover', borderRadius: 'md' },
@@ -484,6 +492,7 @@ const LayoutDesigner = () => {
                     {!previewMode && selectedElement && (
                         <LayoutPropertiesPanel
                             element={selectedElement}
+                            elements={elements}
                             onUpdateConfig={(updates) => updateElementConfig(selectedElementId, updates)}
                             onUpdateElement={(updates) => updateElement(selectedElementId, updates)}
                             onDelete={() => deleteElement(selectedElementId)}

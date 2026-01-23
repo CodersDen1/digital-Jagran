@@ -149,16 +149,29 @@ const SelectField = ({ label, value, onChange, options }) => (
 );
 
 /**
+ * Header Tag options
+ */
+const TAG_OPTIONS = [
+    { value: 'h1', label: 'H1 (Main Title)' },
+    { value: 'h2', label: 'H2' },
+    { value: 'h3', label: 'H3' },
+    { value: 'h4', label: 'H4' },
+    { value: 'h5', label: 'H5' },
+    { value: 'h6', label: 'H6' },
+];
+
+/**
  * LayoutPropertiesPanel - Right sidebar for editing element properties
  */
 const LayoutPropertiesPanel = ({
     element,
+    elements,
     onUpdateConfig,
     onUpdateElement,
     onDelete,
     onClose
 }) => {
-    const { type, config, width } = element;
+    const { id, type, config, width } = element;
 
     // Determine which properties to show based on element type
     const showTypography = ['header', 'summary', 'body', 'author', 'date', 'tags', 'text'].includes(type);
@@ -167,6 +180,18 @@ const LayoutPropertiesPanel = ({
     const showMaxHeight = ['header', 'summary', 'body', 'text', 'image'].includes(type);
     const showCustomContent = ['text'].includes(type);
     const showSpacing = true; // All elements have spacing
+    const showHeaderOptions = type === 'header';
+
+    const handleTagChange = (newTag) => {
+        if (newTag === 'h1') {
+            const hasOtherH1 = elements.some(el => el.id !== id && el.type === 'header' && el.config.tag === 'h1');
+            if (hasOtherH1) {
+                alert("Only one H1 tag is allowed per layout. Please change the existing H1 to another tag first.");
+                return;
+            }
+        }
+        onUpdateConfig({ tag: newTag });
+    };
 
     return (
         <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
@@ -189,6 +214,21 @@ const LayoutPropertiesPanel = ({
                         {type}
                     </div>
                 </div>
+
+                {/* Header Options */}
+                {showHeaderOptions && (
+                    <div className="space-y-4">
+                        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            Header Settings
+                        </h4>
+                        <SelectField
+                            label="HTML Tag"
+                            value={config.tag || 'h1'}
+                            onChange={handleTagChange}
+                            options={TAG_OPTIONS}
+                        />
+                    </div>
+                )}
 
                 {/* Width */}
                 <SelectField

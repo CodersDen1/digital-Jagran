@@ -59,13 +59,19 @@ class ArticleController {
                 updatedAt: undefined,
                 published_language: targetLangCode,
                 isTranslating: true,
-                article_header: 'Translating...',
-                summary: 'Translating content...',
-                body: 'Please wait, content is being translated.',
-                // Clear fields to avoid mixed content (very simple approach)
-                article_header_en: 'Translating...',
-                summary_en: undefined,
-                body_en: undefined,
+                article_header: targetLangCode === 'en' ? (originalArticle.article_header || originalArticle.article_header_en) : 'Translating...',
+                summary: targetLangCode === 'en' ? (originalArticle.summary || originalArticle.summary_en) : 'Translating content...',
+                body: targetLangCode === 'en' ? (originalArticle.body || originalArticle.body_en) : 'Please wait, content is being translated.',
+                article_header_en: targetLangCode === 'en' ? 'Translating...' : (originalArticle.article_header_en || originalArticle.article_header),
+                summary_en: targetLangCode === 'en' ? undefined : (originalArticle.summary_en || originalArticle.summary),
+                body_en: targetLangCode === 'en' ? undefined : (originalArticle.body_en || originalArticle.body),
+
+                // RESET STATS
+                views: 0,
+
+                // Clear element content to avoid showing original language text while translating
+                elementContent_en: targetLangCode === 'en' ? {} : (originalArticle.elementContent_en || originalArticle.elementContent),
+
                 // Regenerate slug for the translated article to avoid collision
                 slug: (originalArticle.slug || 'article') + '-' + targetLangCode + '-' + Date.now()
             };
@@ -83,8 +89,10 @@ class ArticleController {
                     let translations = {};
                     if (targetLangCode === 'HN' || targetLangCode === 'hi') {
                         translations = await translationService.getHindiTranslation(originalArticle);
+                    } else if (targetLangCode === 'en') {
+                        translations = await translationService.getEnglishTranslation(originalArticle);
                     } else {
-                        console.log("English translation not fully implemented yet in this flow");
+                        console.log("Translation not supported for language:", targetLangCode);
                     }
 
                     if (Object.keys(translations).length > 0) {
