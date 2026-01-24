@@ -18,6 +18,22 @@ const ArticleDetail = () => {
     const [loading, setLoading] = useState(true);
     const viewTrackedRef = useRef(false);
 
+    // Helper function to truncate title to max 65 characters with ellipsis
+    const truncateTitle = (title, maxLength = 65) => {
+        if (!title) return '';
+        const suffix = ' | Digital Jagaran';
+        const availableLength = maxLength - suffix.length;
+        if (title.length <= availableLength) {
+            return title + suffix;
+        }
+        return title.substring(0, availableLength - 3) + '...' + suffix;
+    };
+
+    // Get the raw title for meta tags
+    const getArticleTitle = () => {
+        return article?.metaTitle || article?.article_header_en || article?.article_header || '';
+    };
+
     useEffect(() => {
         fetchArticle();
         window.scrollTo(0, 0);
@@ -120,7 +136,7 @@ const ArticleDetail = () => {
             {article && (
                 <Helmet>
                     {/* Basic SEO - Always use English SEO fields */}
-                    <title>{article.metaTitle || article.article_header_en || article.article_header} | Digital Jagaran</title>
+                    <title>{truncateTitle(getArticleTitle())}</title>
                     <meta name="description" content={article.metadata || ''} />
                     <meta name="keywords" content={
                         (article.metaKeywords && article.metaKeywords.length > 0
@@ -132,14 +148,14 @@ const ArticleDetail = () => {
 
                     {/* Open Graph / Facebook */}
                     <meta property="og:type" content="article" />
-                    <meta property="og:title" content={article.metaTitle || article.article_header_en || article.article_header} />
+                    <meta property="og:title" content={truncateTitle(getArticleTitle())} />
                     <meta property="og:description" content={article.metadata || ''} />
                     {article.photos && article.photos.length > 0 && <meta property="og:image" content={article.photos[0]} />}
                     <meta property="og:url" content={window.location.href} />
 
                     {/* Twitter */}
                     <meta name="twitter:card" content="summary_large_image" />
-                    <meta name="twitter:title" content={article.metaTitle || article.article_header_en || article.article_header} />
+                    <meta name="twitter:title" content={truncateTitle(getArticleTitle())} />
                     <meta name="twitter:description" content={article.metadata || ''} />
                     {article.photos && article.photos.length > 0 && <meta name="twitter:image" content={article.photos[0]} />}
                 </Helmet>
