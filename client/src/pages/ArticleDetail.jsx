@@ -119,23 +119,28 @@ const ArticleDetail = () => {
         <NewsLayout>
             {article && (
                 <Helmet>
-                    {/* Basic SEO */}
-                    <title>{article.metaTitle || t(article, 'article_header')} | Digital Jagaran</title>
-                    <meta name="description" content={article.metaDescription || t(article, 'summary')} />
-                    <meta name="keywords" content={(article.metaKeywords || article.keywords || []).join(', ')} />
+                    {/* Basic SEO - Always use English SEO fields */}
+                    <title>{article.metaTitle || article.article_header_en || article.article_header} | Digital Jagaran</title>
+                    <meta name="description" content={article.metaDescription || article.metadata || article.summary || ''} />
+                    <meta name="keywords" content={
+                        (article.metaKeywords && article.metaKeywords.length > 0
+                            ? article.metaKeywords
+                            : (article.keywords && article.keywords.length > 0 ? article.keywords : [])
+                        ).join(', ')
+                    } />
                     {article.canonicalUrl && <link rel="canonical" href={article.canonicalUrl} />}
 
                     {/* Open Graph / Facebook */}
                     <meta property="og:type" content="article" />
-                    <meta property="og:title" content={article.metaTitle || t(article, 'article_header')} />
-                    <meta property="og:description" content={article.metaDescription || t(article, 'summary')} />
+                    <meta property="og:title" content={article.metaTitle || article.article_header_en || article.article_header} />
+                    <meta property="og:description" content={article.metaDescription || article.metadata || article.summary || ''} />
                     {article.photos && article.photos.length > 0 && <meta property="og:image" content={article.photos[0]} />}
                     <meta property="og:url" content={window.location.href} />
 
                     {/* Twitter */}
                     <meta name="twitter:card" content="summary_large_image" />
-                    <meta name="twitter:title" content={article.metaTitle || t(article, 'article_header')} />
-                    <meta name="twitter:description" content={article.metaDescription || t(article, 'summary')} />
+                    <meta name="twitter:title" content={article.metaTitle || article.article_header_en || article.article_header} />
+                    <meta name="twitter:description" content={article.metaDescription || article.metadata || article.summary || ''} />
                     {article.photos && article.photos.length > 0 && <meta name="twitter:image" content={article.photos[0]} />}
                 </Helmet>
             )}

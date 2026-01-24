@@ -455,7 +455,14 @@ const TagsRenderer = ({ article, elementId, t }) => {
 
     // Fall back to article tags
     if (tags.length === 0) {
-        tags = t(article, 'tags') || [];
+        const articleTags = t(article, 'tags') || [];
+        tags = articleTags.filter(tag => tag && tag.trim());
+    }
+
+    // If still no tags, fall back to keywords (as users often confuse them)
+    if (tags.length === 0) {
+        const keywords = t(article, 'keywords') || [];
+        tags = keywords.filter(k => k && k.trim());
     }
 
     if (tags.length === 0) {

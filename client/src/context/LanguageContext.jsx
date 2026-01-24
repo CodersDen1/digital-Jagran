@@ -11,17 +11,31 @@ export const LanguageProvider = ({ children }) => {
 
     const t = (article, field) => {
         if (!article) return '';
-        // If language is 'en', prefer field_en, else field.
-        // However, my schema has `article_header_en` and `article_header`.
-        // If language is 'HN', we want `article_header`.
-        // If language is 'en', we want `article_header_en`.
 
-        // Also handle fallback if translation missing.
+        const hasValue = (val) => {
+            if (val === null || val === undefined) return false;
+            if (Array.isArray(val)) return val.length > 0;
+            if (typeof val === 'string') return val.trim().length > 0;
+            return true;
+        };
+
         if (language === 'en') {
-            return article[`${field}_en`] || article[field] || '';
+            const enVal = article[`${field}_en`];
+            if (hasValue(enVal)) return enVal;
+
+            const defaultVal = article[field];
+            if (hasValue(defaultVal)) return defaultVal;
+
+            return '';
         } else {
             // Language is 'HN'
-            return article[field] || article[`${field}_en`] || '';
+            const defaultVal = article[field];
+            if (hasValue(defaultVal)) return defaultVal;
+
+            const enVal = article[`${field}_en`];
+            if (hasValue(enVal)) return enVal;
+
+            return '';
         }
     };
 
