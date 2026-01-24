@@ -121,7 +121,7 @@ const ArticleDetail = () => {
                 <Helmet>
                     {/* Basic SEO - Always use English SEO fields */}
                     <title>{article.metaTitle || article.article_header_en || article.article_header} | Digital Jagaran</title>
-                    <meta name="description" content={article.metaDescription || article.metadata || article.summary || ''} />
+                    <meta name="description" content={article.metadata || ''} />
                     <meta name="keywords" content={
                         (article.metaKeywords && article.metaKeywords.length > 0
                             ? article.metaKeywords
@@ -133,14 +133,14 @@ const ArticleDetail = () => {
                     {/* Open Graph / Facebook */}
                     <meta property="og:type" content="article" />
                     <meta property="og:title" content={article.metaTitle || article.article_header_en || article.article_header} />
-                    <meta property="og:description" content={article.metaDescription || article.metadata || article.summary || ''} />
+                    <meta property="og:description" content={article.metadata || ''} />
                     {article.photos && article.photos.length > 0 && <meta property="og:image" content={article.photos[0]} />}
                     <meta property="og:url" content={window.location.href} />
 
                     {/* Twitter */}
                     <meta name="twitter:card" content="summary_large_image" />
                     <meta name="twitter:title" content={article.metaTitle || article.article_header_en || article.article_header} />
-                    <meta name="twitter:description" content={article.metaDescription || article.metadata || article.summary || ''} />
+                    <meta name="twitter:description" content={article.metadata || ''} />
                     {article.photos && article.photos.length > 0 && <meta name="twitter:image" content={article.photos[0]} />}
                 </Helmet>
             )}
