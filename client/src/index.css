@@ -19,3 +19,13 @@
     @apply font-serif font-bold;
   }
 }
+
+/* Hide scrollbar for ticker */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

@@ -58,7 +58,7 @@ const Home = () => {
     });
 
     // Filter articles by category
-    const filteredArticles = activeCategory === 'All'
+    const filteredArticles = activeCategory.toLowerCase() === 'all'
         ? visibleArticles
         : visibleArticles.filter(article => {
             const tags = article.tags_en || article.tags || [];
