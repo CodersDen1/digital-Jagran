@@ -4,7 +4,7 @@ import NewsLayout from '../components/layout/NewsLayout';
 import NewsCard from '../components/common/NewsCard';
 import { useLanguage } from '../context/LanguageContext';
 import { Loader, ChevronRight, ChevronLeft, TrendingUp, Clock, Flame, Grid, LayoutList, Eye } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 
 const Home = () => {
@@ -12,11 +12,19 @@ const Home = () => {
     const [articles, setArticles] = useState([]);
     const [trendingArticles, setTrendingArticles] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeCategory, setActiveCategory] = useState('All');
+    const [activeCategory, setActiveCategory] = useState('ALL');
     const [currentIndex, setCurrentIndex] = useState(0);
     const [viewMode, setViewMode] = useState('default'); // 'default' or 'grid'
+    const location = useLocation();
 
-    const categories = ['All', 'Politics', 'Business', 'Tech', 'Sports', 'Entertainment'];
+    const categories = ['ALL', 'World', 'Politics', 'Business', 'Tech', 'Sports', 'Entertainment'];
+
+    // Handle category from navigation state (when coming from article page)
+    useEffect(() => {
+        if (location.state?.category) {
+            setActiveCategory(location.state.category);
+        }
+    }, [location.state]);
 
     useEffect(() => {
         fetchArticles();

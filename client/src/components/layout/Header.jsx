@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { Menu, Search, Globe, X, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import MobileMenu from './MobileMenu';
 import Ticker from '../common/Ticker';
 import { getTrendingArticles } from '../../services/api';
@@ -12,6 +12,11 @@ const Header = ({ activeCategory, onCategoryChange }) => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const [trendingArticles, setTrendingArticles] = useState([]);
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // Check if we're on the home page
+    const isHomePage = location.pathname === '/';
 
     // Fetch trending articles for the ticker
     useEffect(() => {
@@ -37,11 +42,16 @@ const Header = ({ activeCategory, onCategoryChange }) => {
 
     const categories = ['ALL', 'World', 'Politics', 'Business', 'Tech', 'Sports', 'Entertainment'];
 
-    // Sophisticated Slate Color Palette
-    // Primary: #1e293b (Slate 800)
-    // Darker: #0f172a (Slate 900)
-    // Lighter Border: #334155 (Slate 700)
-    // Accent: #f59e0b (Warm Amber)
+    // Handle category click - navigate to home with category if not on home page
+    const handleCategoryClick = (category) => {
+        if (isHomePage) {
+            // If on home page, just call the prop function
+            onCategoryChange && onCategoryChange(category);
+        } else {
+            // If on article page, navigate to home with category as state
+            navigate('/', { state: { category } });
+        }
+    };
 
     return (
         <>
@@ -83,10 +93,10 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                                     {categories.map((category, idx) => (
                                         <li key={category} className="flex items-end">
                                             <button
-                                                onClick={() => onCategoryChange && onCategoryChange(category)}
+                                                onClick={() => handleCategoryClick(category)}
                                                 className={`px-4 pb-3 pt-8 text-[15px] font-bold transition-colors border-b-[3px] ${activeCategory === category || (category === 'ALL' && activeCategory?.toLowerCase() === 'all')
-                                                        ? 'text-[#f59e0b] border-[#f59e0b]'
-                                                        : 'text-gray-300 hover:text-white border-transparent'
+                                                    ? 'text-[#f59e0b] border-[#f59e0b]'
+                                                    : 'text-gray-300 hover:text-white border-transparent'
                                                     }`}
                                             >
                                                 {category}
@@ -97,7 +107,7 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                                             )}
                                         </li>
                                     ))}
-                                    {/* Amber Menu Button */}
+                                    {/* Amber Menu Button - Commented out
                                     <li className="flex items-end pb-2 ml-3">
                                         <button
                                             className="w-9 h-9 bg-[#f59e0b] rounded-full flex items-center justify-center hover:bg-[#d97706] transition"
@@ -106,6 +116,7 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                                             <Menu size={20} className="text-[#0f172a]" />
                                         </button>
                                     </li>
+                                    */}
                                 </ul>
                             </nav>
 
@@ -161,7 +172,7 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                 isOpen={mobileMenuOpen}
                 onClose={() => setMobileMenuOpen(false)}
                 activeCategory={activeCategory}
-                onCategoryChange={onCategoryChange}
+                onCategoryChange={handleCategoryClick}
             />
         </>
     );
