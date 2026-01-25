@@ -22,6 +22,10 @@ class ArticleRepository {
         return await Article.findByIdAndDelete(id);
     }
 
+    async deleteMany(ids) {
+        return await Article.deleteMany({ _id: { $in: ids } });
+    }
+
     async findPublished() {
         return await Article.find({ is_Published: true }).sort({ createdAt: -1 });
     }

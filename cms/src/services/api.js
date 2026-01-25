@@ -27,6 +27,10 @@ export const articleService = {
         const response = await api.delete(`/articles/${id}`);
         return response.data;
     },
+    deleteBulk: async (ids) => {
+        const response = await api.post('/articles/bulk-delete', { ids });
+        return response.data;
+    },
     translate: async (id) => {
         const response = await api.post(`/articles/${id}/translate`, {});
         return response.data;

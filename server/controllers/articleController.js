@@ -175,6 +175,19 @@ class ArticleController {
         }
     }
 
+    async bulkDeleteArticles(req, res) {
+        try {
+            const { ids } = req.body;
+            if (!ids || !Array.isArray(ids) || ids.length === 0) {
+                return res.status(400).json({ message: 'No article IDs provided' });
+            }
+            await articleRepository.deleteMany(ids);
+            res.status(200).json({ message: 'Articles deleted successfully' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
     async incrementViews(req, res) {
         try {
             const article = await articleRepository.incrementViews(req.params.id);

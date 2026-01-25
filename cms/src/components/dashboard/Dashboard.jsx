@@ -7,6 +7,7 @@ import { Edit, Trash2, Eye, TrendingUp } from 'lucide-react';
 const Dashboard = () => {
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedArticles, setSelectedArticles] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
@@ -54,6 +55,45 @@ const Dashboard = () => {
             } catch (error) {
                 console.error("Translation error", error);
                 alert('Error triggering translation');
+            }
+        }
+    };
+
+    const handleCheckboxChange = (id) => {
+        setSelectedArticles(prev => {
+            if (prev.includes(id)) {
+                return prev.filter(item => item !== id);
+            } else {
+                return [...prev, id];
+            }
+        });
+    };
+
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            const currentIds = currentArticles.map(a => a._id);
+            setSelectedArticles(prev => {
+                const newSelection = new Set([...prev, ...currentIds]);
+                // Ensure unique IDs
+                return Array.from(newSelection);
+            });
+        } else {
+            const currentIds = currentArticles.map(a => a._id);
+            setSelectedArticles(prev => prev.filter(id => !currentIds.includes(id)));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedArticles.length === 0) return;
+
+        if (window.confirm(`Are you sure you want to delete ${selectedArticles.length} articles?`)) {
+            try {
+                await articleService.deleteBulk(selectedArticles);
+                setSelectedArticles([]);
+                loadArticles();
+            } catch (error) {
+                console.error("Failed to delete articles", error);
+                alert('Failed to delete selected articles');
             }
         }
     };
@@ -118,6 +158,20 @@ const Dashboard = () => {
                 </Link>
             </div>
 
+            {/* Bulk Actions */}
+            {selectedArticles.length > 0 && (
+                <div className="bg-blue-50 p-4 rounded-lg mb-4 flex justify-between items-center border border-blue-200">
+                    <span className="text-blue-800 font-medium">{selectedArticles.length} articles selected</span>
+                    <button
+                        onClick={handleBulkDelete}
+                        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 flex items-center gap-2"
+                    >
+                        <Trash2 size={18} />
+                        Delete Selected
+                    </button>
+                </div>
+            )}
+
             {loading ? (
                 <p>Loading...</p>
             ) : articles.length === 0 ? (
@@ -129,6 +183,14 @@ const Dashboard = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-6 py-3 text-left">
+                                    <input
+                                        type="checkbox"
+                                        onChange={handleSelectAll}
+                                        checked={currentArticles.length > 0 && currentArticles.every(a => selectedArticles.includes(a._id))}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Views</th>
@@ -140,6 +202,14 @@ const Dashboard = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {currentArticles.map((article) => (
                                 <tr key={article._id} className="hover:bg-gray-50 text-black">
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedArticles.includes(article._id)}
+                                            onChange={() => handleCheckboxChange(article._id)}
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
                                             {/* Show header consistent with published language preference */}
