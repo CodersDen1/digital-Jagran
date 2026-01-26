@@ -125,6 +125,13 @@ class ArticleController {
     async getAllArticles(req, res) {
         try {
             const articles = await articleRepository.findAll();
+
+            // Disable caching
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+            res.set('Surrogate-Control', 'no-store');
+
             res.status(200).json(articles);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -135,6 +142,13 @@ class ArticleController {
         try {
             const article = await articleRepository.findById(req.params.id);
             if (!article) return res.status(404).json({ message: 'Article not found' });
+
+            // Disable caching for this specific response
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+            res.set('Surrogate-Control', 'no-store'); // For CDNs
+
             res.status(200).json(article);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -202,6 +216,13 @@ class ArticleController {
         try {
             const limit = parseInt(req.query.limit) || 10;
             const articles = await articleRepository.findTrending(limit);
+
+            // Disable caching
+            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.set('Pragma', 'no-cache');
+            res.set('Expires', '0');
+            res.set('Surrogate-Control', 'no-store');
+
             res.status(200).json(articles);
         } catch (error) {
             res.status(500).json({ error: error.message });
