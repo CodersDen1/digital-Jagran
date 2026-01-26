@@ -1,5 +1,6 @@
 const articleRepository = require('../repositories/articleRepository');
 const translationService = require('../services/translationService');
+const mongoose = require('mongoose');
 
 class ArticleController {
     async createArticle(req, res) {
@@ -140,7 +141,15 @@ class ArticleController {
 
     async getArticleById(req, res) {
         try {
-            const article = await articleRepository.findById(req.params.id);
+            let article;
+            if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+                article = await articleRepository.findById(req.params.id);
+            }
+
+            if (!article) {
+                article = await articleRepository.findBySlug(req.params.id);
+            }
+
             if (!article) return res.status(404).json({ message: 'Article not found' });
 
             // Disable caching for this specific response
@@ -191,11 +200,17 @@ class ArticleController {
             // If user wants to update slug, they must send it explicitly.
 
             // SEO: Default Meta Title sync (optional, only if metaTitle is empty)
+            // SEO: Default Meta Title sync (optional, only if metaTitle is empty)
             if (updates.article_header_en && !updates.metaTitle) {
                 updates.metaTitle = updates.article_header_en;
             }
 
-            const updatedArticle = await articleRepository.update(req.params.id, updates);
+            // Ensure we don't lose the ID or creation date if not provided
+            delete updates._id;
+            delete updates.createdAt;
+            updates.updatedAt = new Date();
+
+            const updatedArticle = await articleRepository.replace(req.params.id, updates);
             if (!updatedArticle) return res.status(404).json({ message: 'Article not found' });
             res.status(200).json(updatedArticle);
         } catch (error) {

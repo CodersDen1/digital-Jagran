@@ -13,7 +13,8 @@ export const getArticles = async () => {
 };
 
 export const getArticleById = async (id) => {
-    const response = await api.get(`/articles/${id}`);
+    // Append timestamp to prevent caching
+    const response = await api.get(`/articles/${id}?t=${new Date().getTime()}`);
     return response.data;
 };
 

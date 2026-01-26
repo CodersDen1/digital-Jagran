@@ -43,6 +43,14 @@ class ArticleRepository {
             .sort({ views: -1, createdAt: -1 })
             .limit(limit);
     }
+
+    async findBySlug(slug) {
+        return await Article.findOne({ slug });
+    }
+
+    async replace(id, data) {
+        return await Article.findOneAndReplace({ _id: id }, data, { new: true });
+    }
 }
 
 module.exports = new ArticleRepository();
