@@ -155,6 +155,33 @@ class ArticleController {
         }
     }
 
+    async duplicateArticle(req, res) {
+        try {
+            const originalArticle = await articleRepository.findById(req.params.id);
+            if (!originalArticle) {
+                return res.status(404).json({ error: 'Article not found' });
+            }
+
+            const newArticleData = {
+                ...originalArticle.toObject(),
+                _id: undefined,
+                createdAt: undefined,
+                updatedAt: undefined,
+                views: 0,
+                is_Published: false, // Default to draft
+                is_Drafted: true,
+                article_header: originalArticle.article_header ? `${originalArticle.article_header} (Copy)` : undefined,
+                article_header_en: originalArticle.article_header_en ? `${originalArticle.article_header_en} (Copy)` : undefined,
+                slug: `${originalArticle.slug}-copy-${Date.now()}`
+            };
+
+            const newArticle = await articleRepository.create(newArticleData);
+            res.status(201).json(newArticle);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
     async updateArticle(req, res) {
         try {
             const updates = req.body;

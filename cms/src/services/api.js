@@ -34,6 +34,10 @@ export const articleService = {
     translate: async (id) => {
         const response = await api.post(`/articles/${id}/translate`, {});
         return response.data;
+    },
+    duplicate: async (id) => {
+        const response = await api.post(`/articles/${id}/duplicate`, {});
+        return response.data;
     }
 };
 

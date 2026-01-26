@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { articleService } from '../../services/api';
 import Layout from '../common/Layout';
 import { Link } from 'react-router-dom';
-import { Edit, Trash2, Eye, TrendingUp } from 'lucide-react';
+import { Edit, Trash2, Eye, TrendingUp, Copy } from 'lucide-react';
 
 const Dashboard = () => {
     const [articles, setArticles] = useState([]);
@@ -42,6 +42,18 @@ const Dashboard = () => {
             loadArticles();
         } catch (error) {
             console.error("Failed to update status", error);
+        }
+    };
+
+    const handleDuplicate = async (id) => {
+        if (window.confirm('Are you sure you want to duplicate this article?')) {
+            try {
+                await articleService.duplicate(id);
+                loadArticles();
+            } catch (error) {
+                console.error("Failed to duplicate article", error);
+                alert('Failed to duplicate article');
+            }
         }
     };
 
@@ -267,6 +279,7 @@ const Dashboard = () => {
                                             <Eye size={18} />
                                         </a>
                                         <Link to={`/edit/${article._id}`} className="text-indigo-600 hover:text-indigo-900 mx-2 inline-block" title="Edit Article"><Edit size={18} /></Link>
+                                        <button onClick={() => handleDuplicate(article._id)} className="text-blue-600 hover:text-blue-900 mx-2" title="Duplicate Article"><Copy size={18} /></button>
                                         <button onClick={() => handleDelete(article._id)} className="text-red-600 hover:text-red-900 mx-2"><Trash2 size={18} /></button>
                                     </td>
                                 </tr>

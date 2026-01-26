@@ -66,6 +66,7 @@ articleRouter.delete('/articles/:id', (req, res) => articleController.deleteArti
 articleRouter.post('/articles/bulk-delete', (req, res) => articleController.bulkDeleteArticles(req, res));
 articleRouter.post('/articles/:id/view', (req, res) => articleController.incrementViews(req, res));
 articleRouter.post('/articles/:id/translate', (req, res) => articleController.translateArticle(req, res));
+articleRouter.post('/articles/:id/duplicate', (req, res) => articleController.duplicateArticle(req, res));
 
 // Layout Routes
 const layoutRouter = express.Router();
