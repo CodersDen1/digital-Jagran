@@ -30,7 +30,7 @@ const Layout = ({ children, hideSidebar = false }) => {
             {/* Sidebar */}
             <aside className="w-64 bg-white shadow-md flex flex-col">
                 <div className="p-6 border-b">
-                    <h1 className="text-2xl font-bold text-primary">Digital Jagaran</h1>
+                    <h1 className="text-2xl font-bold text-primary">Digital Jagran</h1>
                     <p className="text-xs text-secondary mt-1">Admin Portal</p>
                 </div>
 
@@ -51,7 +51,7 @@ const Layout = ({ children, hideSidebar = false }) => {
                 </nav>
 
                 <div className="p-4 border-t">
-                    <button 
+                    <button
                         onClick={logout}
                         className="flex items-center gap-3 px-4 py-3 w-full text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >

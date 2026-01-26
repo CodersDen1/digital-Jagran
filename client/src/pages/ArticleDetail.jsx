@@ -21,7 +21,7 @@ const ArticleDetail = () => {
     // Helper function to truncate title to max 65 characters with ellipsis
     const truncateTitle = (title, maxLength = 65) => {
         if (!title) return '';
-        const suffix = ' | Digital Jagaran';
+        const suffix = ' | Digital Jagran';
         const availableLength = maxLength - suffix.length;
         if (title.length <= availableLength) {
             return title + suffix;

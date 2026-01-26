@@ -167,7 +167,7 @@ class TranslationService {
      */
     async callGemini(payload, sourceLang, targetLang) {
         const checkPrompt = `
-You are a professional news translator for a Digital Jagaran CMS.
+You are a professional news translator for a Digital Jagran CMS.
 Translate the values in the following JSON object from ${sourceLang} to ${targetLang}.
 Return ONLY the raw JSON object. Do not include markdown code blocks (like \`\`\`json).
 

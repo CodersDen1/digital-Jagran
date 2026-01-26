@@ -33,7 +33,7 @@ const MobileMenu = ({ isOpen, onClose, onCategoryChange, activeCategory }) => {
             <div className="absolute inset-y-0 left-0 w-full max-w-sm bg-white shadow-2xl transform transition-transform duration-300">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                    <Link to="/" onClick={onClose} title="Digital Jagaran Home" className="text-xl font-black text-gray-900">
+                    <Link to="/" onClick={onClose} title="Digital Jagran Home" className="text-xl font-black text-gray-900">
                         Digital <span className="text-brand-red">Jagaran</span>
                     </Link>
                     <button

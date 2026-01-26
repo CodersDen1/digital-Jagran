@@ -48,7 +48,7 @@ function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-xl mb-4">
             <Newspaper className="w-8 h-8 text-blue-600" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Digital Jagaran</h1>
+          <h1 className="text-3xl font-bold text-white">Digital Jagran</h1>
           <p className="text-blue-200 mt-2">Content Management System</p>
         </div>
 
@@ -127,7 +127,7 @@ function Login() {
 
         {/* Footer */}
         <p className="text-center text-blue-200 text-sm mt-8">
-          © {new Date().getFullYear()} Digital Jagaran. All rights reserved.
+          © {new Date().getFullYear()} Digital Jagran. All rights reserved.
         </p>
       </div>
     </div>

@@ -158,6 +158,53 @@ class LayoutController {
             res.status(500).json({ error: error.message });
         }
     }
+    /**
+     * Duplicate a specific element within a layout
+     * POST /api/layouts/:id/elements/:elementId/duplicate
+     */
+    async duplicateElement(req, res) {
+        try {
+            const { id, elementId } = req.params;
+            const layout = await layoutRepository.findById(id);
+
+            if (!layout) {
+                return res.status(404).json({ message: 'Layout template not found' });
+            }
+
+            // Find the element to duplicate
+            const elementIndex = layout.elements.findIndex(el => el.id === elementId);
+            if (elementIndex === -1) {
+                return res.status(404).json({ message: 'Element not found in layout' });
+            }
+
+            const originalElement = layout.elements[elementIndex];
+
+            // Create a deep copy of the element
+            const newElement = JSON.parse(JSON.stringify(originalElement));
+
+            // Generate new ID and update properties
+            // Using crypto for random ID or fallback
+            newElement.id = `el_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // Insert after the original element
+            layout.elements.splice(elementIndex + 1, 0, newElement);
+
+            // Save the updated layout using the repository or save directly if repository doesn't support partial updates easily
+            // Assuming repository.update handles the full object update
+            // But wait, layoutRepository.update might expect just the changed fields or the full doc.
+            // Let's check repository usages. updateLayout uses layoutRepository.update(id, updateData).
+            // Here we modified the document instance.
+            // It's safer to just save the document if it's a mongoose doc, but we retrieved it via repo.
+            // Let's assume we can pass the modified elements array to update.
+
+            const updatedLayout = await layoutRepository.update(id, { elements: layout.elements });
+
+            res.status(201).json(updatedLayout);
+        } catch (error) {
+            console.error('Error duplicating element:', error);
+            res.status(500).json({ error: error.message });
+        }
+    }
 }
 
 module.exports = new LayoutController();

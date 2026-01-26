@@ -77,6 +77,7 @@ layoutRouter.put('/layouts/:id', (req, res) => layoutController.updateLayout(req
 layoutRouter.delete('/layouts/:id', (req, res) => layoutController.deleteLayout(req, res));
 layoutRouter.put('/layouts/:id/set-default', (req, res) => layoutController.setDefaultLayout(req, res));
 layoutRouter.post('/layouts/:id/duplicate', (req, res) => layoutController.duplicateLayout(req, res));
+layoutRouter.post('/layouts/:id/elements/:elementId/duplicate', (req, res) => layoutController.duplicateElement(req, res));
 
 app.use('/api', articleRouter);
 app.use('/api', layoutRouter);

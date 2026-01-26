@@ -194,7 +194,7 @@ const articlesData = {
 // Map layout keys to content keys for each category
 const getElementContent = (category, data) => {
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const author = "Digital Jagaran Desk";
+    const author = "Digital Jagran Desk";
 
     switch (category) {
         case 'Politics':
@@ -282,7 +282,7 @@ const seedArticles = async () => {
                     body_en: item.body,
                     photos: [item.image],
                     tags_en: item.tags,
-                    author: "Digital Jagaran Desk",
+                    author: "Digital Jagran Desk",
                     layoutTemplate: layoutId,
                     elementContent_en: elementContent,
                     // English content set as primary for "en" draft

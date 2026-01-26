@@ -131,7 +131,7 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                             {/* Logo - Right aligned, bottom aligned */}
                             <Link to="/" className="flex flex-col items-end py-3 lg:py-0 lg:pb-2">
                                 <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white leading-none font-serif whitespace-nowrap">
-                                    Digital Jagaran
+                                    Digital Jagran
                                 </h1>
                                 <p className="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-gray-400 mt-1">
                                     Information, Information and Information

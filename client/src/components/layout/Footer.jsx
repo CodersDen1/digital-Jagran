@@ -5,7 +5,7 @@ const Footer = () => {
         <footer className="bg-[#1a1a1a] text-white pt-12 pb-6">
             <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 border-b border-gray-800 pb-8 text-center md:text-left">
                 <div>
-                    <h3 className="font-serif font-bold text-xl mb-4">Digital Jagaran</h3>
+                    <h3 className="font-serif font-bold text-xl mb-4">Digital Jagran</h3>
                     <p className="text-gray-400 text-sm leading-relaxed">
                         Your trusted source for the latest news, in-depth analysis, and perspectives from India and around the world.
                     </p>
@@ -36,7 +36,7 @@ const Footer = () => {
                 </div>
             </div>
             <div className="text-center text-gray-500 text-xs">
-                &copy; {new Date().getFullYear()} Digital Jagaran. All rights reserved.
+                &copy; {new Date().getFullYear()} Digital Jagran. All rights reserved.
             </div>
         </footer>
     );
