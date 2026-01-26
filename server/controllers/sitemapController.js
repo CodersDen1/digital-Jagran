@@ -30,8 +30,8 @@ class SitemapController {
 
             // Add Articles
             publishedArticles.forEach(article => {
-                // Use slug if available, else ID
-                const identifier = article.slug || article._id;
+                // Use ID primarily as requested, fallback to slug if needed (though ID should always exist)
+                const identifier = article._id;
                 const lastMod = article.updatedAt ? new Date(article.updatedAt).toISOString() : new Date().toISOString();
 
                 xml += `
