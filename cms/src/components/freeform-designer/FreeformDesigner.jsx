@@ -57,6 +57,7 @@ const FreeformDesigner = () => {
     const [isPublish, setIsPublish] = useState(false);
     const [seoMetadata, setSeoMetadata] = useState('');
     const [seoKeywords, setSeoKeywords] = useState('');
+    const [articleTags, setArticleTags] = useState('');
     const [showSeoPanel, setShowSeoPanel] = useState(false);
     const [showCanvasSettings, setShowCanvasSettings] = useState(false);
 
@@ -518,16 +519,21 @@ const FreeformDesigner = () => {
             payload.layoutTemplate = savedLayout._id;
 
             // Map textual fields based on selected language
+            // Get tags from settings or visual element
+            const tagsValue = articleTags || getContentByType('tags') || '';
+            const tagsArray = tagsValue.split(',').map(s => s.trim()).filter(Boolean);
+
+            // Map textual fields based on selected language
             if (isEn) {
                 payload.article_header_en = getContentByType('header');
                 payload.summary_en = getContentByType('summary');
                 payload.body_en = getContentByType('body');
-                payload.tags_en = (getContentByType('tags') || '').split(',').map(s => s.trim()).filter(Boolean);
+                payload.tags_en = tagsArray;
             } else {
                 payload.article_header = getContentByType('header');
                 payload.summary = getContentByType('summary');
                 payload.body = getContentByType('body');
-                payload.tags = (getContentByType('tags') || '').split(',').map(s => s.trim()).filter(Boolean);
+                payload.tags = tagsArray;
             }
 
             // Add SEO metadata
@@ -688,6 +694,19 @@ const FreeformDesigner = () => {
                                                     value={seoKeywords}
                                                     onChange={(e) => setSeoKeywords(e.target.value)}
                                                     placeholder="news, politics, india..."
+                                                    className="w-full bg-slate-700 text-white text-sm rounded-lg p-2 border border-slate-600 focus:border-indigo-500 focus:outline-none"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1">
+                                                    Tags (comma-separated)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={articleTags}
+                                                    onChange={(e) => setArticleTags(e.target.value)}
+                                                    placeholder="Politics, Economy, Breaking..."
                                                     className="w-full bg-slate-700 text-white text-sm rounded-lg p-2 border border-slate-600 focus:border-indigo-500 focus:outline-none"
                                                 />
                                             </div>
