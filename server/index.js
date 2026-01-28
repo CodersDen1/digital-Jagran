@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const articleController = require('./controllers/articleController');
 const layoutController = require('./controllers/layoutController');
+const freeformLayoutController = require('./controllers/freeformLayoutController');
 const sitemapController = require('./controllers/sitemapController');
 
 const app = express();
@@ -82,6 +83,19 @@ layoutRouter.post('/layouts/:id/elements/:elementId/duplicate', (req, res) => la
 
 app.use('/api', articleRouter);
 app.use('/api', layoutRouter);
+
+// Freeform Layout Routes (New Legacy Editor)
+const freeformLayoutRouter = express.Router();
+freeformLayoutRouter.post('/freeform-layouts', (req, res) => freeformLayoutController.createFreeformLayout(req, res));
+freeformLayoutRouter.get('/freeform-layouts', (req, res) => freeformLayoutController.getAllFreeformLayouts(req, res));
+freeformLayoutRouter.get('/freeform-layouts/default', (req, res) => freeformLayoutController.getDefaultFreeformLayout(req, res));
+freeformLayoutRouter.get('/freeform-layouts/:id', (req, res) => freeformLayoutController.getFreeformLayoutById(req, res));
+freeformLayoutRouter.put('/freeform-layouts/:id', (req, res) => freeformLayoutController.updateFreeformLayout(req, res));
+freeformLayoutRouter.delete('/freeform-layouts/:id', (req, res) => freeformLayoutController.deleteFreeformLayout(req, res));
+freeformLayoutRouter.put('/freeform-layouts/:id/set-default', (req, res) => freeformLayoutController.setDefaultFreeformLayout(req, res));
+freeformLayoutRouter.post('/freeform-layouts/:id/duplicate', (req, res) => freeformLayoutController.duplicateFreeformLayout(req, res));
+freeformLayoutRouter.patch('/freeform-layouts/:id/canvas', (req, res) => freeformLayoutController.saveCanvasState(req, res));
+app.use('/api', freeformLayoutRouter);
 
 // Sitemap Route (Root level)
 app.get('/sitemap.xml', (req, res) => sitemapController.generateSitemap(req, res));

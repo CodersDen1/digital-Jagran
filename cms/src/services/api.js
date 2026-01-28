@@ -75,3 +75,44 @@ export const layoutService = {
         return response.data;
     }
 };
+
+// Freeform Layout Service (New Legacy Editor)
+export const freeformLayoutService = {
+    getAll: async () => {
+        const response = await api.get('/freeform-layouts');
+        return response.data;
+    },
+    getById: async (id) => {
+        const response = await api.get(`/freeform-layouts/${id}`);
+        return response.data;
+    },
+    getDefault: async () => {
+        const response = await api.get('/freeform-layouts/default');
+        return response.data;
+    },
+    create: async (data) => {
+        const response = await api.post('/freeform-layouts', data);
+        return response.data;
+    },
+    update: async (id, data) => {
+        const response = await api.put(`/freeform-layouts/${id}`, data);
+        return response.data;
+    },
+    delete: async (id) => {
+        const response = await api.delete(`/freeform-layouts/${id}`);
+        return response.data;
+    },
+    setDefault: async (id) => {
+        const response = await api.put(`/freeform-layouts/${id}/set-default`);
+        return response.data;
+    },
+    duplicate: async (id, name) => {
+        const response = await api.post(`/freeform-layouts/${id}/duplicate`, { name });
+        return response.data;
+    },
+    saveCanvas: async (id, canvasData) => {
+        const response = await api.patch(`/freeform-layouts/${id}/canvas`, canvasData);
+        return response.data;
+    }
+};
+

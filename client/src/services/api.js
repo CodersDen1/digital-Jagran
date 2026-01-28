@@ -49,3 +49,9 @@ export const getTrendingArticles = async (limit = 10) => {
     const response = await api.get(`/articles/trending?limit=${limit}`);
     return response.data;
 };
+
+// Get freeform layout by ID
+export const getFreeformLayoutById = async (id) => {
+    const response = await api.get(`/freeform-layouts/${id}`);
+    return response.data;
+};

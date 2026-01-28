@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { articleService, layoutService } from '../../services/api';
+import { articleService, layoutService, freeformLayoutService } from '../../services/api';
 import { ReactTransliterate } from "react-transliterate";
 import "react-transliterate/dist/index.css";
 import Layout from '../common/Layout';
@@ -99,10 +99,22 @@ const CreateArticle = () => {
 
     const loadLayouts = async () => {
         try {
-            const data = await layoutService.getAll();
-            setLayouts(data);
+            // Fetch both grid and freeform layouts
+            const [gridLayouts, freeformLayouts] = await Promise.all([
+                layoutService.getAll(),
+                freeformLayoutService.getAll()
+            ]);
+
+            // Mark each with its type
+            const allLayouts = [
+                ...gridLayouts.map(l => ({ ...l, layoutType: 'grid' })),
+                ...freeformLayouts.map(l => ({ ...l, layoutType: 'freeform' }))
+            ];
+
+            setLayouts(allLayouts);
+
             if (!isEditMode) {
-                const defaultLayout = data.find(l => l.isDefault);
+                const defaultLayout = allLayouts.find(l => l.isDefault);
                 if (defaultLayout) {
                     setFormData(prev => ({ ...prev, layoutTemplate: defaultLayout._id }));
                 }
@@ -691,11 +703,24 @@ const CreateArticle = () => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                             >
                                 <option value="">Default Layout</option>
-                                {layouts.map(layout => (
-                                    <option key={layout._id} value={layout._id}>
-                                        {layout.name} {layout.isDefault ? '(Default)' : ''}
-                                    </option>
-                                ))}
+                                {layouts.filter(l => l.layoutType === 'grid').length > 0 && (
+                                    <optgroup label="Standard Layouts">
+                                        {layouts.filter(l => l.layoutType === 'grid').map(layout => (
+                                            <option key={layout._id} value={layout._id}>
+                                                {layout.name} {layout.isDefault ? '(Default)' : ''}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                )}
+                                {layouts.filter(l => l.layoutType === 'freeform').length > 0 && (
+                                    <optgroup label="Freeform Layouts">
+                                        {layouts.filter(l => l.layoutType === 'freeform').map(layout => (
+                                            <option key={layout._id} value={layout._id}>
+                                                {layout.name} {layout.isDefault ? '(Default)' : ''}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                )}
                             </select>
                             <Link to="/layouts" className="text-xs text-primary hover:underline mt-1 inline-block">
                                 Manage Templates →
@@ -750,8 +775,39 @@ const CreateArticle = () => {
 
                 {/* Main Editor Area */}
                 <div className={`bg-white shadow-lg rounded-lg p-8 max-w-${selectedLayout?.maxWidth || '4xl'} mx-auto`}>
-                    {selectedLayout && selectedLayout.elements?.length > 0 ? (
-                        // Custom Layout Editor - inline to prevent focus loss
+                    {selectedLayout && selectedLayout.layoutType === 'freeform' && selectedLayout.elements?.length > 0 ? (
+                        // Freeform Layout - Absolute Positioning
+                        <div
+                            className="relative bg-gray-50 rounded-lg border border-gray-200 overflow-auto"
+                            style={{
+                                width: selectedLayout.canvas?.width || 1200,
+                                height: selectedLayout.canvas?.height || 1800,
+                                maxWidth: '100%',
+                                margin: '0 auto'
+                            }}
+                        >
+                            {selectedLayout.elements
+                                .sort((a, b) => a.zIndex - b.zIndex)
+                                .map(element => (
+                                    <div
+                                        key={element.id}
+                                        style={{
+                                            position: 'absolute',
+                                            left: element.x,
+                                            top: element.y,
+                                            width: element.width,
+                                            height: element.height,
+                                            zIndex: element.zIndex,
+                                            opacity: (element.opacity || 100) / 100
+                                        }}
+                                    >
+                                        {renderInlineInput(element)}
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    ) : selectedLayout && selectedLayout.layoutType === 'grid' && selectedLayout.elements?.length > 0 ? (
+                        // Grid Layout Editor - existing logic
                         <div className={`grid grid-cols-12 gap-${selectedLayout?.gridGap || '4'}`}>
                             {(() => {
                                 const allElements = [...selectedLayout.elements].sort((a, b) => a.row - b.row);

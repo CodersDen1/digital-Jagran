@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getArticleById, getLayoutById, getDefaultLayout, getArticles, trackArticleView } from '../services/api';
+import { getArticleById, getLayoutById, getDefaultLayout, getArticles, trackArticleView, getFreeformLayoutById } from '../services/api';
 import NewsLayout from '../components/layout/NewsLayout';
 import DynamicArticleRenderer from '../components/article/DynamicArticleRenderer';
 import { SocialShare } from '../components/article/ElementRenderers';
@@ -57,12 +57,29 @@ const ArticleDetail = () => {
             setArticle(articleData);
 
             // Fetch layout - either article-specific or default
+            // Try grid layout first, then freeform layout
             let layoutData = null;
             if (articleData.layoutTemplate) {
+                // Try grid layout first
                 try {
                     layoutData = await getLayoutById(articleData.layoutTemplate);
+                    if (layoutData) {
+                        layoutData.layoutType = 'grid';
+                    }
                 } catch (e) {
-                    console.log('Article layout not found, trying default');
+                    console.log('Grid layout not found, trying freeform layout');
+                }
+
+                // If grid layout not found, try freeform layout
+                if (!layoutData) {
+                    try {
+                        layoutData = await getFreeformLayoutById(articleData.layoutTemplate);
+                        if (layoutData) {
+                            layoutData.layoutType = 'freeform';
+                        }
+                    } catch (e) {
+                        console.log('Freeform layout not found, trying default');
+                    }
                 }
             }
 

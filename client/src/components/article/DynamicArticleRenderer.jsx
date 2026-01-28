@@ -1,10 +1,11 @@
 import React from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import ElementRenderers from './ElementRenderers';
+import FreeformArticleRenderer from './FreeformArticleRenderer';
 
 /**
  * DynamicArticleRenderer - Renders article content based on layout template
- * If no layout is provided, renders using the default static layout
+ * Supports both grid-based layouts and freeform layouts with absolute positioning
  */
 const DynamicArticleRenderer = ({ article, layout }) => {
     const { t } = useLanguage();
@@ -12,6 +13,13 @@ const DynamicArticleRenderer = ({ article, layout }) => {
     // If no layout, render with default static layout
     if (!layout || !layout.elements || layout.elements.length === 0) {
         return <DefaultArticleLayout article={article} t={t} />;
+    }
+
+    // Check if this is a freeform layout (has canvas property or layoutType)
+    const isFreeformLayout = layout.canvas || layout.layoutType === 'freeform';
+
+    if (isFreeformLayout) {
+        return <FreeformArticleRenderer article={article} layout={layout} />;
     }
 
     // Sort elements by row for proper rendering order

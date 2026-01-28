@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, PenSquare, LogOut, Palette } from 'lucide-react';
+import { LayoutDashboard, PenSquare, LogOut, Palette, Sparkles } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import SessionTimer from '../auth/SessionTimer';
 
@@ -12,6 +12,7 @@ const Layout = ({ children, hideSidebar = false }) => {
         { label: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { label: 'Create Article', path: '/create', icon: <PenSquare size={20} /> },
         { label: 'Layout Templates', path: '/layouts', icon: <Palette size={20} /> },
+        { label: 'New Legacy Editor', path: '/freeform-layouts', icon: <Sparkles size={20} /> },
     ];
 
     // Full-width layout without sidebar

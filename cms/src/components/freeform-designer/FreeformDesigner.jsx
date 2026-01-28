@@ -1,0 +1,941 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { freeformLayoutService, articleService } from '../../services/api';
+import Layout from '../common/Layout';
+import FreeformCanvas from './FreeformCanvas';
+import FreeformToolbar from './FreeformToolbar';
+import FreeformPropertiesPanel from './FreeformPropertiesPanel';
+import {
+    Save, Eye, ArrowLeft, Undo, Redo, Home,
+    ZoomIn, ZoomOut, Maximize, Grid3X3, Magnet,
+    FileText, Palette, Settings, Ruler
+} from 'lucide-react';
+
+/**
+ * FreeformDesigner - Main component for the New Legacy Editor
+ * Provides a Figma/Wix-like experience for designing layouts with free positioning
+ */
+const FreeformDesigner = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const isEditing = Boolean(id);
+
+    // Layout state
+    const [layoutName, setLayoutName] = useState('');
+    const [layoutDescription, setLayoutDescription] = useState('');
+    const [elements, setElements] = useState([]);
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [clipboard, setClipboard] = useState([]);
+
+    // Canvas settings
+    const [canvas, setCanvas] = useState({
+        width: 1200,
+        height: 1800,
+        backgroundColor: '#ffffff',
+        showGrid: true,
+        gridSize: 20,
+        snapToGrid: false,
+        snapToElements: true
+    });
+
+    // Viewport state
+    const [zoom, setZoom] = useState(1);
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+
+    // UI state
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [previewMode, setPreviewMode] = useState(false);
+
+    // Editor mode: 'layout' for template only, 'article' for creating articles
+    const [editorMode, setEditorMode] = useState('layout');
+
+    // Article data (when in article mode)
+    const [articleData, setArticleData] = useState({});
+    const [language, setLanguage] = useState('en');
+    const [isPublish, setIsPublish] = useState(false);
+    const [seoMetadata, setSeoMetadata] = useState('');
+    const [seoKeywords, setSeoKeywords] = useState('');
+    const [showSeoPanel, setShowSeoPanel] = useState(false);
+    const [showCanvasSettings, setShowCanvasSettings] = useState(false);
+
+    // History for undo/redo
+    const [history, setHistory] = useState([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
+    const maxHistory = 50;
+
+    // Load existing layout if editing
+    useEffect(() => {
+        if (isEditing) {
+            loadLayout();
+        } else {
+            setLayoutName('New Freeform Layout');
+            setElements(getDefaultElements());
+            pushToHistory([]);
+        }
+    }, [id]);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const cmdKey = isMac ? e.metaKey : e.ctrlKey;
+
+            // Delete selected
+            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0) {
+                e.preventDefault();
+                deleteSelected();
+            }
+
+            // Copy
+            if (cmdKey && e.key === 'c' && selectedIds.length > 0) {
+                e.preventDefault();
+                copySelected();
+            }
+
+            // Paste
+            if (cmdKey && e.key === 'v' && clipboard.length > 0) {
+                e.preventDefault();
+                pasteElements();
+            }
+
+            // Duplicate
+            if (cmdKey && e.key === 'd' && selectedIds.length > 0) {
+                e.preventDefault();
+                duplicateSelected();
+            }
+
+            // Undo
+            if (cmdKey && !e.shiftKey && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            }
+
+            // Redo
+            if (cmdKey && e.shiftKey && e.key === 'z') {
+                e.preventDefault();
+                redo();
+            }
+
+            // Select all
+            if (cmdKey && e.key === 'a') {
+                e.preventDefault();
+                setSelectedIds(elements.map(el => el.id));
+            }
+
+            // Deselect
+            if (e.key === 'Escape') {
+                setSelectedIds([]);
+            }
+
+            // Move with arrow keys
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && selectedIds.length > 0) {
+                e.preventDefault();
+                const delta = e.shiftKey ? 10 : 1;
+                const direction = {
+                    ArrowUp: { x: 0, y: -delta },
+                    ArrowDown: { x: 0, y: delta },
+                    ArrowLeft: { x: -delta, y: 0 },
+                    ArrowRight: { x: delta, y: 0 }
+                }[e.key];
+                moveSelectedBy(direction.x, direction.y);
+            }
+
+            // Bring forward / Send backward
+            if (cmdKey && e.key === ']') {
+                e.preventDefault();
+                bringForward();
+            }
+            if (cmdKey && e.key === '[') {
+                e.preventDefault();
+                sendBackward();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedIds, elements, clipboard, historyIndex]);
+
+    const loadLayout = async () => {
+        setLoading(true);
+        try {
+            const layout = await freeformLayoutService.getById(id);
+            setLayoutName(layout.name);
+            setLayoutDescription(layout.description || '');
+            setElements(layout.elements || []);
+            setCanvas(layout.canvas || canvas);
+            if (layout.viewport) {
+                setZoom(layout.viewport.zoom || 1);
+                setPanOffset({ x: layout.viewport.panX || 0, y: layout.viewport.panY || 0 });
+            }
+            pushToHistory(layout.elements || []);
+        } catch (error) {
+            console.error('Error loading layout:', error);
+            alert('Failed to load layout');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Default elements for new layout
+    const getDefaultElements = () => [
+        {
+            id: 'header-1',
+            type: 'header',
+            x: 50,
+            y: 50,
+            width: 700,
+            height: 60,
+            zIndex: 1,
+            rotation: 0,
+            opacity: 100,
+            locked: false,
+            visible: true,
+            config: {
+                fontSize: '4xl',
+                fontWeight: 'bold',
+                fontFamily: 'serif',
+                textAlign: 'left',
+                textColor: '#1f2937'
+            }
+        },
+        {
+            id: 'image-1',
+            type: 'image',
+            x: 50,
+            y: 130,
+            width: 700,
+            height: 400,
+            zIndex: 2,
+            rotation: 0,
+            opacity: 100,
+            locked: false,
+            visible: true,
+            config: {
+                objectFit: 'cover',
+                borderRadius: 8
+            }
+        },
+        {
+            id: 'body-1',
+            type: 'body',
+            x: 50,
+            y: 560,
+            width: 700,
+            height: 300,
+            zIndex: 3,
+            rotation: 0,
+            opacity: 100,
+            locked: false,
+            visible: true,
+            config: {
+                fontSize: 'lg',
+                fontFamily: 'serif',
+                lineHeight: 'relaxed',
+                textColor: '#374151'
+            }
+        }
+    ];
+
+    // Element operations
+    const addElement = (type, x = 100, y = 100) => {
+        const newElement = createNewElement(type, x, y);
+        const newElements = [...elements, newElement];
+        setElements(newElements);
+        setSelectedIds([newElement.id]);
+        pushToHistory(newElements);
+    };
+
+    const createNewElement = (type, x, y) => {
+        const id = `${type}-${Date.now()}`;
+        const defaults = getElementDefaults(type);
+
+        return {
+            id,
+            type,
+            x,
+            y,
+            width: defaults.width,
+            height: defaults.height,
+            zIndex: Math.max(...elements.map(el => el.zIndex), 0) + 1,
+            rotation: 0,
+            opacity: 100,
+            locked: false,
+            visible: true,
+            config: defaults.config
+        };
+    };
+
+    const getElementDefaults = (type) => {
+        const defaults = {
+            header: { width: 500, height: 60, config: { fontSize: '3xl', fontWeight: 'bold', fontFamily: 'serif', textColor: '#1f2937' } },
+            summary: { width: 500, height: 100, config: { fontSize: 'xl', fontFamily: 'serif', textColor: '#6b7280' } },
+            body: { width: 600, height: 300, config: { fontSize: 'base', fontFamily: 'serif', lineHeight: 'relaxed', textColor: '#374151' } },
+            image: { width: 400, height: 300, config: { objectFit: 'cover', borderRadius: 8 } },
+            video: { width: 500, height: 280, config: { borderRadius: 8 } },
+            author: { width: 200, height: 50, config: { fontSize: 'sm', textColor: '#6b7280' } },
+            date: { width: 150, height: 30, config: { fontSize: 'sm', textColor: '#9ca3af' } },
+            tags: { width: 300, height: 40, config: { fontSize: 'sm' } },
+            text: { width: 300, height: 100, config: { fontSize: 'base', customContent: 'Custom text...' } },
+            divider: { width: 400, height: 2, config: { backgroundColor: '#e5e7eb' } },
+            spacer: { width: 100, height: 50, config: {} },
+            shape: { width: 150, height: 150, config: { shapeType: 'rectangle', fillColor: '#4f46e5', borderRadius: 0 } },
+            container: { width: 400, height: 300, config: { backgroundColor: '#f9fafb', borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb' } }
+        };
+        return defaults[type] || { width: 200, height: 100, config: {} };
+    };
+
+    const updateElement = (elementId, updates) => {
+        const newElements = elements.map(el =>
+            el.id === elementId ? { ...el, ...updates } : el
+        );
+        setElements(newElements);
+        pushToHistory(newElements);
+    };
+
+    const updateElementConfig = (elementId, configUpdates) => {
+        const newElements = elements.map(el =>
+            el.id === elementId ? { ...el, config: { ...el.config, ...configUpdates } } : el
+        );
+        setElements(newElements);
+        pushToHistory(newElements);
+    };
+
+    const updateMultipleElements = (updates) => {
+        const newElements = elements.map(el => {
+            if (selectedIds.includes(el.id)) {
+                return { ...el, ...updates };
+            }
+            return el;
+        });
+        setElements(newElements);
+        pushToHistory(newElements);
+    };
+
+    const deleteSelected = () => {
+        const newElements = elements.filter(el => !selectedIds.includes(el.id));
+        setElements(newElements);
+        setSelectedIds([]);
+        pushToHistory(newElements);
+    };
+
+    const checkAndExpandCanvas = (element) => {
+        const padding = 200;
+        const rightEdge = element.x + element.width;
+        const bottomEdge = element.y + element.height;
+
+        setCanvas(prev => {
+            let newWidth = prev.width;
+            let newHeight = prev.height;
+            let changed = false;
+
+            if (rightEdge + padding > prev.width) {
+                newWidth = Math.max(prev.width, rightEdge + padding);
+                changed = true;
+            }
+
+            if (bottomEdge + padding > prev.height) {
+                newHeight = Math.max(prev.height, bottomEdge + padding);
+                changed = true;
+            }
+
+            if (changed) {
+                return { ...prev, width: newWidth, height: newHeight };
+            }
+            return prev;
+        });
+    };
+
+    const copySelected = () => {
+        const selectedElements = elements.filter(el => selectedIds.includes(el.id));
+        setClipboard(JSON.parse(JSON.stringify(selectedElements)));
+    };
+
+    const pasteElements = () => {
+        if (clipboard.length === 0) return;
+
+        const offset = 20;
+        const newElements = clipboard.map(el => ({
+            ...el,
+            id: `${el.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            x: el.x + offset,
+            y: el.y + offset,
+            zIndex: Math.max(...elements.map(e => e.zIndex), 0) + 1
+        }));
+
+        const updatedElements = [...elements, ...newElements];
+        setElements(updatedElements);
+        setSelectedIds(newElements.map(el => el.id));
+        pushToHistory(updatedElements);
+    };
+
+    const duplicateSelected = () => {
+        copySelected();
+        setTimeout(() => pasteElements(), 0);
+    };
+
+    const moveSelectedBy = (dx, dy) => {
+        const newElements = elements.map(el => {
+            if (selectedIds.includes(el.id) && !el.locked) {
+                return { ...el, x: el.x + dx, y: el.y + dy };
+            }
+            return el;
+        });
+        setElements(newElements);
+    };
+
+    const bringForward = () => {
+        if (selectedIds.length === 0) return;
+        const maxZ = Math.max(...elements.map(el => el.zIndex));
+        updateMultipleElements({ zIndex: maxZ + 1 });
+    };
+
+    const sendBackward = () => {
+        if (selectedIds.length === 0) return;
+        const minZ = Math.min(...elements.map(el => el.zIndex));
+        updateMultipleElements({ zIndex: Math.max(1, minZ - 1) });
+    };
+
+    // History management
+    const pushToHistory = (newElements) => {
+        const newHistory = history.slice(0, historyIndex + 1);
+        newHistory.push(JSON.stringify(newElements));
+        if (newHistory.length > maxHistory) {
+            newHistory.shift();
+        }
+        setHistory(newHistory);
+        setHistoryIndex(newHistory.length - 1);
+    };
+
+    const undo = () => {
+        if (historyIndex > 0) {
+            const newIndex = historyIndex - 1;
+            setHistoryIndex(newIndex);
+            setElements(JSON.parse(history[newIndex]));
+        }
+    };
+
+    const redo = () => {
+        if (historyIndex < history.length - 1) {
+            const newIndex = historyIndex + 1;
+            setHistoryIndex(newIndex);
+            setElements(JSON.parse(history[newIndex]));
+        }
+    };
+
+    // Save layout
+    const saveLayout = async () => {
+        if (!layoutName.trim()) {
+            alert('Please enter a layout name');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const layoutData = {
+                name: layoutName,
+                description: layoutDescription,
+                elements,
+                canvas,
+                viewport: { zoom, panX: panOffset.x, panY: panOffset.y }
+            };
+
+            if (isEditing) {
+                await freeformLayoutService.update(id, layoutData);
+            } else {
+                await freeformLayoutService.create(layoutData);
+            }
+
+            alert('Layout saved successfully!');
+            navigate('/freeform-layouts');
+        } catch (error) {
+            console.error('Error saving layout:', error);
+            alert('Failed to save layout');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Handle content change from editable elements
+    const handleContentChange = (elementId, value) => {
+        setArticleData(prev => ({
+            ...prev,
+            [elementId]: value
+        }));
+    };
+
+    // Save as article (in article mode)
+    const saveArticle = async (publish = false) => {
+        setSaving(true);
+        try {
+            // Build article payload from articleData
+            const isEn = language === 'en';
+
+            // Map element IDs to article fields
+            const getContentByType = (type) => {
+                const element = elements.find(el => el.type === type);
+                return element ? (articleData[element.id] || '') : '';
+            };
+
+            // Get all photos from image elements
+            const photoUrls = elements
+                .filter(el => el.type === 'image')
+                .map(el => articleData[el.id])
+                .filter(Boolean);
+
+            const payload = {
+                photos: photoUrls,
+                video: getContentByType('video'),
+                is_Drafted: !publish,
+                is_Published: publish,
+                author: getContentByType('author') || 'Unknown',
+                published_language: language,
+                elementContent_en: articleData,
+            };
+
+            // First, save layout and get its ID
+            const layoutData = {
+                name: `Article Layout - ${new Date().toISOString().slice(0, 10)}`,
+                description: `Layout for article created on ${new Date().toLocaleDateString()}`,
+                elements,
+                canvas,
+                viewport: { zoom, panX: panOffset.x, panY: panOffset.y }
+            };
+
+            const savedLayout = await freeformLayoutService.create(layoutData);
+            payload.layoutTemplate = savedLayout._id;
+
+            // Map textual fields based on selected language
+            if (isEn) {
+                payload.article_header_en = getContentByType('header');
+                payload.summary_en = getContentByType('summary');
+                payload.body_en = getContentByType('body');
+                payload.tags_en = (getContentByType('tags') || '').split(',').map(s => s.trim()).filter(Boolean);
+            } else {
+                payload.article_header = getContentByType('header');
+                payload.summary = getContentByType('summary');
+                payload.body = getContentByType('body');
+                payload.tags = (getContentByType('tags') || '').split(',').map(s => s.trim()).filter(Boolean);
+            }
+
+            // Add SEO metadata
+            payload.metadata = seoMetadata;
+            payload.keywords = seoKeywords.split(',').map(s => s.trim()).filter(Boolean);
+
+            await articleService.create(payload);
+            alert(publish ? 'Article published successfully!' : 'Article saved as draft!');
+            navigate('/');
+        } catch (error) {
+            console.error('Error saving article:', error);
+            alert('Failed to save article');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Zoom controls
+    const handleZoomIn = () => setZoom(Math.min(zoom + 0.1, 4));
+    const handleZoomOut = () => setZoom(Math.max(zoom - 0.1, 0.1));
+    const handleFitToScreen = () => {
+        setZoom(1);
+        setPanOffset({ x: 0, y: 0 });
+    };
+
+    const selectedElements = elements.filter(el => selectedIds.includes(el.id));
+
+    if (loading) {
+        return (
+            <Layout hideSidebar>
+                <div className="flex justify-center items-center h-screen bg-slate-900">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+                </div>
+            </Layout>
+        );
+    }
+
+    return (
+        <Layout hideSidebar>
+            <div className="h-screen flex flex-col bg-slate-900 text-white overflow-hidden">
+                {/* Header Bar */}
+                <div className="bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition"
+                            title="Dashboard"
+                        >
+                            <Home size={18} />
+                        </button>
+                        <button
+                            onClick={() => navigate('/freeform-layouts')}
+                            className="flex items-center gap-2 text-slate-400 hover:text-white transition"
+                        >
+                            <ArrowLeft size={18} />
+                            <span className="text-sm">Back</span>
+                        </button>
+                        <div className="h-5 w-px bg-slate-600"></div>
+                        <input
+                            type="text"
+                            value={layoutName}
+                            onChange={(e) => setLayoutName(e.target.value)}
+                            placeholder="Layout Name"
+                            className="text-base font-medium bg-transparent border-none focus:outline-none focus:ring-0 text-white placeholder-slate-500"
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        {/* Mode Toggle */}
+                        <div className="flex items-center bg-slate-700 rounded-lg p-0.5">
+                            <button
+                                onClick={() => setEditorMode('layout')}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition ${editorMode === 'layout'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'text-slate-400 hover:text-white'
+                                    }`}
+                            >
+                                <Palette size={14} />
+                                <span>Layout</span>
+                            </button>
+                            <button
+                                onClick={() => setEditorMode('article')}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition ${editorMode === 'article'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:text-white'
+                                    }`}
+                            >
+                                <FileText size={14} />
+                                <span>Article</span>
+                            </button>
+                        </div>
+
+                        {/* Language selector (only in article mode) */}
+                        {editorMode === 'article' && (
+                            <div className="flex items-center bg-slate-700 rounded-lg p-0.5 ml-2">
+                                <button
+                                    onClick={() => setLanguage('en')}
+                                    className={`px-3 py-1.5 rounded-md text-sm transition ${language === 'en'
+                                        ? 'bg-white text-slate-900'
+                                        : 'text-slate-400 hover:text-white'
+                                        }`}
+                                >
+                                    EN
+                                </button>
+                                <button
+                                    onClick={() => setLanguage('HN')}
+                                    className={`px-3 py-1.5 rounded-md text-sm transition ${language === 'HN'
+                                        ? 'bg-white text-slate-900'
+                                        : 'text-slate-400 hover:text-white'
+                                        }`}
+                                >
+                                    हिंदी
+                                </button>
+                            </div>
+                        )}
+
+                        {/* SEO Settings (only in article mode) */}
+                        {editorMode === 'article' && (
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowSeoPanel(!showSeoPanel)}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition ml-2 ${showSeoPanel
+                                        ? 'bg-amber-600 text-white'
+                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                        }`}
+                                    title="SEO Settings"
+                                >
+                                    <Settings size={14} />
+                                    <span>SEO</span>
+                                </button>
+
+                                {/* SEO Panel Dropdown */}
+                                {showSeoPanel && (
+                                    <div className="absolute top-full right-0 mt-2 w-80 bg-slate-800 rounded-lg shadow-xl border border-slate-700 p-4 z-50">
+                                        <h3 className="text-white font-medium mb-3">SEO Settings</h3>
+
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1">
+                                                    Meta Description
+                                                </label>
+                                                <textarea
+                                                    value={seoMetadata}
+                                                    onChange={(e) => setSeoMetadata(e.target.value)}
+                                                    placeholder="Enter SEO description for search engines..."
+                                                    className="w-full bg-slate-700 text-white text-sm rounded-lg p-2 border border-slate-600 focus:border-indigo-500 focus:outline-none resize-none"
+                                                    rows={3}
+                                                />
+                                                <span className="text-xs text-slate-500">{seoMetadata.length}/160</span>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1">
+                                                    Keywords (comma-separated)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={seoKeywords}
+                                                    onChange={(e) => setSeoKeywords(e.target.value)}
+                                                    placeholder="news, politics, india..."
+                                                    className="w-full bg-slate-700 text-white text-sm rounded-lg p-2 border border-slate-600 focus:border-indigo-500 focus:outline-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => setShowSeoPanel(false)}
+                                            className="mt-3 w-full py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition"
+                                        >
+                                            Done
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="h-5 w-px bg-slate-600 mx-2"></div>
+
+                        {/* Undo/Redo */}
+                        <button
+                            onClick={undo}
+                            disabled={historyIndex <= 0}
+                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition disabled:opacity-30"
+                            title="Undo (Cmd+Z)"
+                        >
+                            <Undo size={18} />
+                        </button>
+                        <button
+                            onClick={redo}
+                            disabled={historyIndex >= history.length - 1}
+                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition disabled:opacity-30"
+                            title="Redo (Cmd+Shift+Z)"
+                        >
+                            <Redo size={18} />
+                        </button>
+
+                        <div className="h-5 w-px bg-slate-600 mx-2"></div>
+
+                        {/* Canvas settings */}
+                        <button
+                            onClick={() => setCanvas({ ...canvas, showGrid: !canvas.showGrid })}
+                            className={`p-2 rounded-lg transition ${canvas.showGrid ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                            title="Toggle Grid"
+                        >
+                            <Grid3X3 size={18} />
+                        </button>
+                        <button
+                            onClick={() => setCanvas({ ...canvas, snapToElements: !canvas.snapToElements })}
+                            className={`p-2 rounded-lg transition ${canvas.snapToElements ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                            title="Snap to Elements"
+                        >
+                            <Magnet size={18} />
+                        </button>
+
+                        {/* Canvas Size */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowCanvasSettings(!showCanvasSettings)}
+                                className={`p-2 rounded-lg transition ${showCanvasSettings ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                                title="Canvas Size"
+                            >
+                                <Ruler size={18} />
+                            </button>
+
+                            {showCanvasSettings && (
+                                <div className="absolute top-full right-0 mt-2 w-64 bg-slate-800 rounded-lg shadow-xl border border-slate-700 p-4 z-50">
+                                    <h3 className="text-white font-medium mb-3 text-sm">Canvas Size</h3>
+
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Width (px)</label>
+                                            <input
+                                                type="number"
+                                                value={canvas.width}
+                                                onChange={(e) => setCanvas({ ...canvas, width: parseInt(e.target.value) || 800 })}
+                                                className="w-full bg-slate-700 text-white text-sm rounded-lg p-2 border border-slate-600 focus:border-indigo-500 focus:outline-none"
+                                                min={400}
+                                                max={3000}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs text-slate-400 mb-1">Height (px)</label>
+                                            <input
+                                                type="number"
+                                                value={canvas.height}
+                                                onChange={(e) => setCanvas({ ...canvas, height: parseInt(e.target.value) || 600 })}
+                                                className="w-full bg-slate-700 text-white text-sm rounded-lg p-2 border border-slate-600 focus:border-indigo-500 focus:outline-none"
+                                                min={400}
+                                                max={10000}
+                                            />
+                                        </div>
+
+                                        <div className="text-xs text-slate-500 mt-2">
+                                            <span className="block">Tip: Match height to your content</span>
+                                            <span className="block">to avoid empty space on client.</span>
+                                        </div>
+
+                                        <button
+                                            onClick={() => setShowCanvasSettings(false)}
+                                            className="w-full py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition"
+                                        >
+                                            Done
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="h-5 w-px bg-slate-600 mx-2"></div>
+
+                        {/* Preview */}
+                        <button
+                            onClick={() => setPreviewMode(!previewMode)}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition text-sm ${previewMode
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                }`}
+                        >
+                            <Eye size={16} />
+                            <span>Preview</span>
+                        </button>
+
+                        {/* Save buttons - conditional based on mode */}
+                        {editorMode === 'layout' ? (
+                            <button
+                                onClick={saveLayout}
+                                disabled={saving}
+                                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+                            >
+                                <Save size={16} />
+                                <span>{saving ? 'Saving...' : 'Save Layout'}</span>
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => saveArticle(false)}
+                                    disabled={saving}
+                                    className="flex items-center gap-2 bg-slate-700 text-white px-4 py-1.5 rounded-lg hover:bg-slate-600 transition text-sm disabled:opacity-50"
+                                >
+                                    <Save size={16} />
+                                    <span>{saving ? 'Saving...' : 'Save Draft'}</span>
+                                </button>
+                                <button
+                                    onClick={() => saveArticle(true)}
+                                    disabled={saving}
+                                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-700 transition text-sm disabled:opacity-50"
+                                >
+                                    <span>{saving ? 'Publishing...' : 'Publish'}</span>
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Main Content Area */}
+                <div className="flex-1 flex overflow-hidden">
+                    {/* Left Toolbar */}
+                    {!previewMode && (
+                        <FreeformToolbar
+                            onAddElement={addElement}
+                            elements={elements}
+                            selectedIds={selectedIds}
+                            onSelectElement={(id) => setSelectedIds([id])}
+                            onReorderLayers={(newElements) => {
+                                setElements(newElements);
+                                pushToHistory(newElements);
+                            }}
+                        />
+                    )}
+
+                    {/* Canvas Area */}
+                    <div className="flex-1 relative overflow-hidden bg-slate-900">
+                        <FreeformCanvas
+                            elements={elements}
+                            selectedIds={selectedIds}
+                            onSelectElement={(id, multi) => {
+                                if (multi) {
+                                    setSelectedIds(prev =>
+                                        prev.includes(id)
+                                            ? prev.filter(i => i !== id)
+                                            : [...prev, id]
+                                    );
+                                } else {
+                                    setSelectedIds([id]);
+                                }
+                            }}
+                            onSelectMultiple={setSelectedIds}
+                            onClearSelection={() => setSelectedIds([])}
+                            onUpdateElement={updateElement}
+                            onDeleteElement={(id) => {
+                                const newElements = elements.filter(el => el.id !== id);
+                                setElements(newElements);
+                                setSelectedIds([]);
+                                pushToHistory(newElements);
+                            }}
+                            canvas={canvas}
+                            zoom={zoom}
+                            panOffset={panOffset}
+                            onPanChange={setPanOffset}
+                            previewMode={previewMode}
+                            snapToElements={canvas.snapToElements}
+                            onElementChangeEnd={checkAndExpandCanvas}
+                            editorMode={editorMode}
+                            articleData={articleData}
+                            onContentChange={handleContentChange}
+                        />
+
+                        {/* Zoom Controls */}
+                        <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-slate-800 rounded-lg p-1 shadow-lg">
+                            <button
+                                onClick={handleZoomOut}
+                                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition"
+                                title="Zoom Out"
+                            >
+                                <ZoomOut size={16} />
+                            </button>
+                            <span className="text-sm text-slate-300 w-14 text-center">
+                                {Math.round(zoom * 100)}%
+                            </span>
+                            <button
+                                onClick={handleZoomIn}
+                                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition"
+                                title="Zoom In"
+                            >
+                                <ZoomIn size={16} />
+                            </button>
+                            <div className="h-4 w-px bg-slate-600"></div>
+                            <button
+                                onClick={handleFitToScreen}
+                                className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition"
+                                title="Fit to Screen"
+                            >
+                                <Maximize size={16} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Right Properties Panel */}
+                    {!previewMode && selectedElements.length > 0 && (
+                        <FreeformPropertiesPanel
+                            selectedElements={selectedElements}
+                            onUpdateElement={updateElement}
+                            onUpdateConfig={updateElementConfig}
+                            onDelete={deleteSelected}
+                            onDuplicate={duplicateSelected}
+                            onBringForward={bringForward}
+                            onSendBackward={sendBackward}
+                            onClose={() => setSelectedIds([])}
+                            editorMode={editorMode}
+                            articleData={articleData}
+                            onContentChange={handleContentChange}
+                        />
+                    )}
+                </div>
+            </div>
+        </Layout>
+    );
+};
+
+export default FreeformDesigner;
