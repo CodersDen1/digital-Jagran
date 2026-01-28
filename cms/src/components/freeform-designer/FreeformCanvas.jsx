@@ -36,7 +36,8 @@ const FreeformCanvas = ({
     onElementChangeEnd,
     editorMode = 'layout',
     articleData = {},
-    onContentChange
+    onContentChange,
+    tool = 'select' // 'select' or 'hand'
 }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -47,6 +48,7 @@ const FreeformCanvas = ({
 
     // Handle canvas click (deselect)
     const handleCanvasClick = (e) => {
+        if (tool === 'hand') return; // Don't deselect when in hand mode if clicking around
         if (e.target === canvasRef.current || e.target.classList.contains('canvas-inner')) {
             onClearSelection();
         }
@@ -76,14 +78,17 @@ const FreeformCanvas = ({
         }
     }, [handleWheel]);
 
-    // Middle mouse button pan
+    // Pan handling
     const handleMouseDown = (e) => {
-        if (e.button === 1) { // Middle mouse
+        const isMiddleClick = e.button === 1;
+        const isHandToolClick = tool === 'hand' && e.button === 0;
+
+        if (isMiddleClick || isHandToolClick) {
             e.preventDefault();
             setIsPanning(true);
             setDragStartPos({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
         } else if (e.button === 0 && (e.target === canvasRef.current || e.target.classList.contains('canvas-inner'))) {
-            // Start selection box
+            // Start selection box (only if NOT in hand mode)
             const rect = canvasRef.current.getBoundingClientRect();
             const x = (e.clientX - rect.left) / zoom;
             const y = (e.clientY - rect.top) / zoom;
@@ -567,7 +572,10 @@ const FreeformCanvas = ({
         <div
             ref={containerRef}
             className="w-full h-full overflow-hidden"
-            style={{ cursor: isPanning ? 'grabbing' : 'default' }}
+            style={{
+                cursor: isPanning ? 'grabbing' : tool === 'hand' ? 'grab' : 'default',
+                userSelect: 'none'
+            }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}

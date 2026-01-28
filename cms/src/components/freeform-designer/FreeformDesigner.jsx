@@ -8,7 +8,7 @@ import FreeformPropertiesPanel from './FreeformPropertiesPanel';
 import {
     Save, Eye, ArrowLeft, Undo, Redo, Home,
     ZoomIn, ZoomOut, Maximize, Grid3X3, Magnet,
-    FileText, Palette, Settings, Ruler
+    FileText, Palette, Settings, Ruler, Hand, MousePointer2
 } from 'lucide-react';
 
 /**
@@ -49,6 +49,7 @@ const FreeformDesigner = () => {
 
     // Editor mode: 'layout' for template only, 'article' for creating articles
     const [editorMode, setEditorMode] = useState('layout');
+    const [tool, setTool] = useState('select'); // 'select' or 'hand'
 
     // Article data (when in article mode)
     const [articleData, setArticleData] = useState({});
@@ -140,7 +141,16 @@ const FreeformDesigner = () => {
                     ArrowLeft: { x: -delta, y: 0 },
                     ArrowRight: { x: delta, y: 0 }
                 }[e.key];
-                moveSelectedBy(direction.x, direction.y);
+
+                if (direction) moveSelectedBy(direction.x, direction.y);
+            }
+
+            // Tool switching
+            if (e.key.toLowerCase() === 'v' && !cmdKey) {
+                setTool('select');
+            }
+            if (e.key.toLowerCase() === 'h' && !cmdKey) {
+                setTool('hand');
             }
 
             // Bring forward / Send backward
@@ -716,6 +726,32 @@ const FreeformDesigner = () => {
 
                         <div className="h-5 w-px bg-slate-600 mx-2"></div>
 
+                        {/* Tools: Select / Hand */}
+                        <div className="flex items-center bg-slate-700 rounded-lg p-0.5">
+                            <button
+                                onClick={() => setTool('select')}
+                                className={`p-1.5 rounded-md transition ${tool === 'select'
+                                    ? 'bg-white text-slate-900 shadow-sm'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-600'
+                                    }`}
+                                title="Select Tool (V)"
+                            >
+                                <MousePointer2 size={16} />
+                            </button>
+                            <button
+                                onClick={() => setTool('hand')}
+                                className={`p-1.5 rounded-md transition ${tool === 'hand'
+                                    ? 'bg-white text-slate-900 shadow-sm'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-600'
+                                    }`}
+                                title="Hand Tool (H)"
+                            >
+                                <Hand size={16} />
+                            </button>
+                        </div>
+
+                        <div className="h-5 w-px bg-slate-600 mx-2"></div>
+
                         {/* Canvas settings */}
                         <button
                             onClick={() => setCanvas({ ...canvas, showGrid: !canvas.showGrid })}
@@ -884,6 +920,7 @@ const FreeformDesigner = () => {
                             editorMode={editorMode}
                             articleData={articleData}
                             onContentChange={handleContentChange}
+                            tool={tool}
                         />
 
                         {/* Zoom Controls */}

@@ -22,8 +22,10 @@ const getElementContent = (article, elementId, fieldName, t) => {
         const content = elementContent instanceof Map
             ? elementContent.get(elementId)
             : elementContent[elementId];
-        if (content?.value) {
-            return content.value;
+
+        if (content) {
+            if (typeof content === 'string') return content;
+            if (content.value) return content.value;
         }
     }
     // Fall back to standard article field
@@ -267,12 +269,16 @@ const ImageRenderer = ({ article, elementId, t, config }) => {
 
         // console.log('DEBUG Image Content Lookup:', { elementId, found: !!content, value: content?.value });
 
-        if (content?.value) {
-            // Element-specific image (could be comma-separated)
-            image = content.value.split(',')[0]?.trim();
-            // Get position if available
-            if (content.objectPosition) {
-                objectPosition = content.objectPosition;
+        if (content) {
+            if (typeof content === 'string') {
+                image = content.split(',')[0]?.trim();
+            } else if (content.value) {
+                // Element-specific image (could be comma-separated)
+                image = content.value.split(',')[0]?.trim();
+                // Get position if available
+                if (content.objectPosition) {
+                    objectPosition = content.objectPosition;
+                }
             }
         }
     }
@@ -344,8 +350,8 @@ const VideoRenderer = ({ article, elementId, config }) => {
         const content = elementContent instanceof Map
             ? elementContent.get(elementId)
             : elementContent[elementId];
-        if (content?.value) {
-            videoUrl = content.value;
+        if (content) {
+            videoUrl = typeof content === 'string' ? content : content.value;
         }
     }
 
