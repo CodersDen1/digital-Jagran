@@ -83,7 +83,7 @@ const Ticker = ({ articles }) => {
 
     return (
         <div
-            className="bg-[#0f172a] text-white py-1.5 px-4 flex items-center overflow-hidden"
+            className="bg-[#0f172a] text-white py-1.5 px-4 flex items-center overflow-hidden font-hind"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => { if (!isDragging) setIsPaused(false); }}
         >

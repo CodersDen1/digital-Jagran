@@ -30,7 +30,7 @@ const MobileMenu = ({ isOpen, onClose, onCategoryChange, activeCategory }) => {
             />
 
             {/* Menu Panel */}
-            <div className="absolute inset-y-0 left-0 w-full max-w-sm bg-white shadow-2xl transform transition-transform duration-300">
+            <div className="absolute inset-y-0 left-0 w-full max-w-sm bg-white shadow-2xl transform transition-transform duration-300 font-hind">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-200">
                     <Link to="/" onClick={onClose} title="Digital Jagran Home" className="text-xl font-black text-gray-900">

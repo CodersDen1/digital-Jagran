@@ -16,6 +16,12 @@ export default {
             fontFamily: {
                 serif: ['Merriweather', 'serif'],
                 sans: ['Inter', 'sans-serif'],
+                // Hindi Typography
+                halant: ['Halant', 'serif'],
+                anek: ['"Anek Devanagari"', 'sans-serif'],
+                tiro: ['"Tiro Devanagari Hindi"', 'serif'],
+                hind: ['Hind', 'sans-serif'],
+                yantra: ['Yantramanav', 'sans-serif'],
             }
         },
     },

@@ -141,6 +141,10 @@ const HeaderRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
     const content = getElementContent(article, elementId, 'article_header', t);
 
+    // Hindi Typography Check
+    const isHindi = article.published_language === 'HN' || article.published_language === 'hi';
+    const fontClass = isHindi ? 'font-halant' : '';
+
     // Apply config styles
     const className = getConfigClasses(config, '4xl'); // Default to 4xl for headers if not set
     const Tag = config?.tag || 'h1';
@@ -161,7 +165,7 @@ const HeaderRenderer = ({ article, elementId, t, config }) => {
     }, [config?.maxHeight, content]);
 
     return (
-        <Tag ref={ref} className={`leading-tight ${className}`}>
+        <Tag ref={ref} className={`leading-tight ${fontClass} ${className}`}>
             {content}
         </Tag>
     );
@@ -173,6 +177,11 @@ const HeaderRenderer = ({ article, elementId, t, config }) => {
 const SummaryRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
     const content = getElementContent(article, elementId, 'summary', t);
+
+    // Hindi Typography Check
+    const isHindi = article.published_language === 'HN' || article.published_language === 'hi';
+    // Anek Devanagari (Semi-Bold -> font-semibold)
+    const fontClass = isHindi ? 'font-anek font-semibold' : 'italic';
 
     const className = getConfigClasses(config, 'xl'); // Default to xl for summary
 
@@ -192,7 +201,7 @@ const SummaryRenderer = ({ article, elementId, t, config }) => {
     }, [config?.maxHeight, content]);
 
     return (
-        <p ref={ref} className={`italic ${className}`}>
+        <p ref={ref} className={`${fontClass} ${className}`}>
             {content}
         </p>
     );
@@ -205,6 +214,10 @@ const BodyRenderer = ({ article, elementId, t, config }) => {
     const ref = useRef(null);
     const body = getElementContent(article, elementId, 'body', t);
     const isHTML = body && /<[a-z][\s\S]*>/i.test(body);
+
+    // Hindi Typography Check
+    const isHindi = article.published_language === 'HN' || article.published_language === 'hi';
+    const fontClass = isHindi ? 'hindi-content font-tiro leading-[1.8] text-[#333333]' : '';
 
     // For body, we usually don't want to enforce font-size on the wrapper if it's HTML, 
     // but user wants control. 'prose' class usually controls size.
@@ -230,14 +243,14 @@ const BodyRenderer = ({ article, elementId, t, config }) => {
         return (
             <div
                 ref={ref}
-                className={`prose md:prose-lg max-w-none ${className}`}
+                className={`prose md:prose-lg max-w-none ${fontClass} ${className}`}
                 dangerouslySetInnerHTML={{ __html: body }}
             />
         );
     }
 
     return (
-        <div ref={ref} className={`whitespace-pre-wrap ${className}`}>
+        <div ref={ref} className={`whitespace-pre-wrap ${fontClass} ${className}`}>
             {body}
         </div>
     );

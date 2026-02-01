@@ -55,7 +55,7 @@ const Header = ({ activeCategory, onCategoryChange }) => {
 
     return (
         <>
-            <header className="font-sans bg-[#1e293b] text-white relative z-40">
+            <header className="font-hind bg-[#1e293b] text-white relative z-40">
                 {/* Top Bar - Ticker */}
                 <div className="bg-[#0f172a] border-b border-[#334155]">
                     <div className="max-w-[1300px] mx-auto">
@@ -94,7 +94,7 @@ const Header = ({ activeCategory, onCategoryChange }) => {
                                         <li key={category} className="flex items-end">
                                             <button
                                                 onClick={() => handleCategoryClick(category)}
-                                                className={`px-4 pb-3 pt-8 text-[15px] font-bold transition-colors border-b-[3px] ${activeCategory === category || (category === 'ALL' && activeCategory?.toLowerCase() === 'all')
+                                                className={`px-4 pb-3 pt-8 text-[15px] font-medium transition-colors border-b-[3px] ${activeCategory === category || (category === 'ALL' && activeCategory?.toLowerCase() === 'all')
                                                     ? 'text-[#f59e0b] border-[#f59e0b]'
                                                     : 'text-gray-300 hover:text-white border-transparent'
                                                     }`}

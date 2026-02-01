@@ -191,7 +191,7 @@ const ArticleDetail = () => {
             </div>
 
             {/* Main Article Content */}
-            <div className="bg-white p-4 md:p-8 shadow-sm rounded-lg mb-8">
+            <div className={`${(article?.published_language === 'HN' || article?.published_language === 'hi') ? 'bg-slate-50' : 'bg-white'} p-4 md:p-8 shadow-sm rounded-lg mb-8`}>
                 <DynamicArticleRenderer article={article} layout={layout} />
 
                 {/* Social Share Bar */}
