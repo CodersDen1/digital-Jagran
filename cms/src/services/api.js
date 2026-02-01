@@ -102,6 +102,10 @@ export const freeformLayoutService = {
         const response = await api.delete(`/freeform-layouts/${id}`);
         return response.data;
     },
+    deleteBulk: async (ids) => {
+        const response = await api.post('/freeform-layouts/bulk-delete', { ids });
+        return response.data;
+    },
     setDefault: async (id) => {
         const response = await api.put(`/freeform-layouts/${id}/set-default`);
         return response.data;

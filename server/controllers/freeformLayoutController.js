@@ -222,3 +222,19 @@ exports.saveCanvasState = async (req, res) => {
         res.status(500).json({ error: 'Failed to save canvas state', details: error.message });
     }
 };
+
+// Bulk delete freeform layouts
+exports.bulkDeleteFreeformLayouts = async (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'No layout IDs provided' });
+        }
+
+        await FreeformLayout.deleteMany({ _id: { $in: ids } });
+        res.json({ message: 'Freeform layouts deleted successfully' });
+    } catch (error) {
+        console.error('Error bulk deleting freeform layouts:', error);
+        res.status(500).json({ error: 'Failed to bulk delete freeform layouts', details: error.message });
+    }
+};

@@ -11,6 +11,7 @@ import { Plus, Edit, Trash2, Copy, Star, StarOff, Eye, Layers, Sparkles } from '
 const FreeformLayoutsList = () => {
     const [layouts, setLayouts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedLayouts, setSelectedLayouts] = useState([]);
 
     useEffect(() => {
         loadLayouts();
@@ -60,6 +61,39 @@ const FreeformLayoutsList = () => {
         }
     };
 
+    const handleCheckboxChange = (id) => {
+        setSelectedLayouts(prev => {
+            if (prev.includes(id)) {
+                return prev.filter(item => item !== id);
+            } else {
+                return [...prev, id];
+            }
+        });
+    };
+
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedLayouts(layouts.map(l => l._id));
+        } else {
+            setSelectedLayouts([]);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedLayouts.length === 0) return;
+
+        if (window.confirm(`Are you sure you want to delete ${selectedLayouts.length} layouts?`)) {
+            try {
+                await freeformLayoutService.deleteBulk(selectedLayouts);
+                setSelectedLayouts([]);
+                loadLayouts();
+            } catch (error) {
+                console.error("Failed to delete layouts", error);
+                alert('Failed to delete selected layouts');
+            }
+        }
+    };
+
     const getElementCount = (layout) => {
         return layout.elementCount || layout.elements?.length || 0;
     };
@@ -97,6 +131,38 @@ const FreeformLayoutsList = () => {
                 </div>
             </div>
 
+            {/* Bulk Actions */}
+            {selectedLayouts.length > 0 && (
+                <div className="bg-blue-50 p-4 rounded-lg mb-6 flex justify-between items-center border border-blue-200 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                    <span className="text-blue-800 font-medium flex items-center gap-2">
+                        <Layers size={18} />
+                        {selectedLayouts.length} layouts selected
+                    </span>
+                    <button
+                        onClick={handleBulkDelete}
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2 transition shadow-sm hover:shadow"
+                    >
+                        <Trash2 size={18} />
+                        Delete Selected
+                    </button>
+                </div>
+            )}
+
+            {/* Selection Controls */}
+            {!loading && layouts.length > 0 && (
+                <div className="mb-4 flex items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                    <label className="flex items-center gap-3 cursor-pointer select-none text-gray-700 font-medium">
+                        <input
+                            type="checkbox"
+                            className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 transition cursor-pointer"
+                            checked={layouts.length > 0 && selectedLayouts.length === layouts.length}
+                            onChange={handleSelectAll}
+                        />
+                        <span>Select All Layouts</span>
+                    </label>
+                </div>
+            )}
+
             {/* Content */}
             {loading ? (
                 <div className="flex justify-center items-center h-64">
@@ -127,7 +193,20 @@ const FreeformLayoutsList = () => {
                             className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 group border border-slate-100"
                         >
                             {/* Preview Area */}
-                            <div className="h-44 bg-gradient-to-br from-slate-800 to-slate-900 p-4 relative overflow-hidden">
+                            <div className="h-44 bg-gradient-to-br from-slate-800 to-slate-900 p-4 relative overflow-hidden group-hover:bg-slate-800 transition-colors">
+                                {/* Selection Checkbox */}
+                                <div className="absolute top-3 left-3 z-20">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedLayouts.includes(layout._id)}
+                                        onChange={(e) => {
+                                            e.stopPropagation();
+                                            handleCheckboxChange(layout._id);
+                                        }}
+                                        className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shadow-sm cursor-pointer"
+                                    />
+                                </div>
+
                                 {/* Mini canvas preview */}
                                 <div className="absolute inset-4 bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm">
                                     <div className="p-3 h-full flex flex-col gap-2">

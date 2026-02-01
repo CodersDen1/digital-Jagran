@@ -91,6 +91,7 @@ freeformLayoutRouter.get('/freeform-layouts', (req, res) => freeformLayoutContro
 freeformLayoutRouter.get('/freeform-layouts/default', (req, res) => freeformLayoutController.getDefaultFreeformLayout(req, res));
 freeformLayoutRouter.get('/freeform-layouts/:id', (req, res) => freeformLayoutController.getFreeformLayoutById(req, res));
 freeformLayoutRouter.put('/freeform-layouts/:id', (req, res) => freeformLayoutController.updateFreeformLayout(req, res));
+freeformLayoutRouter.post('/freeform-layouts/bulk-delete', (req, res) => freeformLayoutController.bulkDeleteFreeformLayouts(req, res));
 freeformLayoutRouter.delete('/freeform-layouts/:id', (req, res) => freeformLayoutController.deleteFreeformLayout(req, res));
 freeformLayoutRouter.put('/freeform-layouts/:id/set-default', (req, res) => freeformLayoutController.setDefaultFreeformLayout(req, res));
 freeformLayoutRouter.post('/freeform-layouts/:id/duplicate', (req, res) => freeformLayoutController.duplicateFreeformLayout(req, res));
