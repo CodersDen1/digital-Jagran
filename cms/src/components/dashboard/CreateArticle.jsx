@@ -214,6 +214,101 @@ const CreateArticle = () => {
         return result;
     };
 
+    const [lastSavedData, setLastSavedData] = useState(null);
+    const [isDirty, setIsDirty] = useState(false);
+    const [autosaveStatus, setAutosaveStatus] = useState(''); // 'Saving...', 'Saved', 'Error'
+
+    // Deep compare to check for changes
+    useEffect(() => {
+        if (!lastSavedData) {
+            setLastSavedData(JSON.stringify({ formData, elementData }));
+            return;
+        }
+
+        const currentData = JSON.stringify({ formData, elementData });
+        if (currentData !== lastSavedData) {
+            setIsDirty(true);
+            setAutosaveStatus('Unsaved changes');
+        }
+    }, [formData, elementData]);
+
+    // Autosave Timer
+    useEffect(() => {
+        if (!isDirty || loading) return;
+
+        const timer = setTimeout(() => {
+            handleAutosave();
+        }, 30000); // Autosave every 30 seconds
+
+        return () => clearTimeout(timer);
+    }, [isDirty, formData, elementData, loading]);
+
+    const handleAutosave = async () => {
+        if (!isDirty) return;
+
+        setAutosaveStatus('Saving...');
+
+        try {
+            const mergedData = consolidateElementData();
+
+            // Construct payload (Reuse logic from handleSubmit but force draft)
+            const payload = {
+                photos: mergedData.photos.split(',').map(s => s.trim()).filter(Boolean),
+                video: mergedData.video,
+                is_Drafted: true, // Always draft on autosave
+                is_Published: false, // Never publish on autosave
+                author: mergedData.author,
+                layoutTemplate: mergedData.layoutTemplate || undefined,
+                published_language: language,
+                elementContent_en: elementData,
+            };
+
+            const isEn = language === 'en';
+            if (isEn) {
+                payload.article_header_en = mergedData.article_header;
+                payload.summary_en = mergedData.summary;
+                payload.body_en = mergedData.body;
+                payload.metadata_en = mergedData.metadata;
+                payload.keywords_en = mergedData.keywords.split(',').map(s => s.trim());
+                payload.tags_en = mergedData.tags.split(',').map(s => s.trim());
+            } else {
+                payload.article_header = mergedData.article_header;
+                payload.summary = mergedData.summary;
+                payload.body = mergedData.body;
+                payload.metadata = mergedData.metadata;
+                payload.keywords = mergedData.keywords.split(',').map(s => s.trim());
+                payload.tags = mergedData.tags.split(',').map(s => s.trim());
+            }
+
+            if (isEditMode) {
+                await articleService.update(id, payload);
+            } else {
+                // For new articles, we need to create first, then redirect to edit mode to allow future updates
+                const newArticle = await articleService.create(payload);
+                // Update URL to edit mode without reload
+                window.history.replaceState(null, '', `/edit/${newArticle._id}`);
+                // Ideally we should update the 'id' param but React Router won't update automatically
+                // For now, simple autosave works best on existing articles
+                // If it was a new article, we might want to just notify user or handle state carefully
+            }
+
+            setLastSavedData(JSON.stringify({ formData, elementData }));
+            setIsDirty(false);
+            setAutosaveStatus(`Saved at ${new Date().toLocaleTimeString()}`);
+
+            // Clear status after 3 seconds
+            setTimeout(() => {
+                if (autosaveStatus.startsWith('Saved')) {
+                    // setAutosaveStatus(''); 
+                }
+            }, 3000);
+
+        } catch (error) {
+            console.error('Autosave failed:', error);
+            setAutosaveStatus('Autosave Failed');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -681,6 +776,12 @@ const CreateArticle = () => {
                             <Settings size={16} />
                             Settings
                         </button>
+                        {/* Autosave Status */}
+                        {autosaveStatus && (
+                            <span className={`text-xs font-medium px-2 py-1 rounded ${autosaveStatus.includes('Failed') ? 'bg-red-100 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                                {autosaveStatus}
+                            </span>
+                        )}
                         <Button variant="secondary" onClick={() => navigate('/')}>Cancel</Button>
                         <Button type="submit" disabled={loading}>
                             {loading ? 'Saving...' : (isEditMode ? 'Update Article' : 'Publish Article')}

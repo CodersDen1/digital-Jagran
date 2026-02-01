@@ -93,6 +93,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* Edit Article in Freeform Mode */}
+        <Route
+          path="/edit-freeform/:id"
+          element={
+            <ProtectedRoute>
+              <FreeformDesigner />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );

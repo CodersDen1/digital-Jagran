@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { articleService } from '../../services/api';
+import { articleService, freeformLayoutService } from '../../services/api';
 import Layout from '../common/Layout';
 import { Link } from 'react-router-dom';
 import { Edit, Trash2, Eye, TrendingUp, Copy } from 'lucide-react';
@@ -9,6 +9,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [selectedArticles, setSelectedArticles] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
+    const [freeformLayoutIds, setFreeformLayoutIds] = useState(new Set());
     const itemsPerPage = 10;
 
     useEffect(() => {
@@ -17,10 +18,18 @@ const Dashboard = () => {
 
     const loadArticles = async () => {
         try {
-            const data = await articleService.getAll();
-            setArticles(data);
+            const [articlesData, freeformLayouts] = await Promise.all([
+                articleService.getAll(),
+                freeformLayoutService.getAll().catch(() => [])
+            ]);
+
+            setArticles(articlesData);
+
+            if (freeformLayouts && Array.isArray(freeformLayouts)) {
+                setFreeformLayoutIds(new Set(freeformLayouts.map(l => l._id)));
+            }
         } catch (error) {
-            console.error("Failed to load articles", error);
+            console.error("Failed to load data", error);
         } finally {
             setLoading(false);
         }
@@ -278,7 +287,13 @@ const Dashboard = () => {
                                         >
                                             <Eye size={18} />
                                         </a>
-                                        <Link to={`/edit/${article._id}`} className="text-indigo-600 hover:text-indigo-900 mx-2 inline-block" title="Edit Article"><Edit size={18} /></Link>
+                                        <Link
+                                            to={freeformLayoutIds.has(article.layoutTemplate) ? `/edit-freeform/${article._id}` : `/edit/${article._id}`}
+                                            className="text-indigo-600 hover:text-indigo-900 mx-2 inline-block"
+                                            title="Edit Article"
+                                        >
+                                            <Edit size={18} />
+                                        </Link>
                                         <button onClick={() => handleDuplicate(article._id)} className="text-blue-600 hover:text-blue-900 mx-2" title="Duplicate Article"><Copy size={18} /></button>
                                         <button onClick={() => handleDelete(article._id)} className="text-red-600 hover:text-red-900 mx-2"><Trash2 size={18} /></button>
                                     </td>

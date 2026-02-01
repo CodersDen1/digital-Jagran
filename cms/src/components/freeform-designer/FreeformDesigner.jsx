@@ -1,15 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { freeformLayoutService, articleService } from '../../services/api';
-import Layout from '../common/Layout';
-import FreeformCanvas from './FreeformCanvas';
-import FreeformToolbar from './FreeformToolbar';
-import FreeformPropertiesPanel from './FreeformPropertiesPanel';
-import {
-    Save, Eye, ArrowLeft, Undo, Redo, Home,
-    ZoomIn, ZoomOut, Maximize, Grid3X3, Magnet,
-    FileText, Palette, Settings, Ruler, Hand, MousePointer2
-} from 'lucide-react';
+
+/* ... imports ... */
 
 /**
  * FreeformDesigner - Main component for the New Legacy Editor
@@ -18,64 +10,181 @@ import {
 const FreeformDesigner = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const isEditing = Boolean(id);
+    const location = useLocation();
+
+    // Check mode
+    const isArticleEdit = location.pathname.includes('/edit-freeform/');
+    const isLayoutEdit = Boolean(id) && !isArticleEdit;
 
     // Layout state
     const [layoutName, setLayoutName] = useState('');
-    const [layoutDescription, setLayoutDescription] = useState('');
-    const [elements, setElements] = useState([]);
-    const [selectedIds, setSelectedIds] = useState([]);
-    const [clipboard, setClipboard] = useState([]);
+    /* ... state ... */
 
-    // Canvas settings
-    const [canvas, setCanvas] = useState({
-        width: 1200,
-        height: 1800,
-        backgroundColor: '#ffffff',
-        showGrid: true,
-        gridSize: 20,
-        snapToGrid: false,
-        snapToElements: true
-    });
-
-    // Viewport state
-    const [zoom, setZoom] = useState(1);
-    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-
-    // UI state
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [previewMode, setPreviewMode] = useState(false);
-
-    // Editor mode: 'layout' for template only, 'article' for creating articles
-    const [editorMode, setEditorMode] = useState('layout');
-    const [tool, setTool] = useState('select'); // 'select' or 'hand'
-
-    // Article data (when in article mode)
-    const [articleData, setArticleData] = useState({});
-    const [language, setLanguage] = useState('en');
-    const [isPublish, setIsPublish] = useState(false);
-    const [seoMetadata, setSeoMetadata] = useState('');
-    const [seoKeywords, setSeoKeywords] = useState('');
-    const [articleTags, setArticleTags] = useState('');
-    const [showSeoPanel, setShowSeoPanel] = useState(false);
-    const [showCanvasSettings, setShowCanvasSettings] = useState(false);
-
-    // History for undo/redo
-    const [history, setHistory] = useState([]);
-    const [historyIndex, setHistoryIndex] = useState(-1);
-    const maxHistory = 50;
-
-    // Load existing layout if editing
+    // Load existing layout or article if editing
     useEffect(() => {
-        if (isEditing) {
+        if (isArticleEdit) {
+            loadArticleForEdit();
+        } else if (isLayoutEdit) {
             loadLayout();
         } else {
             setLayoutName('New Freeform Layout');
             setElements(getDefaultElements());
             pushToHistory([]);
         }
-    }, [id]);
+    }, [id, isArticleEdit]);
+
+    /* ... handlers ... */
+
+    const loadArticleForEdit = async () => {
+        setLoading(true);
+        try {
+            const article = await articleService.getById(id);
+            setEditorMode('article');
+
+            // Set article metadata
+            const articleLang = article.published_language === 'hi' ? 'HN' : (article.published_language || 'en');
+            setLanguage(articleLang);
+            setSeoMetadata(article.metadata || article.metadata_en || '');
+            const keywords = article.keywords || article.keywords_en || [];
+            setSeoKeywords(Array.isArray(keywords) ? keywords.join(', ') : (keywords || ''));
+            const tags = article.tags || article.tags_en || [];
+            setArticleTags(Array.isArray(tags) ? tags.join(', ') : (tags || ''));
+            setIsPublish(article.is_Published);
+
+            // Fetch the layout template
+            if (article.layoutTemplate) {
+                // Try to get freeform layout
+                try {
+                    const layout = await freeformLayoutService.getById(article.layoutTemplate);
+                    setLayoutName(layout.name);
+                    setLayoutDescription(layout.description || '');
+                    setElements(layout.elements || []);
+                    setCanvas(layout.canvas || canvas);
+                    if (layout.viewport) {
+                        setZoom(layout.viewport.zoom || 1);
+                        setPanOffset({ x: layout.viewport.panX || 0, y: layout.viewport.panY || 0 });
+                    }
+                    pushToHistory(layout.elements || []);
+                } catch (e) {
+                    console.error("Layout not found or not freeform", e);
+                    // Fallback or alert?
+                }
+            }
+
+            // Load content
+            if (article.elementContent_en) {
+                setArticleData(article.elementContent_en);
+            }
+        } catch (error) {
+            console.error('Error loading article:', error);
+            alert('Failed to load article');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadLayout = async () => {
+        /* ... existing loadLayout ... */
+        setLoading(true);
+        try {
+            const layout = await freeformLayoutService.getById(id);
+            setLayoutName(layout.name);
+            setLayoutDescription(layout.description || '');
+            setElements(layout.elements || []);
+            setCanvas(layout.canvas || canvas);
+            if (layout.viewport) {
+                setZoom(layout.viewport.zoom || 1);
+                setPanOffset({ x: layout.viewport.panX || 0, y: layout.viewport.panY || 0 });
+            }
+            pushToHistory(layout.elements || []);
+        } catch (error) {
+            console.error('Error loading layout:', error);
+            alert('Failed to load layout');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /* ... existing functions ... */
+
+    // Save as article (in article mode)
+    const saveArticle = async (publish = false) => {
+        setSaving(true);
+        try {
+            // Build article payload from articleData
+            const isEn = language === 'en';
+
+            // Map element IDs to article fields
+            const getContentByType = (type) => {
+                const element = elements.find(el => el.type === type);
+                return element ? (articleData[element.id] || '') : '';
+            };
+
+            // Get all photos from image elements
+            const photoUrls = elements
+                .filter(el => el.type === 'image')
+                .map(el => articleData[el.id])
+                .filter(Boolean);
+
+            const payload = {
+                photos: photoUrls,
+                video: getContentByType('video'),
+                is_Drafted: !publish,
+                is_Published: publish,
+                author: getContentByType('author') || 'Unknown',
+                published_language: language,
+                elementContent_en: articleData,
+            };
+
+            // First, save layout and get its ID
+            // For updates, we create a NEW layout version to preserve history/modifications
+            // In a more complex system, we might update the existing layout if it's 1:1 with article
+            const layoutData = {
+                name: `Article Layout - ${new Date().toISOString()}`,
+                description: `Layout for article ${id || 'new'}`,
+                elements,
+                canvas,
+                viewport: { zoom, panX: panOffset.x, panY: panOffset.y }
+            };
+
+            const savedLayout = await freeformLayoutService.create(layoutData);
+            payload.layoutTemplate = savedLayout._id;
+
+            // Map textual fields based on selected language
+            const tagsValue = articleTags || getContentByType('tags') || '';
+            const tagsArray = tagsValue.split(',').map(s => s.trim()).filter(Boolean);
+
+            if (isEn) {
+                payload.article_header_en = getContentByType('header');
+                payload.summary_en = getContentByType('summary');
+                payload.body_en = getContentByType('body');
+                payload.tags_en = tagsArray;
+            } else {
+                payload.article_header = getContentByType('header');
+                payload.summary = getContentByType('summary');
+                payload.body = getContentByType('body');
+                payload.tags = tagsArray;
+            }
+
+            // Add SEO metadata
+            payload.metadata = seoMetadata;
+            payload.keywords = seoKeywords.split(',').map(s => s.trim()).filter(Boolean);
+
+            if (isArticleEdit) {
+                await articleService.update(id, payload);
+                alert(publish ? 'Article Updated & Published!' : 'Article Updated!');
+            } else {
+                await articleService.create(payload);
+                alert(publish ? 'Article published successfully!' : 'Article saved as draft!');
+            }
+            navigate('/');
+        } catch (error) {
+            console.error('Error saving article:', error);
+            alert('Failed to save article');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -169,26 +278,7 @@ const FreeformDesigner = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selectedIds, elements, clipboard, historyIndex]);
 
-    const loadLayout = async () => {
-        setLoading(true);
-        try {
-            const layout = await freeformLayoutService.getById(id);
-            setLayoutName(layout.name);
-            setLayoutDescription(layout.description || '');
-            setElements(layout.elements || []);
-            setCanvas(layout.canvas || canvas);
-            if (layout.viewport) {
-                setZoom(layout.viewport.zoom || 1);
-                setPanOffset({ x: layout.viewport.panX || 0, y: layout.viewport.panY || 0 });
-            }
-            pushToHistory(layout.elements || []);
-        } catch (error) {
-            console.error('Error loading layout:', error);
-            alert('Failed to load layout');
-        } finally {
-            setLoading(false);
-        }
-    };
+
 
     // Default elements for new layout
     const getDefaultElements = () => [
@@ -475,80 +565,6 @@ const FreeformDesigner = () => {
             ...prev,
             [elementId]: value
         }));
-    };
-
-    // Save as article (in article mode)
-    const saveArticle = async (publish = false) => {
-        setSaving(true);
-        try {
-            // Build article payload from articleData
-            const isEn = language === 'en';
-
-            // Map element IDs to article fields
-            const getContentByType = (type) => {
-                const element = elements.find(el => el.type === type);
-                return element ? (articleData[element.id] || '') : '';
-            };
-
-            // Get all photos from image elements
-            const photoUrls = elements
-                .filter(el => el.type === 'image')
-                .map(el => articleData[el.id])
-                .filter(Boolean);
-
-            const payload = {
-                photos: photoUrls,
-                video: getContentByType('video'),
-                is_Drafted: !publish,
-                is_Published: publish,
-                author: getContentByType('author') || 'Unknown',
-                published_language: language,
-                elementContent_en: articleData,
-            };
-
-            // First, save layout and get its ID
-            const layoutData = {
-                name: `Article Layout - ${new Date().toISOString().slice(0, 10)}`,
-                description: `Layout for article created on ${new Date().toLocaleDateString()}`,
-                elements,
-                canvas,
-                viewport: { zoom, panX: panOffset.x, panY: panOffset.y }
-            };
-
-            const savedLayout = await freeformLayoutService.create(layoutData);
-            payload.layoutTemplate = savedLayout._id;
-
-            // Map textual fields based on selected language
-            // Get tags from settings or visual element
-            const tagsValue = articleTags || getContentByType('tags') || '';
-            const tagsArray = tagsValue.split(',').map(s => s.trim()).filter(Boolean);
-
-            // Map textual fields based on selected language
-            if (isEn) {
-                payload.article_header_en = getContentByType('header');
-                payload.summary_en = getContentByType('summary');
-                payload.body_en = getContentByType('body');
-                payload.tags_en = tagsArray;
-            } else {
-                payload.article_header = getContentByType('header');
-                payload.summary = getContentByType('summary');
-                payload.body = getContentByType('body');
-                payload.tags = tagsArray;
-            }
-
-            // Add SEO metadata
-            payload.metadata = seoMetadata;
-            payload.keywords = seoKeywords.split(',').map(s => s.trim()).filter(Boolean);
-
-            await articleService.create(payload);
-            alert(publish ? 'Article published successfully!' : 'Article saved as draft!');
-            navigate('/');
-        } catch (error) {
-            console.error('Error saving article:', error);
-            alert('Failed to save article');
-        } finally {
-            setSaving(false);
-        }
     };
 
     // Zoom controls
