@@ -1,7 +1,15 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { freeformLayoutService, articleService } from '../../services/api';
-
-/* ... imports ... */
+import Layout from '../common/Layout';
+import FreeformCanvas from './FreeformCanvas';
+import FreeformToolbar from './FreeformToolbar';
+import FreeformPropertiesPanel from './FreeformPropertiesPanel';
+import {
+    Save, Eye, ArrowLeft, Undo, Redo, Home,
+    ZoomIn, ZoomOut, Maximize, Grid3X3, Magnet,
+    FileText, Palette, Settings, Ruler, Hand, MousePointer2
+} from 'lucide-react';
 
 /**
  * FreeformDesigner - Main component for the New Legacy Editor
@@ -18,7 +26,49 @@ const FreeformDesigner = () => {
 
     // Layout state
     const [layoutName, setLayoutName] = useState('');
-    /* ... state ... */
+    const [layoutDescription, setLayoutDescription] = useState('');
+    const [elements, setElements] = useState([]);
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [clipboard, setClipboard] = useState([]);
+
+    // Canvas settings
+    const [canvas, setCanvas] = useState({
+        width: 1200,
+        height: 1800,
+        backgroundColor: '#ffffff',
+        showGrid: true,
+        gridSize: 20,
+        snapToGrid: false,
+        snapToElements: true
+    });
+
+    // Viewport state
+    const [zoom, setZoom] = useState(1);
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+
+    // UI state
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [previewMode, setPreviewMode] = useState(false);
+
+    // Editor mode: 'layout' for template only, 'article' for creating articles
+    const [editorMode, setEditorMode] = useState('layout');
+    const [tool, setTool] = useState('select'); // 'select' or 'hand'
+
+    // Article data (when in article mode)
+    const [articleData, setArticleData] = useState({});
+    const [language, setLanguage] = useState('en');
+    const [isPublish, setIsPublish] = useState(false);
+    const [seoMetadata, setSeoMetadata] = useState('');
+    const [seoKeywords, setSeoKeywords] = useState('');
+    const [articleTags, setArticleTags] = useState('');
+    const [showSeoPanel, setShowSeoPanel] = useState(false);
+    const [showCanvasSettings, setShowCanvasSettings] = useState(false);
+
+    // History for undo/redo
+    const [history, setHistory] = useState([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
+    const maxHistory = 50;
 
     // Load existing layout or article if editing
     useEffect(() => {
