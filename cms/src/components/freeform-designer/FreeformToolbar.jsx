@@ -52,16 +52,26 @@ const FreeformToolbar = ({
     elements,
     selectedIds,
     onSelectElement,
-    onReorderLayers
+    onReorderLayers,
+    onGroup,
+    onUngroup,
+    onDelete
 }) => {
     const [activeTab, setActiveTab] = useState('elements');
     const [expandedSections, setExpandedSections] = useState({
         content: true,
         shapes: true
     });
+    // Track expanded groups in layers panel
+    const [expandedGroups, setExpandedGroups] = useState({});
 
     const toggleSection = (section) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    };
+
+    const toggleGroup = (e, groupId) => {
+        e.stopPropagation();
+        setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
     };
 
     // Handle drag start for elements
@@ -73,8 +83,76 @@ const FreeformToolbar = ({
         e.dataTransfer.effectAllowed = 'copy';
     };
 
-    // Layers panel - sorted by z-index (highest first)
-    const sortedLayers = [...elements].sort((a, b) => b.zIndex - a.zIndex);
+    // Layers panel logic
+    // 1. Identify root elements (no groupId) and groups
+    const rootElements = elements.filter(el => !el.groupId);
+
+    // 2. Sort by z-index (highest first)
+    const sortedLayers = [...rootElements].sort((a, b) => b.zIndex - a.zIndex);
+
+    // Helper to get children of a group
+    const getGroupChildren = (groupId) => {
+        return elements
+            .filter(el => el.groupId === groupId)
+            .sort((a, b) => b.zIndex - a.zIndex);
+    };
+
+    const renderLayerItem = (element, depth = 0) => {
+        const isGroup = element.type === 'group';
+        const Icon = isGroup
+            ? (expandedGroups[element.id] ? ChevronDown : ChevronRight)
+            : (ELEMENT_TYPES.find(t => t.type === element.type)?.icon || Square);
+
+        const isSelected = selectedIds.includes(element.id);
+        const children = isGroup ? getGroupChildren(element.id) : [];
+
+        return (
+            <div key={element.id}>
+                <div
+                    onClick={(e) => onSelectElement(element.id, e.shiftKey || e.metaKey || e.ctrlKey)}
+                    className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition ${isSelected
+                        ? 'bg-indigo-600 text-white'
+                        : 'hover:bg-slate-700 text-slate-300'
+                        }`}
+                    style={{ marginLeft: `${depth * 12}px` }}
+                >
+                    <GripVertical size={14} className="text-slate-500 cursor-grab" />
+
+                    {isGroup ? (
+                        <div
+                            onClick={(e) => toggleGroup(e, element.id)}
+                            className="p-1 hover:bg-white/10 rounded"
+                        >
+                            <Icon size={14} />
+                        </div>
+                    ) : (
+                        <Icon size={14} />
+                    )}
+
+                    <span className="flex-1 text-sm truncate capitalize">
+                        {isGroup ? 'Group' : element.type}
+                    </span>
+
+                    {/* Layer indicators */}
+                    <div className="flex items-center gap-1">
+                        {element.locked && (
+                            <Lock size={12} className="text-amber-400" />
+                        )}
+                        {!element.visible && (
+                            <EyeOff size={12} className="text-slate-500" />
+                        )}
+                    </div>
+                </div>
+
+                {/* Render Group Children */}
+                {isGroup && expandedGroups[element.id] && (
+                    <div className="mt-1">
+                        {children.map(child => renderLayerItem(child, depth + 1))}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden shrink-0">
@@ -83,8 +161,8 @@ const FreeformToolbar = ({
                 <button
                     onClick={() => setActiveTab('elements')}
                     className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === 'elements'
-                            ? 'bg-slate-700 text-white border-b-2 border-indigo-500'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                        ? 'bg-slate-700 text-white border-b-2 border-indigo-500'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
                         }`}
                 >
                     Elements
@@ -92,8 +170,8 @@ const FreeformToolbar = ({
                 <button
                     onClick={() => setActiveTab('layers')}
                     className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === 'layers'
-                            ? 'bg-slate-700 text-white border-b-2 border-indigo-500'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                        ? 'bg-slate-700 text-white border-b-2 border-indigo-500'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
                         }`}
                 >
                     <span className="flex items-center justify-center gap-2">
@@ -168,46 +246,36 @@ const FreeformToolbar = ({
                     </div>
                 ) : (
                     /* Layers Panel */
-                    <div className="p-2">
-                        {sortedLayers.length === 0 ? (
-                            <div className="text-center py-8 text-slate-500 text-sm">
-                                No elements on canvas
-                            </div>
-                        ) : (
-                            <div className="space-y-1">
-                                {sortedLayers.map((element, index) => {
-                                    const Icon = ELEMENT_TYPES.find(t => t.type === element.type)?.icon || Square;
-                                    const isSelected = selectedIds.includes(element.id);
+                    <div className="flex flex-col h-full">
+                        {/* Layer Actions */}
+                        <div className="p-2 border-b border-slate-700 flex gap-2">
+                            <button
+                                onClick={onGroup}
+                                disabled={selectedIds.length < 2}
+                                className="flex-1 py-1.5 bg-slate-700 text-xs text-white rounded hover:bg-slate-600 disabled:opacity-50 transition"
+                            >
+                                Group
+                            </button>
+                            <button
+                                onClick={onUngroup}
+                                disabled={!selectedIds.some(id => elements.find(el => el.id === id)?.type === 'group')}
+                                className="flex-1 py-1.5 bg-slate-700 text-xs text-white rounded hover:bg-slate-600 disabled:opacity-50 transition"
+                            >
+                                Ungroup
+                            </button>
+                        </div>
 
-                                    return (
-                                        <div
-                                            key={element.id}
-                                            onClick={() => onSelectElement(element.id)}
-                                            className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition ${isSelected
-                                                    ? 'bg-indigo-600 text-white'
-                                                    : 'hover:bg-slate-700 text-slate-300'
-                                                }`}
-                                        >
-                                            <GripVertical size={14} className="text-slate-500 cursor-grab" />
-                                            <Icon size={14} />
-                                            <span className="flex-1 text-sm truncate capitalize">
-                                                {element.type}
-                                            </span>
-
-                                            {/* Layer indicators */}
-                                            <div className="flex items-center gap-1">
-                                                {element.locked && (
-                                                    <Lock size={12} className="text-amber-400" />
-                                                )}
-                                                {!element.visible && (
-                                                    <EyeOff size={12} className="text-slate-500" />
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                        <div className="p-2 overflow-y-auto flex-1">
+                            {sortedLayers.length === 0 ? (
+                                <div className="text-center py-8 text-slate-500 text-sm">
+                                    No elements on canvas
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {sortedLayers.map((element) => renderLayerItem(element))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

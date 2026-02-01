@@ -44,9 +44,13 @@ const Dashboard = () => {
 
     const handlePublish = async (id, currentStatus) => {
         try {
+            // Fetch full article first to avoid overwriting with partial data if backend uses PUT replacement
+            const article = await articleService.getById(id);
+
             await articleService.update(id, {
+                ...article,
                 is_Published: !currentStatus,
-                is_Drafted: currentStatus // If we are publishing (true), drafted becomes false
+                is_Drafted: currentStatus // If we are publishing (true), drafted becomes false. If unpublishing (false), drafted becomes true.
             });
             loadArticles();
         } catch (error) {

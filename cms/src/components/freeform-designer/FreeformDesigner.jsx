@@ -439,11 +439,47 @@ const FreeformDesigner = () => {
     };
 
     const updateElement = (elementId, updates) => {
-        const newElements = elements.map(el =>
-            el.id === elementId ? { ...el, ...updates } : el
-        );
-        setElements(newElements);
-        pushToHistory(newElements);
+        const currentElement = elements.find(el => el.id === elementId);
+
+        // Check for group movement (x or y changes)
+        if (currentElement && currentElement.groupId && (updates.x !== undefined || updates.y !== undefined)) {
+            const dx = (updates.x !== undefined) ? updates.x - currentElement.x : 0;
+            const dy = (updates.y !== undefined) ? updates.y - currentElement.y : 0;
+
+            // If just properties (opacity etc), don't propagate unless designed to? 
+            // For now only position propagates.
+
+            if (dx === 0 && dy === 0) {
+                // No position change, just regular update
+                const newElements = elements.map(el =>
+                    el.id === elementId ? { ...el, ...updates } : el
+                );
+                setElements(newElements);
+                pushToHistory(newElements);
+                return;
+            }
+
+            const newElements = elements.map(el => {
+                // Move siblings in same group
+                if (el.groupId === currentElement.groupId && !el.locked) {
+                    // Current element gets specific updates (might handle snapping)
+                    if (el.id === elementId) {
+                        return { ...el, ...updates };
+                    }
+                    // Siblings get delta
+                    return { ...el, x: el.x + dx, y: el.y + dy };
+                }
+                return el;
+            });
+            setElements(newElements);
+            pushToHistory(newElements);
+        } else {
+            const newElements = elements.map(el =>
+                el.id === elementId ? { ...el, ...updates } : el
+            );
+            setElements(newElements);
+            pushToHistory(newElements);
+        }
     };
 
     const updateElementConfig = (elementId, configUpdates) => {
@@ -499,26 +535,138 @@ const FreeformDesigner = () => {
         });
     };
 
+    // Grouping
+    const groupSelected = () => {
+        if (selectedIds.length < 2) return;
+
+        const groupId = `group-${Date.now()}`;
+        const groupElement = {
+            id: groupId,
+            type: 'group',
+            visible: true,
+            locked: false,
+            zIndex: Math.max(...elements.map(el => el.zIndex), 0) + 1,
+            // Calculate bounding box for group (optional, but good for UI)
+            // For now, just a logical grouping
+        };
+
+        const newElements = elements.map(el => {
+            if (selectedIds.includes(el.id)) {
+                return { ...el, groupId };
+            }
+            return el;
+        });
+
+        // Add group element
+        newElements.push(groupElement);
+
+        setElements(newElements);
+        setSelectedIds([groupId]); // Select the group
+        pushToHistory(newElements);
+    };
+
+    const ungroupSelected = () => {
+        const selectedGroups = elements.filter(el => selectedIds.includes(el.id) && el.type === 'group');
+        if (selectedGroups.length === 0) return;
+
+        const groupIdsToRemove = selectedGroups.map(g => g.id);
+
+        let newElements = elements.filter(el => !groupIdsToRemove.includes(el.id));
+        newElements = newElements.map(el => {
+            if (el.groupId && groupIdsToRemove.includes(el.groupId)) {
+                const { groupId, ...rest } = el;
+                return rest;
+            }
+            return el;
+        });
+
+        // Select the children of the ungrouped groups
+        const childrenIds = elements
+            .filter(el => el.groupId && groupIdsToRemove.includes(el.groupId))
+            .map(el => el.id);
+
+        setElements(newElements);
+        setSelectedIds(childrenIds);
+        pushToHistory(newElements);
+    };
+
     const copySelected = () => {
-        const selectedElements = elements.filter(el => selectedIds.includes(el.id));
-        setClipboard(JSON.parse(JSON.stringify(selectedElements)));
+        // If a group is selected, we need to copy the group element AND its children
+        // If children are selected but not their group, just copy children (unless we enforce full group selection)
+
+        const elementsToCopy = [];
+        const groupsToCopy = [];
+
+        // Check if explicit groups are selected
+        const selectedGroups = elements.filter(el => selectedIds.includes(el.id) && el.type === 'group');
+        selectedGroups.forEach(g => groupsToCopy.push(g));
+
+        // Get children of selected groups
+        const groupIds = selectedGroups.map(g => g.id);
+        elements.forEach(el => {
+            if (el.groupId && groupIds.includes(el.groupId)) {
+                elementsToCopy.push(el);
+            } else if (selectedIds.includes(el.id) && !el.groupId) {
+                // Standalone selected elements
+                elementsToCopy.push(el);
+            }
+        });
+
+        const clipboardData = {
+            groups: groupsToCopy,
+            elements: elementsToCopy
+        };
+
+        setClipboard(clipboardData);
     };
 
     const pasteElements = () => {
-        if (clipboard.length === 0) return;
+        if (!clipboard.elements && !clipboard.length) return;
+
+        // Legacy clipboard support (array of elements)
+        const isLegacy = Array.isArray(clipboard);
+        const sourceElements = isLegacy ? clipboard : clipboard.elements;
+        const sourceGroups = isLegacy ? [] : clipboard.groups;
+
+        if (sourceElements.length === 0 && sourceGroups.length === 0) return;
 
         const offset = 20;
-        const newElements = clipboard.map(el => ({
-            ...el,
-            id: `${el.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            x: el.x + offset,
-            y: el.y + offset,
-            zIndex: Math.max(...elements.map(e => e.zIndex), 0) + 1
-        }));
+        const groupIdMap = {}; // oldGroupId -> newGroupId
 
-        const updatedElements = [...elements, ...newElements];
+        // Function to generate new ID
+        const generateId = (type) => `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // Create new groups first
+        const newGroups = sourceGroups.map(g => {
+            const newId = generateId('group');
+            groupIdMap[g.id] = newId;
+            return {
+                ...g,
+                id: newId,
+                zIndex: Math.max(...elements.map(e => e.zIndex), 0) + 1
+            };
+        });
+
+        // Create new elements
+        const newPastedElements = sourceElements.map(el => {
+            return {
+                ...el,
+                id: generateId(el.type),
+                groupId: el.groupId ? groupIdMap[el.groupId] : undefined, // Remap to new group
+                x: el.x + offset,
+                y: el.y + offset,
+                zIndex: Math.max(...elements.map(e => e.zIndex), 0) + 1
+            };
+        });
+
+        const updatedElements = [...elements, ...newGroups, ...newPastedElements];
         setElements(updatedElements);
-        setSelectedIds(newElements.map(el => el.id));
+
+        // Select pasted items (groups prefers)
+        const newSelection = [...newGroups.map(g => g.id), ...newPastedElements.filter(e => !e.groupId).map(e => e.id)];
+
+        // Use a Set to avoid duplicates if any logic overlaps
+        setSelectedIds([...new Set(newSelection)]);
         pushToHistory(updatedElements);
     };
 
@@ -528,8 +676,26 @@ const FreeformDesigner = () => {
     };
 
     const moveSelectedBy = (dx, dy) => {
+        const groupIdsToMove = elements.filter(el => selectedIds.includes(el.id) && el.type === 'group').map(g => g.id);
+
         const newElements = elements.map(el => {
-            if (selectedIds.includes(el.id) && !el.locked) {
+            // Move if:
+            // 1. Explicitly selected AND (not a child OR is a standalone child) - check logic
+            // 2. Child of a selected group
+
+            const isSelected = selectedIds.includes(el.id);
+            const isChildOfSelectedGroup = el.groupId && groupIdsToMove.includes(el.groupId);
+
+            // Note: If a group is selected, 'selectedIds' contains group ID. Children are NOT in selectedIds usually.
+            // But if we move a group, we must move its children.
+
+            // If element is locked, don't move
+            if (el.locked) return el;
+
+            if (isSelected || isChildOfSelectedGroup) {
+                // If it's a group element itself, strictly it doesn't have x/y usually, but if we add coords to group later:
+                if (el.type === 'group') return el;
+
                 return { ...el, x: el.x + dx, y: el.y + dy };
             }
             return el;
@@ -540,13 +706,38 @@ const FreeformDesigner = () => {
     const bringForward = () => {
         if (selectedIds.length === 0) return;
         const maxZ = Math.max(...elements.map(el => el.zIndex));
-        updateMultipleElements({ zIndex: maxZ + 1 });
+
+        // If group selected, update group Z AND children Z? 
+        // Simple approach: Update Z of all selected items + children of selected groups
+
+        const groupIds = elements.filter(el => selectedIds.includes(el.id) && el.type === 'group').map(g => g.id);
+
+        const newElements = elements.map(el => {
+            if (selectedIds.includes(el.id) || (el.groupId && groupIds.includes(el.groupId))) {
+                return { ...el, zIndex: maxZ + 1 };
+            }
+            return el;
+        });
+
+        setElements(newElements);
+        pushToHistory(newElements);
     };
 
     const sendBackward = () => {
         if (selectedIds.length === 0) return;
         const minZ = Math.min(...elements.map(el => el.zIndex));
-        updateMultipleElements({ zIndex: Math.max(1, minZ - 1) });
+
+        const groupIds = elements.filter(el => selectedIds.includes(el.id) && el.type === 'group').map(g => g.id);
+
+        const newElements = elements.map(el => {
+            if (selectedIds.includes(el.id) || (el.groupId && groupIds.includes(el.groupId))) {
+                return { ...el, zIndex: Math.max(1, minZ - 1) };
+            }
+            return el;
+        });
+
+        setElements(newElements);
+        pushToHistory(newElements);
     };
 
     // History management
@@ -962,11 +1153,21 @@ const FreeformDesigner = () => {
                             onAddElement={addElement}
                             elements={elements}
                             selectedIds={selectedIds}
-                            onSelectElement={(id) => setSelectedIds([id])}
+                            onSelectElement={(id, multi) => {
+                                // If multi-select modifier is held (handled in toolbar optionally)
+                                if (multi) {
+                                    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+                                } else {
+                                    setSelectedIds([id]);
+                                }
+                            }}
                             onReorderLayers={(newElements) => {
                                 setElements(newElements);
                                 pushToHistory(newElements);
                             }}
+                            onGroup={groupSelected}
+                            onUngroup={ungroupSelected}
+                            onDelete={deleteSelected}
                         />
                     )}
 

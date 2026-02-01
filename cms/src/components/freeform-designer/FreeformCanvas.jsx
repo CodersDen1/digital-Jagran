@@ -602,12 +602,13 @@ const FreeformCanvas = ({
                     backgroundSize: canvas.showGrid ? `${canvas.gridSize}px ${canvas.gridSize}px` : 'auto'
                 }}
             >
-                {/* Elements */}
-                {sortedElements.map(element => (
+                {/* Elements - Hide groups from canvas rendering */}
+                {sortedElements.filter(el => el.type !== 'group').map(element => (
                     <FreeformElement
                         key={element.id}
                         element={element}
-                        isSelected={selectedIds.includes(element.id)}
+                        // Selected if explicitly selected OR if its group is selected
+                        isSelected={selectedIds.includes(element.id) || (element.groupId && selectedIds.includes(element.groupId))}
                         previewMode={previewMode}
                         onSelect={(e) => onSelectElement(element.id, e.shiftKey || e.metaKey || e.ctrlKey)}
                         onUpdate={(updates) => onUpdateElement(element.id, updates)}
