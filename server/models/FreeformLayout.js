@@ -9,14 +9,14 @@ const freeformElementSchema = new mongoose.Schema({
     type: {
         type: String,
         required: true,
-        enum: ['header', 'summary', 'body', 'image', 'video', 'author', 'date', 'tags', 'text', 'divider', 'spacer', 'shape', 'container']
+        enum: ['header', 'summary', 'body', 'image', 'video', 'author', 'date', 'tags', 'text', 'divider', 'spacer', 'shape', 'container', 'group']
     },
 
-    // Absolute positioning (pixels)
-    x: { type: Number, required: true, default: 0 },
-    y: { type: Number, required: true, default: 0 },
-    width: { type: Number, required: true, default: 200 },
-    height: { type: Number, required: true, default: 100 },
+    // Absolute positioning (pixels) - optional for group elements
+    x: { type: Number, default: 0 },
+    y: { type: Number, default: 0 },
+    width: { type: Number, default: 200 },
+    height: { type: Number, default: 100 },
 
     // Layering and transform
     zIndex: { type: Number, default: 1 },

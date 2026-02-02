@@ -226,30 +226,33 @@ const FreeformCanvas = ({
         switch (type) {
             case 'header':
                 return isArticleMode ? (
-                    <input
-                        type="text"
+                    <textarea
                         value={value}
                         onChange={(e) => onContentChange(id, e.target.value)}
                         placeholder="Enter headline..."
-                        className="w-full h-full bg-transparent border-none outline-none resize-none"
+                        className="w-full h-full bg-transparent border-none outline-none resize-none p-1"
                         style={{
                             fontSize: getFontSize(config.fontSize),
                             fontWeight: config.fontWeight || 'bold',
                             fontFamily: config.fontFamily === 'serif' ? 'Georgia, serif' : 'system-ui, sans-serif',
                             color: config.textColor || '#1f2937',
-                            textAlign: config.textAlign || 'left'
+                            textAlign: config.textAlign || 'left',
+                            lineHeight: 1.2
                         }}
                         onClick={(e) => e.stopPropagation()}
                     />
                 ) : (
                     <div
-                        className="w-full h-full flex items-center overflow-hidden"
+                        className="w-full h-full flex items-start"
                         style={{
                             fontSize: getFontSize(config.fontSize),
                             fontWeight: config.fontWeight || 'bold',
                             fontFamily: config.fontFamily === 'serif' ? 'Georgia, serif' : 'system-ui, sans-serif',
                             color: config.textColor || '#1f2937',
-                            textAlign: config.textAlign || 'left'
+                            textAlign: config.textAlign || 'left',
+                            lineHeight: 1.2,
+                            wordWrap: 'break-word',
+                            overflowWrap: 'break-word'
                         }}
                     >
                         {SAMPLE_ARTICLE.article_header_en}
