@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Digital Jagran | Latest News in Hindi & English</title>
     
@@ -24,15 +25,32 @@
     <meta property="og:description" content="India's premier bilingual news platform. Breaking news, analysis & updates on Politics, Business, Tech, Sports, Entertainment in Hindi & English." />
     <meta property="og:site_name" content="Digital Jagran" />
     <meta property="og:locale" content="en_IN" />
+    <meta property="og:image" content="https://www.digitaljagran.com/logo.png" />
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Digital Jagran | Latest News in Hindi & English" />
     <meta name="twitter:description" content="India's premier bilingual news platform. Breaking news & updates on Politics, Business, Tech, Sports, Entertainment." />
+    <meta name="twitter:image" content="https://www.digitaljagran.com/logo.png" />
     
     <!-- Additional Meta Tags -->
     <meta name="theme-color" content="#dc2626" />
-  </head>
+
+    <!-- Schema.org Markup for Organization Logo -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "NewsMediaOrganization",
+        "name": "Digital Jagran",
+        "url": "https://www.digitaljagran.com",
+        "logo": "https://www.digitaljagran.com/logo.png",
+        "sameAs": [
+          "https://www.facebook.com/digitaljagran",
+          "https://twitter.com/digitaljagran",
+          "https://www.instagram.com/digitaljagran"
+        ]
+      }
+    </script>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
