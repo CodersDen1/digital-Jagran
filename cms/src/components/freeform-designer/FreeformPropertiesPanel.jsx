@@ -509,9 +509,27 @@ const ColorField = ({ label, value, onChange }) => (
     <div className="flex items-center justify-between">
         <label className="text-xs text-slate-400">{label}</label>
         <div className="flex items-center gap-2">
+            {/* Transparent option button */}
+            <button
+                onClick={() => onChange('transparent')}
+                className={`w-8 h-8 rounded cursor-pointer border-2 flex items-center justify-center transition ${value === 'transparent'
+                        ? 'border-indigo-500 bg-slate-600'
+                        : 'border-slate-600 bg-slate-700 hover:border-slate-500'
+                    }`}
+                title="Transparent"
+                style={{
+                    backgroundImage: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)',
+                    backgroundSize: '8px 8px',
+                    backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px'
+                }}
+            >
+                {value === 'transparent' && (
+                    <span className="text-indigo-400 text-xs font-bold">✓</span>
+                )}
+            </button>
             <input
                 type="color"
-                value={value || '#000000'}
+                value={value && value !== 'transparent' ? value : '#000000'}
                 onChange={(e) => onChange(e.target.value)}
                 className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent"
             />
