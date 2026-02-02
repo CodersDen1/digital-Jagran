@@ -8,12 +8,35 @@ class ArticleController {
             const articleData = req.body;
 
             // SEO: Generate Slug if not provided
+            // SEO: Generate Clean Slug if not provided
             if (!articleData.slug) {
                 const titleToSlug = articleData.article_header_en || articleData.article_header || 'article';
-                articleData.slug = titleToSlug
+                const baseSlug = titleToSlug
                     .toLowerCase()
                     .replace(/[^a-z0-9]+/g, '-')
-                    .replace(/(^-|-$)+/g, '') + '-' + Date.now();
+                    .replace(/(^-|-$)+/g, '');
+                
+                let slug = baseSlug;
+                let counter = 1;
+                
+                // Simple collision check (best effort, robust check handles error 11000)
+                // Ideally we check DB here, but to avoid extra query we rely on error handling or simple loop if we want to be nice.
+                // For now, let's just default to the clean slug. If it conflicts, the client gets an error (duplicate key),
+                // but for better UX let's try to find a unique one if possible or just use timestamp as fallback if simpler?
+                // The user specifically asked for "hello-this-is-me".
+                // Let's implement a uniqueness check helper logic here or just rely on 'baseSlug' and if error 11000 caught, we retry?
+                // Actually, doing a quick check is better.
+                
+                const existing = await articleRepository.findBySlug(slug);
+                if (existing) {
+                    // If exists, try appending count
+                    while (await articleRepository.findBySlug(slug)) {
+                         slug = `${baseSlug}-${counter}`;
+                         counter++;
+                    }
+                }
+                
+                articleData.slug = slug;
             }
 
             // SEO: Default Meta Title

@@ -61,6 +61,7 @@ const FreeformDesigner = () => {
     const [isPublish, setIsPublish] = useState(false);
     const [seoMetadata, setSeoMetadata] = useState('');
     const [seoKeywords, setSeoKeywords] = useState('');
+    const [seoSlug, setSeoSlug] = useState('');
     const [articleTags, setArticleTags] = useState('');
     const [showSeoPanel, setShowSeoPanel] = useState(false);
     const [showCanvasSettings, setShowCanvasSettings] = useState(false);
@@ -97,6 +98,7 @@ const FreeformDesigner = () => {
             setSeoMetadata(article.metadata || article.metadata_en || '');
             const keywords = article.keywords || article.keywords_en || [];
             setSeoKeywords(Array.isArray(keywords) ? keywords.join(', ') : (keywords || ''));
+            setSeoSlug(article.slug || '');
             const tags = article.tags || article.tags_en || [];
             setArticleTags(Array.isArray(tags) ? tags.join(', ') : (tags || ''));
             setIsPublish(article.is_Published);
@@ -219,6 +221,7 @@ const FreeformDesigner = () => {
             // Add SEO metadata
             payload.metadata = seoMetadata;
             payload.keywords = seoKeywords.split(',').map(s => s.trim()).filter(Boolean);
+            payload.slug = seoSlug;
 
             if (isArticleEdit) {
                 await articleService.update(id, payload);
@@ -230,7 +233,8 @@ const FreeformDesigner = () => {
             navigate('/');
         } catch (error) {
             console.error('Error saving article:', error);
-            alert('Failed to save article');
+            const msg = error.response?.data?.error || 'Failed to save article';
+            alert(msg);
         } finally {
             setSaving(false);
         }
@@ -928,6 +932,18 @@ const FreeformDesigner = () => {
                                         <h3 className="text-white font-medium mb-3">SEO Settings</h3>
 
                                         <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-xs text-slate-400 mb-1">
+                                                    Slug (URL)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={seoSlug}
+                                                    onChange={(e) => setSeoSlug(e.target.value)}
+                                                    placeholder="my-custom-slug"
+                                                    className="w-full bg-slate-700 text-white text-sm rounded-lg p-2 border border-slate-600 focus:border-indigo-500 focus:outline-none font-mono"
+                                                />
+                                            </div>
                                             <div>
                                                 <label className="block text-xs text-slate-400 mb-1">
                                                     Meta Description

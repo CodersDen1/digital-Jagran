@@ -206,7 +206,7 @@ const Home = () => {
                         {filteredArticles.map((article) => (
                             <Link
                                 key={article._id}
-                                to={`/article/${article._id}`}
+                                to={`/article/${article.slug || article._id}`}
                                 title={t(article, 'article_header')}
                                 className="group block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition"
                             >
@@ -282,7 +282,7 @@ const Home = () => {
                                             {/* Article Card */}
                                             <div className="flex-1 relative">
                                                 <Link
-                                                    to={`/article/${featuredArticle._id}`}
+                                                    to={`/article/${featuredArticle.slug || featuredArticle._id}`}
                                                     title={t(featuredArticle, 'article_header')}
                                                     className="group block relative overflow-hidden rounded-lg shadow-lg"
                                                 >
@@ -393,7 +393,7 @@ const Home = () => {
                                         {secondaryFeatured.map((article, idx) => (
                                             <Link
                                                 key={`${article._id}-${idx}`}
-                                                to={`/article/${article._id}`}
+                                                to={`/article/${article.slug || article._id}`}
                                                 title={t(article, 'article_header')}
                                                 className="group flex gap-4 p-4 bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition"
                                             >
@@ -462,7 +462,7 @@ const Home = () => {
                                         latestArticles.map((article) => (
                                             <Link
                                                 key={article._id}
-                                                to={`/article/${article._id}`}
+                                                to={`/article/${article.slug || article._id}`}
                                                 title={t(article, 'article_header')}
                                                 className="group block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition w-full"
                                             >
@@ -555,7 +555,7 @@ const Home = () => {
                                                 {String(index + 1).padStart(2, '0')}
                                             </span>
                                             <Link
-                                                to={`/article/${article._id}`}
+                                                to={`/article/${article.slug || article._id}`}
                                                 title={t(article, 'article_header')}
                                                 className="flex-1"
                                             >

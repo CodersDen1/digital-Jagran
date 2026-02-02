@@ -26,7 +26,8 @@ const CreateArticle = () => {
         video: '',
         is_Published: false,
         author: 'Nisha Mishra',
-        layoutTemplate: ''
+        layoutTemplate: '',
+        slug: ''
     });
     // Track content by element ID
     const [elementData, setElementData] = useState({});
@@ -82,7 +83,8 @@ const CreateArticle = () => {
                 video: article.video || '',
                 is_Published: article.is_Published || false,
                 author: article.author || 'Nisha Mishra',
-                layoutTemplate: article.layoutTemplate || ''
+                layoutTemplate: article.layoutTemplate || '',
+                slug: article.slug || ''
             });
             // Load element-specific content if it exists (legacy check for en, eventually generic)
             if (article.elementContent_en) {
@@ -261,6 +263,7 @@ const CreateArticle = () => {
                 layoutTemplate: mergedData.layoutTemplate || undefined,
                 published_language: language,
                 elementContent_en: elementData,
+                slug: mergedData.slug
             };
 
             const isEn = language === 'en';
@@ -326,6 +329,7 @@ const CreateArticle = () => {
             layoutTemplate: mergedData.layoutTemplate || undefined,
             published_language: language, // Explicitly set language
             elementContent_en: elementData, // Keep structure (legacy name ok for now)
+            slug: mergedData.slug
         };
 
         // Map textual fields based on selected language
@@ -359,7 +363,8 @@ const CreateArticle = () => {
             navigate('/');
         } catch (error) {
             console.error(error);
-            alert(isEditMode ? 'Failed to update article' : 'Failed to create article');
+            const msg = error.response?.data?.error || (isEditMode ? 'Failed to update article' : 'Failed to create article');
+            alert(msg);
         } finally {
             setLoading(false);
         }
@@ -826,6 +831,22 @@ const CreateArticle = () => {
                             <Link to="/layouts" className="text-xs text-primary hover:underline mt-1 inline-block">
                                 Manage Templates →
                             </Link>
+                        </div>
+
+                        {/* Slug */}
+                        <div>
+                            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                                <span className="font-mono text-xs border rounded px-1">URL</span>
+                                Slug (URL)
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.slug}
+                                onChange={(e) => handleChange('slug', e.target.value)}
+                                placeholder="my-custom-slug"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-sm font-mono text-gray-600"
+                            />
+                            <p className="text-xs text-gray-400 mt-1">Leave empty to auto-generate from title</p>
                         </div>
 
                         {/* SEO Metadata */}

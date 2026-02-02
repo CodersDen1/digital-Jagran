@@ -105,7 +105,7 @@ const Ticker = ({ articles }) => {
                 {duplicatedArticles.map((article, idx) => (
                     <a
                         key={`${article._id}-${idx}`}
-                        href={`/article/${article._id}`}
+                        href={`/article/${article.slug || article._id}`}
                         className="text-xs sm:text-sm font-medium hover:text-[#f59e0b] transition-colors flex items-center gap-2 text-gray-300 whitespace-nowrap"
                         onClick={(e) => isDragging && e.preventDefault()}
                     >

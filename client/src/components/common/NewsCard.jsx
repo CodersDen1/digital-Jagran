@@ -38,7 +38,7 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
     if (variant === 'horizontal') {
         return (
             <Link
-                to={`/article/${article._id}`}
+                to={`/article/${article.slug || article._id}`}
                 title={header}
                 className="group flex gap-4 p-4 bg-white rounded-lg border border-gray-100 hover:shadow-md transition"
             >
@@ -79,7 +79,7 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
     if (variant === 'featured') {
         return (
             <Link
-                to={`/article/${article._id}`}
+                to={`/article/${article.slug || article._id}`}
                 title={header}
                 className="group block md:grid md:grid-cols-2 md:gap-8 h-full"
             >
@@ -130,7 +130,7 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
     if (variant === 'compact') {
         return (
             <Link
-                to={`/article/${article._id}`}
+                to={`/article/${article.slug || article._id}`}
                 title={header}
                 className="group block py-3 border-b border-gray-100 last:border-0"
             >
@@ -147,7 +147,7 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
     // Default variant - standard card
     return (
         <Link
-            to={`/article/${article._id}`}
+            to={`/article/${article.slug || article._id}`}
             title={header}
             className="group block bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition h-full"
         >

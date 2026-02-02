@@ -218,7 +218,7 @@ const ArticleDetail = () => {
                         {relatedArticles.map(relatedArticle => (
                             <Link
                                 key={relatedArticle._id}
-                                to={`/article/${relatedArticle._id}`}
+                                to={`/article/${relatedArticle.slug || relatedArticle._id}`}
                                 title={t(relatedArticle, 'article_header')}
                                 className="group block bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition"
                             >
