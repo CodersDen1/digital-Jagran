@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getArticleById, getLayoutById, getDefaultLayout, getArticles, trackArticleView, getFreeformLayoutById } from '../services/api';
+import { getArticleById, getLayoutById, getDefaultLayout, getArticles, trackArticleView, getFreeformLayoutById, getArticleHtmlContent } from '../services/api';
 import NewsLayout from '../components/layout/NewsLayout';
 import DynamicArticleRenderer from '../components/article/DynamicArticleRenderer';
 import { SocialShare } from '../components/article/ElementRenderers';
@@ -15,6 +15,7 @@ const ArticleDetail = () => {
     const [article, setArticle] = useState(null);
     const [layout, setLayout] = useState(null);
     const [relatedArticles, setRelatedArticles] = useState([]);
+    const [htmlContent, setHtmlContent] = useState(null);
     const [loading, setLoading] = useState(true);
     const viewTrackedRef = useRef(false);
 
@@ -56,29 +57,59 @@ const ArticleDetail = () => {
             const articleData = await getArticleById(id);
             setArticle(articleData);
 
-            // Fetch layout - either article-specific or default
-            // Try grid layout first, then freeform layout
-            let layoutData = null;
-            if (articleData.layoutTemplate) {
-                // Try grid layout first
+
+
+            // Handle HTML Storage
+            // Handle HTML Storage
+            if (articleData.storage_type === 'html') {
                 try {
-                    layoutData = await getLayoutById(articleData.layoutTemplate);
-                    if (layoutData) {
-                        layoutData.layoutType = 'grid';
+                    const path = language === 'en' ? articleData.html_path_en : articleData.html_path;
+                    if (path) {
+                        const r2BaseUrl = import.meta.env.VITE_R2_PUBLIC_URL; // e.g. https://pub-xxx.r2.dev
+                        // If public URL is configured, fetch directly (bypass backend)
+                        if (r2BaseUrl) {
+                            const url = `${r2BaseUrl}/${path}`;
+                            const response = await fetch(url);
+                            if (!response.ok) throw new Error('Failed to fetch from R2');
+                            const html = await response.text();
+                            setHtmlContent(html);
+                        } else {
+                            // Fallback to backend proxy (for localhost or if R2 domain not set)
+                            const html = await getArticleHtmlContent(id, language);
+                            setHtmlContent(html);
+                        }
                     }
                 } catch (e) {
-                    console.log('Grid layout not found, trying freeform layout');
+                    console.error('Failed to load HTML content:', e);
                 }
+                // Even if HTML fails, we might still have metadata, but logic below for layout might be skipped or irrelevant
+            }
 
-                // If grid layout not found, try freeform layout
-                if (!layoutData) {
+            // Fetch layout - either article-specific or default
+            // Skip layout fetching if we are in HTML mode (pre-rendered)
+            let layoutData = null;
+            if (articleData.storage_type !== 'html') {
+                if (articleData.layoutTemplate) {
+                    // Try grid layout first
                     try {
-                        layoutData = await getFreeformLayoutById(articleData.layoutTemplate);
+                        layoutData = await getLayoutById(articleData.layoutTemplate);
                         if (layoutData) {
-                            layoutData.layoutType = 'freeform';
+                            layoutData.layoutType = 'grid';
                         }
                     } catch (e) {
-                        console.log('Freeform layout not found, trying default');
+                        console.log('Grid layout not found, trying freeform layout');
+                    }
+
+                    // If grid layout not found, try freeform layout
+                    if (!layoutData) {
+                        try {
+                            layoutData = await getFreeformLayoutById(articleData.layoutTemplate);
+                            if (layoutData) {
+                                layoutData.layoutType = 'freeform';
+                            }
+                        } catch (e) {
+                            console.log('Freeform layout not found, trying default');
+                        }
                     }
                 }
             }
@@ -192,7 +223,11 @@ const ArticleDetail = () => {
 
             {/* Main Article Content */}
             <div className={`${(article?.published_language === 'HN' || article?.published_language === 'hi') ? 'bg-slate-50' : 'bg-white'} p-4 md:p-8 shadow-sm rounded-lg mb-8`}>
-                <DynamicArticleRenderer article={article} layout={layout} />
+                {htmlContent ? (
+                    <div dangerouslySetInnerHTML={{ __html: htmlContent }} className="w-full relative mx-auto" style={{ overflow: 'hidden' }} />
+                ) : (
+                    <DynamicArticleRenderer article={article} layout={layout} />
+                )}
 
                 {/* Social Share Bar */}
                 <div className="mt-8 pt-6 border-t border-gray-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

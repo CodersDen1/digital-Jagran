@@ -6,7 +6,7 @@ import { ReactTransliterate } from "react-transliterate";
 import "react-transliterate/dist/index.css";
 import Layout from '../common/Layout';
 import Button from '../common/Button';
-import { Palette, Settings, Image, Video, Tag, FileText } from 'lucide-react';
+import { Palette, Settings, Image, Video, Tag, FileText, Upload } from 'lucide-react';
 
 /**
  * InlineArticleEditor - WYSIWYG-style article editor where inputs are directly in the layout
@@ -370,19 +370,76 @@ const CreateArticle = () => {
         }
     };
 
-    // Generate CSS classes from config
+    // Import HTML Handler
+    const fileInputRef = React.useRef(null);
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const htmlContent = event.target.result;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+
+            const updates = {};
+
+            // 1. Title/Headline
+            const h1 = doc.querySelector('h1');
+            const title = doc.querySelector('title');
+            if (h1) {
+                updates.article_header = h1.innerText;
+            } else if (title) {
+                updates.article_header = title.innerText;
+            }
+
+            // 2. Metadata & Keywords
+            const metaDesc = doc.querySelector('meta[name="description"]');
+            if (metaDesc) updates.summary = metaDesc.content;
+            if (metaDesc) updates.metadata = metaDesc.content;
+
+            const metaKeywords = doc.querySelector('meta[name="keywords"]');
+            if (metaKeywords) updates.keywords = metaKeywords.content;
+
+            // 3. Body Content & Styles
+            // Extract styles
+            const styles = Array.from(doc.querySelectorAll('style')).map(s => s.outerHTML).join('\n');
+
+            // Get body content (excluding scripts usually, but preserving structure)
+            const body = doc.body;
+
+            // Remove scripts from import to be safe(r) and cleaner
+            const scripts = body.querySelectorAll('script');
+            scripts.forEach(s => s.remove());
+
+            // Combine styles + body
+            // We prepend styles so they apply to this content
+            updates.body = `${styles}\n${body.innerHTML}`;
+
+            // Update state
+            setFormData(prev => ({
+                ...prev,
+                ...updates
+            }));
+
+            // Clear input
+            if (fileInputRef.current) fileInputRef.current.value = '';
+
+            alert('HTML Imported Successfully! Please review the content.');
+        };
+        reader.readAsText(file);
+    };
+
+    // Generate CSS classes from config (Layout/Spacing only)
     const getConfigStyles = (config) => {
         if (!config) return '';
         const classes = [];
 
-        if (config.fontSize) classes.push(`text-${config.fontSize}`);
-        if (config.fontWeight) classes.push(`font-${config.fontWeight}`);
-        if (config.fontFamily) classes.push(`font-${config.fontFamily}`);
-        if (config.textAlign) classes.push(`text-${config.textAlign}`);
-        if (config.textColor) classes.push(`text-${config.textColor}`);
-        if (config.lineHeight && config.lineHeight !== 'normal') {
-            classes.push(`leading-${config.lineHeight}`);
-        }
         if (config.paddingTop && config.paddingTop !== '0') classes.push(`pt-${config.paddingTop}`);
         if (config.paddingBottom && config.paddingBottom !== '0') classes.push(`pb-${config.paddingBottom}`);
         if (config.paddingLeft && config.paddingLeft !== '0') classes.push(`pl-${config.paddingLeft}`);
@@ -396,10 +453,80 @@ const CreateArticle = () => {
         return classes.join(' ');
     };
 
+    // Generate Inline Styles for Typography/Colors
+    const getInlineStyles = (config) => {
+        if (!config) return {};
+
+        const styles = {};
+
+        // Typography
+        if (config.fontSize) {
+            const sizes = {
+                'xs': '0.75rem', 'sm': '0.875rem', 'base': '1rem', 'lg': '1.125rem',
+                'xl': '1.25rem', '2xl': '1.5rem', '3xl': '1.875rem', '4xl': '2.25rem', '5xl': '3rem'
+            };
+            styles.fontSize = sizes[config.fontSize] || '1rem';
+        }
+        if (config.fontWeight) styles.fontWeight = config.fontWeight;
+        if (config.textAlign) styles.textAlign = config.textAlign;
+        if (config.lineHeight) {
+            const heights = { 'tight': 1.25, 'normal': 1.5, 'relaxed': 1.625, 'loose': 2 };
+            styles.lineHeight = heights[config.lineHeight] || 1.5;
+        }
+
+        // Colors
+        if (config.textColor) styles.color = config.textColor;
+
+        // Font Family
+        if (config.fontFamily) {
+            const map = {
+                'sans': 'ui-sans-serif, system-ui, sans-serif',
+                'serif': 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
+                'mono': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                'times': '"Times New Roman", Times, serif',
+                'arial': 'Arial, Helvetica, sans-serif',
+                'verdana': 'Verdana, Geneva, Tahoma, sans-serif',
+                'georgia': 'Georgia, serif',
+                'courier': '"Courier New", Courier, monospace',
+                'trebuchet': '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif',
+                'helvetica': 'Helvetica, Arial, sans-serif'
+            };
+            styles.fontFamily = map[config.fontFamily] || 'inherit';
+        }
+
+        // Advanced Text
+        if (config.textDecoration) styles.textDecoration = config.textDecoration;
+        if (config.textTransform) styles.textTransform = config.textTransform;
+        if (config.letterSpacing) {
+            const map = {
+                'tighter': '-0.05em', 'tight': '-0.025em', 'normal': '0',
+                'wide': '0.025em', 'wider': '0.05em', 'widest': '0.1em'
+            };
+            styles.letterSpacing = map[config.letterSpacing] || 'normal';
+        }
+        if (config.fontStyle) styles.fontStyle = config.fontStyle;
+
+        // Box Shadow
+        if (config.boxShadow) {
+            const map = {
+                'none': 'none',
+                'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+                'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+                'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+                'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)'
+            };
+            styles.boxShadow = map[config.boxShadow] || 'none';
+        }
+
+        return styles;
+    };
+
     // Render inline input for each element type - uses element.id for independent values
     const renderInlineInput = (element) => {
         const { id, type, config } = element;
         const configStyles = getConfigStyles(config);
+        const inlineStyles = getInlineStyles(config);
         const elementValue = getElementValue(element);
         const isHindi = language === 'HN';
 
@@ -415,7 +542,7 @@ const CreateArticle = () => {
                                 placeholder="Click to enter headline..."
                                 className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2"
                                 containerClassName="w-full"
-                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                                style={{ ...inlineStyles }}
                             />
                         ) : (
                             <input
@@ -424,7 +551,7 @@ const CreateArticle = () => {
                                 onChange={(e) => handleElementChange(id, type, e.target.value)}
                                 placeholder="Click to enter headline..."
                                 className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2"
-                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                                style={{ ...inlineStyles }}
                             />
                         )}
                         <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
@@ -444,7 +571,7 @@ const CreateArticle = () => {
                                 placeholder="Click to enter summary..."
                                 className="w-full bg-transparent border-none outline-none text-gray-600 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-none"
                                 containerClassName="w-full"
-                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                                style={{ ...inlineStyles }}
                                 renderComponent={(props) => <textarea {...props} rows={3} />}
                             />
                         ) : (
@@ -454,7 +581,7 @@ const CreateArticle = () => {
                                 placeholder="Click to enter summary..."
                                 rows={3}
                                 className="w-full bg-transparent border-none outline-none text-gray-600 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-none"
-                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                                style={{ ...inlineStyles }}
                             />
                         )}
                         <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
@@ -474,7 +601,7 @@ const CreateArticle = () => {
                                 placeholder="Click to write article body content..."
                                 className="w-full bg-transparent border-none outline-none text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-y min-h-[200px]"
                                 containerClassName="w-full"
-                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                                style={{ ...inlineStyles }}
                                 renderComponent={(props) => <textarea {...props} rows={10} />}
                             />
                         ) : (
@@ -484,7 +611,7 @@ const CreateArticle = () => {
                                 placeholder="Click to write article body content..."
                                 rows={10}
                                 className="w-full bg-transparent border-none outline-none text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-primary/20 rounded px-2 py-1 -mx-2 resize-y min-h-[200px]"
-                                style={{ fontSize: 'inherit', fontWeight: 'inherit', fontFamily: 'inherit' }}
+                                style={{ ...inlineStyles }}
                             />
                         )}
                         <span className="absolute -top-5 left-0 text-xs bg-primary text-white px-2 py-0.5 rounded opacity-0 group-focus-within:opacity-100 transition">
@@ -606,6 +733,7 @@ const CreateArticle = () => {
                                     alt="Featured"
                                     className="w-full rounded-md transition-all duration-300"
                                     style={{
+                                        ...inlineStyles,
                                         aspectRatio: config?.aspectRatio || '16/9',
                                         objectFit: config?.objectFit || 'cover',
                                         objectPosition: objectPosition
@@ -735,6 +863,34 @@ const CreateArticle = () => {
             case 'spacer':
                 return <div className="h-8"></div>;
 
+            case 'shape':
+                return (
+                    <div
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: config?.fillColor || '#4f46e5',
+                            borderRadius: config?.shapeType === 'circle' ? '50%' : config?.borderRadius || 0,
+                            border: config?.strokeWidth ? `${config?.strokeWidth}px solid ${config?.strokeColor || '#4f46e5'}` : 'none',
+                            ...getInlineStyles(config)
+                        }}
+                    />
+                );
+
+            case 'container':
+                return (
+                    <div
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: config?.backgroundColor || '#f9fafb',
+                            borderRadius: config?.borderRadius || 0,
+                            border: config?.borderWidth ? `${config?.borderWidth}px solid ${config?.borderColor || '#e5e7eb'}` : 'none',
+                            ...getInlineStyles(config)
+                        }}
+                    />
+                );
+
             default:
                 return <div className="text-gray-400">[{type}]</div>;
         }
@@ -773,6 +929,21 @@ const CreateArticle = () => {
                         )}
                     </div>
                     <div className="flex items-center gap-3">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            accept=".html,.htm"
+                            className="hidden"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleImportClick}
+                            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition"
+                        >
+                            <Upload size={16} />
+                            Import HTML
+                        </button>
                         <button
                             type="button"
                             onClick={() => setShowSettings(!showSettings)}

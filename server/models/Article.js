@@ -45,6 +45,11 @@ const articleSchema = new mongoose.Schema({
   metaKeywords: { type: [String] },
   canonicalUrl: { type: String },
 
+  // HTML Storage Fields
+  storage_type: { type: String, enum: ['db', 'html'], default: 'db' },
+  html_path_en: { type: String },
+  html_path: { type: String },
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

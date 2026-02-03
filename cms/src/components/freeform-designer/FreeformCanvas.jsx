@@ -234,10 +234,15 @@ const FreeformCanvas = ({
                         style={{
                             fontSize: getFontSize(config.fontSize),
                             fontWeight: config.fontWeight || 'bold',
-                            fontFamily: config.fontFamily === 'serif' ? 'Georgia, serif' : 'system-ui, sans-serif',
+                            fontFamily: getFontFamily(config.fontFamily),
                             color: config.textColor || '#1f2937',
                             textAlign: config.textAlign || 'left',
-                            lineHeight: 1.2
+                            lineHeight: 1.2,
+                            textDecoration: config.textDecoration || 'none',
+                            textTransform: config.textTransform || 'none',
+                            letterSpacing: getLetterSpacing(config.letterSpacing),
+                            fontStyle: config.fontStyle || 'normal',
+                            boxShadow: getBoxShadow(config.boxShadow)
                         }}
                         onClick={(e) => e.stopPropagation()}
                     />
@@ -247,12 +252,17 @@ const FreeformCanvas = ({
                         style={{
                             fontSize: getFontSize(config.fontSize),
                             fontWeight: config.fontWeight || 'bold',
-                            fontFamily: config.fontFamily === 'serif' ? 'Georgia, serif' : 'system-ui, sans-serif',
+                            fontFamily: getFontFamily(config.fontFamily),
                             color: config.textColor || '#1f2937',
                             textAlign: config.textAlign || 'left',
                             lineHeight: 1.2,
                             wordWrap: 'break-word',
-                            overflowWrap: 'break-word'
+                            overflowWrap: 'break-word',
+                            textDecoration: config.textDecoration || 'none',
+                            textTransform: config.textTransform || 'none',
+                            letterSpacing: getLetterSpacing(config.letterSpacing),
+                            fontStyle: config.fontStyle || 'normal',
+                            boxShadow: getBoxShadow(config.boxShadow)
                         }}
                     >
                         {SAMPLE_ARTICLE.article_header_en}
@@ -268,9 +278,14 @@ const FreeformCanvas = ({
                         className="w-full h-full bg-transparent border-none outline-none resize-none p-1"
                         style={{
                             fontSize: getFontSize(config.fontSize),
-                            fontFamily: config.fontFamily === 'serif' ? 'Georgia, serif' : 'system-ui, sans-serif',
+                            fontFamily: getFontFamily(config.fontFamily),
                             color: config.textColor || '#6b7280',
-                            lineHeight: getLineHeight(config.lineHeight)
+                            lineHeight: getLineHeight(config.lineHeight),
+                            textDecoration: config.textDecoration || 'none',
+                            textTransform: config.textTransform || 'none',
+                            letterSpacing: getLetterSpacing(config.letterSpacing),
+                            fontStyle: config.fontStyle || 'normal',
+                            boxShadow: getBoxShadow(config.boxShadow)
                         }}
                         onClick={(e) => e.stopPropagation()}
                     />
@@ -279,9 +294,14 @@ const FreeformCanvas = ({
                         className="w-full h-full overflow-hidden"
                         style={{
                             fontSize: getFontSize(config.fontSize),
-                            fontFamily: config.fontFamily === 'serif' ? 'Georgia, serif' : 'system-ui, sans-serif',
+                            fontFamily: getFontFamily(config.fontFamily),
                             color: config.textColor || '#6b7280',
-                            lineHeight: getLineHeight(config.lineHeight)
+                            lineHeight: getLineHeight(config.lineHeight),
+                            textDecoration: config.textDecoration || 'none',
+                            textTransform: config.textTransform || 'none',
+                            letterSpacing: getLetterSpacing(config.letterSpacing),
+                            fontStyle: config.fontStyle || 'normal',
+                            boxShadow: getBoxShadow(config.boxShadow)
                         }}
                     >
                         {SAMPLE_ARTICLE.summary_en}
@@ -297,9 +317,14 @@ const FreeformCanvas = ({
                         className="w-full h-full bg-transparent border-none outline-none resize-none p-1"
                         style={{
                             fontSize: getFontSize(config.fontSize),
-                            fontFamily: config.fontFamily === 'serif' ? 'Georgia, serif' : 'system-ui, sans-serif',
+                            fontFamily: getFontFamily(config.fontFamily),
                             color: config.textColor || '#374151',
-                            lineHeight: getLineHeight(config.lineHeight)
+                            lineHeight: getLineHeight(config.lineHeight),
+                            textDecoration: config.textDecoration || 'none',
+                            textTransform: config.textTransform || 'none',
+                            letterSpacing: getLetterSpacing(config.letterSpacing),
+                            fontStyle: config.fontStyle || 'normal',
+                            boxShadow: getBoxShadow(config.boxShadow)
                         }}
                         onClick={(e) => e.stopPropagation()}
                     />
@@ -308,9 +333,14 @@ const FreeformCanvas = ({
                         className="w-full h-full overflow-hidden"
                         style={{
                             fontSize: getFontSize(config.fontSize),
-                            fontFamily: config.fontFamily === 'serif' ? 'Georgia, serif' : 'system-ui, sans-serif',
+                            fontFamily: getFontFamily(config.fontFamily),
                             color: config.textColor || '#374151',
-                            lineHeight: getLineHeight(config.lineHeight)
+                            lineHeight: getLineHeight(config.lineHeight),
+                            textDecoration: config.textDecoration || 'none',
+                            textTransform: config.textTransform || 'none',
+                            letterSpacing: getLetterSpacing(config.letterSpacing),
+                            fontStyle: config.fontStyle || 'normal',
+                            boxShadow: getBoxShadow(config.boxShadow)
                         }}
                     >
                         {SAMPLE_ARTICLE.body_en}
@@ -328,7 +358,8 @@ const FreeformCanvas = ({
                                 className="w-full h-full"
                                 style={{
                                     objectFit: config.objectFit || 'cover',
-                                    borderRadius: config.borderRadius || 0
+                                    borderRadius: config.borderRadius || 0,
+                                    boxShadow: getBoxShadow(config.boxShadow)
                                 }}
                                 draggable={false}
                             />
@@ -356,7 +387,8 @@ const FreeformCanvas = ({
                         className="w-full h-full"
                         style={{
                             objectFit: config.objectFit || 'cover',
-                            borderRadius: config.borderRadius || 0
+                            borderRadius: config.borderRadius || 0,
+                            boxShadow: getBoxShadow(config.boxShadow)
                         }}
                         draggable={false}
                     />
@@ -367,7 +399,10 @@ const FreeformCanvas = ({
                     <div className="w-full h-full relative">
                         <div
                             className="w-full h-full bg-slate-800 flex items-center justify-center"
-                            style={{ borderRadius: config.borderRadius || 0 }}
+                            style={{
+                                borderRadius: config.borderRadius || 0,
+                                boxShadow: getBoxShadow(config.boxShadow)
+                            }}
                         >
                             {value ? (
                                 <iframe
@@ -418,7 +453,8 @@ const FreeformCanvas = ({
                             className="flex-1 bg-transparent border-none outline-none"
                             style={{
                                 fontSize: getFontSize(config.fontSize),
-                                color: config.textColor || '#6b7280'
+                                color: config.textColor || '#6b7280',
+                                fontFamily: getFontFamily(config.fontFamily)
                             }}
                             onClick={(e) => e.stopPropagation()}
                         />
@@ -428,7 +464,8 @@ const FreeformCanvas = ({
                         className="flex items-center gap-2 h-full"
                         style={{
                             fontSize: getFontSize(config.fontSize),
-                            color: config.textColor || '#6b7280'
+                            color: config.textColor || '#6b7280',
+                            fontFamily: getFontFamily(config.fontFamily)
                         }}
                     >
                         <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium">
@@ -444,7 +481,8 @@ const FreeformCanvas = ({
                         className="flex items-center h-full"
                         style={{
                             fontSize: getFontSize(config.fontSize),
-                            color: config.textColor || '#9ca3af'
+                            color: config.textColor || '#9ca3af',
+                            fontFamily: getFontFamily(config.fontFamily)
                         }}
                     >
                         {new Date(SAMPLE_ARTICLE.createdAt).toLocaleDateString('en-US', {
@@ -495,7 +533,13 @@ const FreeformCanvas = ({
                         className="w-full h-full overflow-hidden p-2"
                         style={{
                             fontSize: getFontSize(config.fontSize),
-                            color: config.textColor || '#374151'
+                            color: config.textColor || '#374151',
+                            fontFamily: getFontFamily(config.fontFamily),
+                            textDecoration: config.textDecoration || 'none',
+                            textTransform: config.textTransform || 'none',
+                            letterSpacing: getLetterSpacing(config.letterSpacing),
+                            fontStyle: config.fontStyle || 'normal',
+                            boxShadow: getBoxShadow(config.boxShadow)
                         }}
                     >
                         {config.customContent || 'Custom text content...'}
@@ -530,7 +574,8 @@ const FreeformCanvas = ({
                     height: '100%',
                     backgroundColor: config.fillColor || '#4f46e5',
                     borderRadius: config.shapeType === 'circle' ? '50%' : config.borderRadius || 0,
-                    border: config.strokeWidth ? `${config.strokeWidth}px solid ${config.strokeColor || '#4f46e5'}` : 'none'
+                    border: config.strokeWidth ? `${config.strokeWidth}px solid ${config.strokeColor || '#4f46e5'}` : 'none',
+                    boxShadow: getBoxShadow(config.boxShadow)
                 };
                 return <div style={shapeStyle} />;
 
@@ -541,7 +586,8 @@ const FreeformCanvas = ({
                         style={{
                             backgroundColor: config.backgroundColor || '#f9fafb',
                             borderRadius: config.borderRadius || 0,
-                            border: config.borderWidth ? `${config.borderWidth}px solid ${config.borderColor || '#e5e7eb'}` : 'none'
+                            border: config.borderWidth ? `${config.borderWidth}px solid ${config.borderColor || '#e5e7eb'}` : 'none',
+                            boxShadow: getBoxShadow(config.boxShadow)
                         }}
                     />
                 );
@@ -566,6 +612,42 @@ const FreeformCanvas = ({
     const getLineHeight = (lh) => {
         const heights = { 'tight': 1.25, 'normal': 1.5, 'relaxed': 1.625, 'loose': 2 };
         return heights[lh] || 1.5;
+    };
+
+    const getLetterSpacing = (spacing) => {
+        const map = {
+            'tighter': '-0.05em', 'tight': '-0.025em', 'normal': '0',
+            'wide': '0.025em', 'wider': '0.05em', 'widest': '0.1em'
+        };
+        return map[spacing] || '0';
+    };
+
+    const getFontFamily = (font) => {
+        const map = {
+            'sans': 'ui-sans-serif, system-ui, sans-serif',
+            'serif': 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
+            'mono': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            'times': '"Times New Roman", Times, serif',
+            'arial': 'Arial, Helvetica, sans-serif',
+            'verdana': 'Verdana, Geneva, Tahoma, sans-serif',
+            'georgia': 'Georgia, serif',
+            'courier': '"Courier New", Courier, monospace',
+            'trebuchet': '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif',
+            'helvetica': 'Helvetica, Arial, sans-serif'
+        };
+        return map[font] || 'ui-sans-serif, system-ui, sans-serif';
+    };
+
+    const getBoxShadow = (shadow) => {
+        const map = {
+            'none': 'none',
+            'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+            'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+            'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+            'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+            '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)'
+        };
+        return map[shadow] || 'none';
     };
 
     // Sort elements by z-index for rendering

@@ -59,6 +59,10 @@ const ElementRenderers = ({ type, elementId, config, article, t }) => {
             return <DividerRenderer config={config} />;
         case 'spacer':
             return <SpacerRenderer config={config} />;
+        case 'shape':
+            return <ShapeRenderer config={config} />;
+        case 'container':
+            return <ContainerRenderer config={config} />;
         default:
             return <div className="text-gray-400">[Unknown element: {type}]</div>;
     }
@@ -135,6 +139,74 @@ const getConfigClasses = (config, defaultSize = 'base') => {
 };
 
 /**
+ * Generate Inline Styles for Typography/Colors/Effects
+ * Matches CMS FreeformCanvas logic
+ */
+const getInlineStyles = (config) => {
+    if (!config) return {};
+
+    const styles = {};
+
+    // Typography overrides
+    if (config.fontSize) {
+        // We rely on Tailwind classes for sizes usually, but can override if needed
+        // For now, let's keep font size to classes unless custom is needed
+    }
+
+    if (config.lineHeight) {
+        const heights = { 'tight': 1.25, 'normal': 1.5, 'relaxed': 1.625, 'loose': 2 };
+        if (heights[config.lineHeight]) styles.lineHeight = heights[config.lineHeight];
+    }
+
+    // Colors
+    if (config.textColor) styles.color = config.textColor;
+
+    // Font Family
+    if (config.fontFamily) {
+        const map = {
+            'sans': 'ui-sans-serif, system-ui, sans-serif',
+            'serif': 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
+            'mono': 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            'times': '"Times New Roman", Times, serif',
+            'arial': 'Arial, Helvetica, sans-serif',
+            'verdana': 'Verdana, Geneva, Tahoma, sans-serif',
+            'georgia': 'Georgia, serif',
+            'courier': '"Courier New", Courier, monospace',
+            'trebuchet': '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif',
+            'helvetica': 'Helvetica, Arial, sans-serif'
+        };
+        styles.fontFamily = map[config.fontFamily] || 'inherit';
+    }
+
+    // Advanced Text
+    if (config.textDecoration) styles.textDecoration = config.textDecoration;
+    if (config.textTransform) styles.textTransform = config.textTransform;
+    if (config.letterSpacing) {
+        const map = {
+            'tighter': '-0.05em', 'tight': '-0.025em', 'normal': '0',
+            'wide': '0.025em', 'wider': '0.05em', 'widest': '0.1em'
+        };
+        styles.letterSpacing = map[config.letterSpacing] || 'normal';
+    }
+    if (config.fontStyle) styles.fontStyle = config.fontStyle;
+
+    // Box Shadow
+    if (config.boxShadow) {
+        const map = {
+            'none': 'none',
+            'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+            'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+            'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+            'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+            '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)'
+        };
+        styles.boxShadow = map[config.boxShadow] || 'none';
+    }
+
+    return styles;
+};
+
+/**
  * Header/Headline Renderer - supports auto-resize when maxHeight is set
  */
 const HeaderRenderer = ({ article, elementId, t, config }) => {
@@ -147,6 +219,7 @@ const HeaderRenderer = ({ article, elementId, t, config }) => {
 
     // Apply config styles
     const className = getConfigClasses(config, '4xl'); // Default to 4xl for headers if not set
+    const inlineStyles = getInlineStyles(config);
     const Tag = config?.tag || 'h1';
 
     useEffect(() => {
@@ -165,7 +238,7 @@ const HeaderRenderer = ({ article, elementId, t, config }) => {
     }, [config?.maxHeight, content]);
 
     return (
-        <Tag ref={ref} className={`leading-tight ${fontClass} ${className}`}>
+        <Tag ref={ref} className={`leading-tight ${fontClass} ${className}`} style={inlineStyles}>
             {content}
         </Tag>
     );
@@ -184,6 +257,7 @@ const SummaryRenderer = ({ article, elementId, t, config }) => {
     const fontClass = isHindi ? 'font-anek font-semibold' : 'italic';
 
     const className = getConfigClasses(config, 'xl'); // Default to xl for summary
+    const inlineStyles = getInlineStyles(config);
 
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -201,7 +275,7 @@ const SummaryRenderer = ({ article, elementId, t, config }) => {
     }, [config?.maxHeight, content]);
 
     return (
-        <p ref={ref} className={`${fontClass} ${className}`}>
+        <p ref={ref} className={`${fontClass} ${className}`} style={inlineStyles}>
             {content}
         </p>
     );
@@ -222,7 +296,9 @@ const BodyRenderer = ({ article, elementId, t, config }) => {
     // For body, we usually don't want to enforce font-size on the wrapper if it's HTML, 
     // but user wants control. 'prose' class usually controls size.
     // If we add text-lg or text-xl to prose, it should scale.
+    // If we add text-lg or text-xl to prose, it should scale.
     const className = getConfigClasses(config, 'lg'); // Default to lg
+    const inlineStyles = getInlineStyles(config);
 
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -244,13 +320,14 @@ const BodyRenderer = ({ article, elementId, t, config }) => {
             <div
                 ref={ref}
                 className={`prose md:prose-lg max-w-none ${fontClass} ${className}`}
+                style={inlineStyles}
                 dangerouslySetInnerHTML={{ __html: body }}
             />
         );
     }
 
     return (
-        <div ref={ref} className={`whitespace-pre-wrap ${fontClass} ${className}`}>
+        <div ref={ref} className={`whitespace-pre-wrap ${fontClass} ${className}`} style={inlineStyles}>
             {body}
         </div>
     );
@@ -310,10 +387,12 @@ const ImageRenderer = ({ article, elementId, t, config }) => {
     }
 
     // Build style object for image
+    const inlineStyles = getInlineStyles(config);
     const imageStyle = {
         objectFit: config?.objectFit || 'cover',
         width: '100%',
-        objectPosition: objectPosition
+        objectPosition: objectPosition,
+        ...inlineStyles
     };
 
     // If maxHeight is set, prioritize it over aspect ratio
@@ -508,6 +587,7 @@ const TagsRenderer = ({ article, elementId, t }) => {
 const TextRenderer = ({ config }) => {
     const ref = useRef(null);
     const className = getConfigClasses(config, 'base'); // Default to base
+    const inlineStyles = getInlineStyles(config);
 
     useEffect(() => {
         if (!ref.current || !config?.maxHeight) return;
@@ -525,7 +605,7 @@ const TextRenderer = ({ config }) => {
     }, [config?.maxHeight, config?.customContent]);
 
     return (
-        <div ref={ref} className={className}>
+        <div ref={ref} className={className} style={inlineStyles}>
             {config?.customContent || 'Custom content...'}
         </div>
     );
@@ -545,6 +625,44 @@ const DividerRenderer = ({ config }) => {
  */
 const SpacerRenderer = ({ config }) => {
     return <div className={`h-${config?.marginTop || '8'}`} />;
+};
+
+/**
+ * Shape Renderer
+ */
+const ShapeRenderer = ({ config }) => {
+    const inlineStyles = getInlineStyles(config);
+    return (
+        <div
+            style={{
+                width: '100%',
+                height: '100%',
+                backgroundColor: config?.fillColor || '#4f46e5',
+                borderRadius: config?.shapeType === 'circle' ? '50%' : config?.borderRadius || 0,
+                border: config?.strokeWidth ? `${config?.strokeWidth}px solid ${config?.strokeColor || '#4f46e5'}` : 'none',
+                ...inlineStyles
+            }}
+        />
+    );
+};
+
+/**
+ * Container Renderer
+ */
+const ContainerRenderer = ({ config }) => {
+    const inlineStyles = getInlineStyles(config);
+    return (
+        <div
+            style={{
+                width: '100%',
+                height: '100%',
+                backgroundColor: config?.backgroundColor || '#f9fafb',
+                borderRadius: config?.borderRadius || 0,
+                border: config?.borderWidth ? `${config?.borderWidth}px solid ${config?.borderColor || '#e5e7eb'}` : 'none',
+                ...inlineStyles
+            }}
+        />
+    );
 };
 
 /**

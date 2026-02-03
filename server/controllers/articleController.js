@@ -1,5 +1,6 @@
 const articleRepository = require('../repositories/articleRepository');
 const translationService = require('../services/translationService');
+const storageService = require('../services/storageService');
 const mongoose = require('mongoose');
 
 class ArticleController {
@@ -15,10 +16,10 @@ class ArticleController {
                     .toLowerCase()
                     .replace(/[^a-z0-9]+/g, '-')
                     .replace(/(^-|-$)+/g, '');
-                
+
                 let slug = baseSlug;
                 let counter = 1;
-                
+
                 // Simple collision check (best effort, robust check handles error 11000)
                 // Ideally we check DB here, but to avoid extra query we rely on error handling or simple loop if we want to be nice.
                 // For now, let's just default to the clean slug. If it conflicts, the client gets an error (duplicate key),
@@ -26,16 +27,16 @@ class ArticleController {
                 // The user specifically asked for "hello-this-is-me".
                 // Let's implement a uniqueness check helper logic here or just rely on 'baseSlug' and if error 11000 caught, we retry?
                 // Actually, doing a quick check is better.
-                
+
                 const existing = await articleRepository.findBySlug(slug);
                 if (existing) {
                     // If exists, try appending count
                     while (await articleRepository.findBySlug(slug)) {
-                         slug = `${baseSlug}-${counter}`;
-                         counter++;
+                        slug = `${baseSlug}-${counter}`;
+                        counter++;
                     }
                 }
-                
+
                 articleData.slug = slug;
             }
 
@@ -48,6 +49,23 @@ class ArticleController {
             if (!articleData.metaDescription) {
                 const summary = articleData.summary_en || articleData.summary || '';
                 articleData.metaDescription = summary.substring(0, 160);
+            }
+
+            // Handle HTML Storage (English)
+            if (articleData.htmlContent_en) {
+                const path = await storageService.uploadArticleHtml(articleData.htmlContent_en, `${articleData.slug}-en`);
+                articleData.html_path_en = path;
+                articleData.storage_type = 'html';
+                // Remove raw content if it was passed just for upload (optional, but good practice if not in schema)
+                delete articleData.htmlContent_en;
+            }
+
+            // Handle HTML Storage (Hindi)
+            if (articleData.htmlContent) {
+                const path = await storageService.uploadArticleHtml(articleData.htmlContent, `${articleData.slug}-hi`);
+                articleData.html_path = path;
+                articleData.storage_type = 'html';
+                delete articleData.htmlContent;
             }
 
             // Create single article based on payload (Language is decided by client)
@@ -171,6 +189,19 @@ class ArticleController {
 
             if (!article) {
                 article = await articleRepository.findBySlug(req.params.id);
+
+                // Optimization: If fetching by SLUG (Client Viewer), and HTML exists, 
+                // don't send the heavy JSON source (elements/layout) to the client.
+                if (article && article.storage_type === 'html') {
+                    // Convert to POJO to allow modification
+                    article = article.toObject ? article.toObject() : article;
+
+                    // Remove heavy editorial data not needed for HTML rendering
+                    delete article.elements;
+                    delete article.elementContent;
+                    delete article.elementContent_en;
+                    delete article.layoutTemplate;
+                }
             }
 
             if (!article) return res.status(404).json({ message: 'Article not found' });
@@ -233,6 +264,35 @@ class ArticleController {
             delete updates.createdAt;
             updates.updatedAt = new Date();
 
+            // Handle HTML Storage Updates
+            // We need the current slug to generate the path. 
+            // If slug is being updated in this request, use new slug. Else we might need to fetch the existing article?
+            // For now, assume slug is present in updates OR we fetch it.
+            // But updateArticle uses `articleRepository.replace` or `update`. 
+            // If we're just patching, we might not have the slug.
+            // Let's first fetch the article to get the slug if not in updates.
+
+            let currentSlug = updates.slug;
+            if (!currentSlug && (updates.htmlContent_en || updates.htmlContent)) {
+                const existing = await articleRepository.findById(req.params.id);
+                if (existing) currentSlug = existing.slug;
+            }
+
+            if (currentSlug) {
+                if (updates.htmlContent_en) {
+                    const path = await storageService.uploadArticleHtml(updates.htmlContent_en, `${currentSlug}-en`);
+                    updates.html_path_en = path;
+                    updates.storage_type = 'html';
+                    delete updates.htmlContent_en;
+                }
+                if (updates.htmlContent) {
+                    const path = await storageService.uploadArticleHtml(updates.htmlContent, `${currentSlug}-hi`);
+                    updates.html_path = path;
+                    updates.storage_type = 'html';
+                    delete updates.htmlContent;
+                }
+            }
+
             const updatedArticle = await articleRepository.replace(req.params.id, updates);
             if (!updatedArticle) return res.status(404).json({ message: 'Article not found' });
             res.status(200).json(updatedArticle);
@@ -291,6 +351,38 @@ class ArticleController {
             res.status(200).json(articles);
         } catch (error) {
             res.status(500).json({ error: error.message });
+        }
+    }
+
+    async getArticleHtml(req, res) {
+        try {
+            const { id } = req.params;
+            const lang = req.query.lang || 'en';
+
+            let article;
+            if (mongoose.Types.ObjectId.isValid(id)) {
+                article = await articleRepository.findById(id);
+            }
+            if (!article) {
+                article = await articleRepository.findBySlug(id);
+            }
+
+            if (!article) return res.status(404).json({ message: 'Article not found' });
+
+            const key = lang === 'en' ? article.html_path_en : article.html_path;
+
+            if (!key) {
+                return res.status(404).json({ message: 'HTML content not found for this language' });
+            }
+
+            const stream = await storageService.getArticleHtml(key);
+
+            res.setHeader('Content-Type', 'text/html');
+            // Assuming stream is readable
+            stream.pipe(res);
+        } catch (error) {
+            console.error('Error serving HTML:', error);
+            res.status(500).json({ error: 'Failed to retrieve content' });
         }
     }
 }

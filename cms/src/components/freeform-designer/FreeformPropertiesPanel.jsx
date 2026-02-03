@@ -18,7 +18,11 @@ import {
     AlignJustify,
     MoveVertical,
     Bold,
-    Italic
+    Italic,
+    Underline,
+    Strikethrough,
+    Type as TypeIcon,
+    Baseline
 } from 'lucide-react';
 
 /**
@@ -245,8 +249,76 @@ const FreeformPropertiesPanel = ({
                                         { value: 'sans', label: 'Sans Serif' },
                                         { value: 'serif', label: 'Serif' },
                                         { value: 'mono', label: 'Monospace' },
+                                        { value: 'times', label: 'Times New Roman' },
+                                        { value: 'arial', label: 'Arial' },
+                                        { value: 'verdana', label: 'Verdana' },
+                                        { value: 'georgia', label: 'Georgia' },
+                                        { value: 'courier', label: 'Courier New' },
+                                        { value: 'trebuchet', label: 'Trebuchet MS' },
+                                        { value: 'helvetica', label: 'Helvetica' },
                                     ]}
                                 />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <SelectField
+                                        label="Spacing"
+                                        value={element.config?.letterSpacing || 'normal'}
+                                        onChange={(v) => handleUpdateConfig('letterSpacing', v)}
+                                        options={[
+                                            { value: 'tighter', label: 'Tighter' },
+                                            { value: 'tight', label: 'Tight' },
+                                            { value: 'normal', label: 'Normal' },
+                                            { value: 'wide', label: 'Wide' },
+                                            { value: 'wider', label: 'Wider' },
+                                            { value: 'widest', label: 'Widest' },
+                                        ]}
+                                    />
+                                    <SelectField
+                                        label="Transform"
+                                        value={element.config?.textTransform || 'none'}
+                                        onChange={(v) => handleUpdateConfig('textTransform', v)}
+                                        options={[
+                                            { value: 'none', label: 'None' },
+                                            { value: 'uppercase', label: 'UPPER' },
+                                            { value: 'lowercase', label: 'lower' },
+                                            { value: 'capitalize', label: 'Capital' },
+                                        ]}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs text-slate-400">Style</label>
+                                    <div className="flex items-center gap-1 bg-slate-700 rounded p-1">
+                                        <button
+                                            onClick={() => handleUpdateConfig('fontStyle', element.config?.fontStyle === 'italic' ? 'normal' : 'italic')}
+                                            className={`p-1.5 rounded transition ${element.config?.fontStyle === 'italic'
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'text-slate-400 hover:text-white'
+                                                }`}
+                                            title="Italic"
+                                        >
+                                            <Italic size={12} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleUpdateConfig('textDecoration', element.config?.textDecoration === 'underline' ? 'none' : 'underline')}
+                                            className={`p-1.5 rounded transition ${element.config?.textDecoration === 'underline'
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'text-slate-400 hover:text-white'
+                                                }`}
+                                            title="Underline"
+                                        >
+                                            <Underline size={12} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleUpdateConfig('textDecoration', element.config?.textDecoration === 'line-through' ? 'none' : 'line-through')}
+                                            className={`p-1.5 rounded transition ${element.config?.textDecoration === 'line-through'
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'text-slate-400 hover:text-white'
+                                                }`}
+                                            title="Strikethrough"
+                                        >
+                                            <Strikethrough size={12} />
+                                        </button>
+                                    </div>
+                                </div>
                                 <ColorField
                                     label="Text Color"
                                     value={element.config?.textColor}
@@ -336,6 +408,19 @@ const FreeformPropertiesPanel = ({
                                 label="Border Color"
                                 value={element.config?.borderColor}
                                 onChange={(v) => handleUpdateConfig('borderColor', v)}
+                            />
+                            <SelectField
+                                label="Shadow"
+                                value={element.config?.boxShadow || 'none'}
+                                onChange={(v) => handleUpdateConfig('boxShadow', v)}
+                                options={[
+                                    { value: 'none', label: 'None' },
+                                    { value: 'sm', label: 'Small' },
+                                    { value: 'md', label: 'Medium' },
+                                    { value: 'lg', label: 'Large' },
+                                    { value: 'xl', label: 'Extra Large' },
+                                    { value: '2xl', label: '2XL' },
+                                ]}
                             />
                         </div>
                     )}
@@ -513,8 +598,8 @@ const ColorField = ({ label, value, onChange }) => (
             <button
                 onClick={() => onChange('transparent')}
                 className={`w-8 h-8 rounded cursor-pointer border-2 flex items-center justify-center transition ${value === 'transparent'
-                        ? 'border-indigo-500 bg-slate-600'
-                        : 'border-slate-600 bg-slate-700 hover:border-slate-500'
+                    ? 'border-indigo-500 bg-slate-600'
+                    : 'border-slate-600 bg-slate-700 hover:border-slate-500'
                     }`}
                 title="Transparent"
                 style={{

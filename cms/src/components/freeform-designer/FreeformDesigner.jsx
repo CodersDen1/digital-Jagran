@@ -8,8 +8,9 @@ import FreeformPropertiesPanel from './FreeformPropertiesPanel';
 import {
     Save, Eye, ArrowLeft, Undo, Redo, Home,
     ZoomIn, ZoomOut, Maximize, Grid3X3, Magnet,
-    FileText, Palette, Settings, Ruler, Hand, MousePointer2
+    FileText, Palette, Settings, Ruler, Hand, MousePointer2, Upload, Lock
 } from 'lucide-react';
+import { generateHtml } from '../../utils/generateHtml';
 
 /**
  * FreeformDesigner - Main component for the New Legacy Editor
@@ -33,7 +34,8 @@ const FreeformDesigner = () => {
 
     // Canvas settings
     const [canvas, setCanvas] = useState({
-        width: 1200,
+        // Calculation: 1280px (max-w-7xl) - 32px (container px-4) - 64px (card md:p-8) = 1184px
+        width: 1184,
         height: 1800,
         backgroundColor: '#ffffff',
         showGrid: true,
@@ -206,16 +208,28 @@ const FreeformDesigner = () => {
             const tagsValue = articleTags || getContentByType('tags') || '';
             const tagsArray = tagsValue.split(',').map(s => s.trim()).filter(Boolean);
 
+            // Generate HTML
+            // We need to construct a temporary layout object merging current elements/canvas
+            const currentLayout = {
+                elements,
+                canvas,
+                viewport: { zoom, panX: panOffset.x, panY: panOffset.y }
+            };
+
+            const html = generateHtml(currentLayout, articleData, language);
+
             if (isEn) {
                 payload.article_header_en = getContentByType('header');
                 payload.summary_en = getContentByType('summary');
                 payload.body_en = getContentByType('body');
                 payload.tags_en = tagsArray;
+                payload.htmlContent_en = html;
             } else {
                 payload.article_header = getContentByType('header');
                 payload.summary = getContentByType('summary');
                 payload.body = getContentByType('body');
                 payload.tags = tagsArray;
+                payload.htmlContent = html;
             }
 
             // Add SEO metadata
@@ -522,10 +536,11 @@ const FreeformDesigner = () => {
             let newHeight = prev.height;
             let changed = false;
 
-            if (rightEdge + padding > prev.width) {
-                newWidth = Math.max(prev.width, rightEdge + padding);
-                changed = true;
-            }
+            // Width is fixed/constant, do not expand
+            // if (rightEdge + padding > prev.width) {
+            //     newWidth = Math.max(prev.width, rightEdge + padding);
+            //     changed = true;
+            // }
 
             if (bottomEdge + padding > prev.height) {
                 newHeight = Math.max(prev.height, bottomEdge + padding);
@@ -804,6 +819,153 @@ const FreeformDesigner = () => {
         }
     };
 
+    // Handle Drag and Drop from Toolbar
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        const elementType = e.dataTransfer.getData('element-type');
+        const shapeType = e.dataTransfer.getData('shape-type'); // Optional
+
+        if (!elementType) return;
+
+        // Calculate drop position relative to canvas
+        const canvasRect = e.currentTarget.getBoundingClientRect();
+
+        // Adjust for zoom and pan
+        // The mouse position relative to the visible container
+        const mouseX = e.clientX - canvasRect.left;
+        const mouseY = e.clientY - canvasRect.top;
+
+        // Convert to canvas coordinates
+        // Canvas transform is: translate(panOffset.x, panOffset.y) scale(zoom)
+        // Inverse: (mouse - pan) / zoom
+        // However, the drop target is the wrapper, not the transformed inner canvas.
+        // Wait, the wrapper is "flex-1 relative overflow-hidden bg-slate-900"
+        // The inner canvas is rendered with margin 40px inside that wrapper (usually centered or something)
+        // Actually FreeformCanvas renders a div with margin: 40px inside the container.
+
+        // Let's assume (0,0) of the layout is at (panOffset.x + 40, panOffset.y + 40) relative to wrapper?
+        // FreeformCanvas source: 
+        // canvas-inner margin: '40px'
+        // transform: translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})
+
+        // So the effective origin (0,0 of the logical canvas) relative to the wrapper is:
+        // x = 40 + panOffset.x
+        // y = 40 + panOffset.y
+
+        // So:
+        // droppedX = (mouseX - (40 + panOffset.x)) / zoom
+        // droppedY = (mouseY - (40 + panOffset.y)) / zoom
+
+        const x = (mouseX - (40 + panOffset.x)) / zoom;
+        const y = (mouseY - (40 + panOffset.y)) / zoom;
+
+        // Add the element
+        const newElement = createNewElement(elementType, x, y);
+
+        // If it's a shape, we might need to update its config
+        if (elementType === 'shape' && shapeType) {
+            newElement.config.shapeType = shapeType;
+            if (shapeType === 'circle') newElement.config.borderRadius = '50%';
+        }
+
+        const newElements = [...elements, newElement];
+        setElements(newElements);
+        setSelectedIds([newElement.id]);
+        pushToHistory(newElements);
+    };
+
+    // Import HTML Handler
+    const fileInputRef = useRef(null);
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const htmlContent = event.target.result;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+
+            // Data to populate
+            const newArticleData = { ...articleData };
+            let seoUpdates = {};
+
+            // 1. Title/Headline
+            const h1 = doc.querySelector('h1');
+            const title = doc.querySelector('title');
+            const headlineText = h1 ? h1.innerText : (title ? title.innerText : '');
+
+            if (headlineText) {
+                // Find first header element
+                const headerEl = elements.find(el => el.type === 'header');
+                if (headerEl) {
+                    newArticleData[headerEl.id] = headlineText;
+                }
+            }
+
+            // 2. Metadata & Keywords & Summary
+            const metaDesc = doc.querySelector('meta[name="description"]');
+            const summaryText = metaDesc ? metaDesc.content : '';
+
+            if (summaryText) {
+                seoUpdates.metadata = summaryText;
+                setSeoMetadata(summaryText);
+
+                // Find first summary element
+                const summaryEl = elements.find(el => el.type === 'summary');
+                if (summaryEl) {
+                    newArticleData[summaryEl.id] = summaryText;
+                }
+            }
+
+            const metaKeywords = doc.querySelector('meta[name="keywords"]');
+            if (metaKeywords) {
+                const keywords = metaKeywords.content;
+                setSeoKeywords(keywords);
+                seoUpdates.keywords = keywords;
+            }
+
+            // 3. Body Content & Styles
+            // Extract styles
+            const styles = Array.from(doc.querySelectorAll('style')).map(s => s.outerHTML).join('\n');
+
+            // Get body content
+            const body = doc.body;
+
+            // Remove scripts
+            const scripts = body.querySelectorAll('script');
+            scripts.forEach(s => s.remove());
+
+            // Combine styles + body
+            const bodyContent = `${styles}\n${body.innerHTML}`;
+
+            // Find first body element
+            const bodyEl = elements.find(el => el.type === 'body');
+            if (bodyEl) {
+                newArticleData[bodyEl.id] = bodyContent;
+            }
+
+            // Update state
+            setArticleData(newArticleData);
+
+            // Clear input
+            if (fileInputRef.current) fileInputRef.current.value = '';
+
+            alert('HTML Imported Successfully! Please review the content.');
+        };
+        reader.readAsText(file);
+    };
+
     // Handle content change from editable elements
     const handleContentChange = (elementId, value) => {
         setArticleData(prev => ({
@@ -1077,14 +1239,15 @@ const FreeformDesigner = () => {
                                     <div className="space-y-3">
                                         <div>
                                             <label className="block text-xs text-slate-400 mb-1">Width (px)</label>
-                                            <input
-                                                type="number"
-                                                value={canvas.width}
-                                                onChange={(e) => setCanvas({ ...canvas, width: parseInt(e.target.value) || 800 })}
-                                                className="w-full bg-slate-700 text-white text-sm rounded-lg p-2 border border-slate-600 focus:border-indigo-500 focus:outline-none"
-                                                min={400}
-                                                max={3000}
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    value={canvas.width}
+                                                    disabled
+                                                    className="w-full bg-slate-700 text-slate-400 text-sm rounded-lg p-2 border border-slate-600 cursor-not-allowed focus:outline-none"
+                                                />
+                                                <Lock className="absolute right-3 top-2.5 text-slate-500" size={14} />
+                                            </div>
                                         </div>
 
                                         <div>
@@ -1158,6 +1321,26 @@ const FreeformDesigner = () => {
                                 </button>
                             </>
                         )}
+                        {/* Import HTML (Article Mode Only) */}
+                        {editorMode === 'article' && (
+                            <>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    style={{ display: 'none' }}
+                                    accept=".html,.htm"
+                                    onChange={handleFileUpload}
+                                />
+                                <button
+                                    onClick={handleImportClick}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-slate-700 text-slate-300 hover:bg-slate-600 transition ml-2"
+                                    title="Import HTML"
+                                >
+                                    <Upload size={14} />
+                                    <span>Import</span>
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -1188,7 +1371,11 @@ const FreeformDesigner = () => {
                     )}
 
                     {/* Canvas Area */}
-                    <div className="flex-1 relative overflow-hidden bg-slate-900">
+                    <div
+                        className="flex-1 relative overflow-hidden bg-slate-900"
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                    >
                         <FreeformCanvas
                             elements={elements}
                             selectedIds={selectedIds}

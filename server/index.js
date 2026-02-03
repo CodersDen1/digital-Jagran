@@ -62,6 +62,7 @@ articleRouter.post('/articles', (req, res) => articleController.createArticle(re
 articleRouter.get('/articles', (req, res) => articleController.getAllArticles(req, res));
 articleRouter.get('/articles/trending', (req, res) => articleController.getTrendingArticles(req, res));
 articleRouter.get('/articles/:id', (req, res) => articleController.getArticleById(req, res));
+articleRouter.get('/articles/:id/content', (req, res) => articleController.getArticleHtml(req, res));
 articleRouter.put('/articles/:id', (req, res) => articleController.updateArticle(req, res));
 articleRouter.delete('/articles/:id', (req, res) => articleController.deleteArticle(req, res));
 articleRouter.post('/articles/bulk-delete', (req, res) => articleController.bulkDeleteArticles(req, res));
