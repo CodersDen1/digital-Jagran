@@ -4,6 +4,62 @@ const storageService = require('../services/storageService');
 const mongoose = require('mongoose');
 
 class ArticleController {
+    async injectArticle(req, res) {
+        try {
+            const { htmlContent, ...metaData } = req.body;
+
+            if (!htmlContent) {
+                return res.status(400).json({ error: 'HTML content is required' });
+            }
+
+            // 1. Upload HTML to R2
+            // Use provided slug or generate one
+            let slug = metaData.slug;
+            if (!slug) {
+                const titleToSlug = metaData.article_header_en || metaData.article_header || 'article';
+                slug = titleToSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+            }
+            // Ensure unique slug logic if needed (borrow from createArticle)
+
+            const r2Path = await storageService.uploadArticleHtml(htmlContent, `${slug}-${metaData.published_language || 'en'}`);
+
+            // 2. Prepare Article Data
+            const articleData = {
+                ...metaData,
+                slug,
+                html_path: r2Path,
+                html_path_en: r2Path, // Defaulting to EN for now or based on language
+                storage_type: 'html',
+                is_Published: true, // Default to published for injected
+                views: 0
+            };
+
+            // 3. Create Default Freeform Layout Wrapper
+            // We create a "fake" layout that wraps this HTML so it can be opened in the editor
+            // Ideally, we'd want a special "HTML Block" element in the editor.
+            // For now, let's just create the article and let the editor handle 'html' storage type logic 
+            // (Editor already checks storage_type='html' and loads content, but we might need a layout to represent it?)
+            // Actually, if we just save the article, the editor might need a 'layoutTemplate' reference.
+            // Let's create a blank freeform layout linked to this article if needed, or just leave it empty.
+            // If we leave it empty, the editor might fail to load.
+            // Let's use the 'default' layout or generate a new one.
+
+            // Allow duplicate slug update
+            let article = await articleRepository.findBySlug(slug);
+            if (article) {
+                Object.assign(article, articleData);
+                await article.save();
+            } else {
+                article = await articleRepository.create(articleData);
+            }
+
+            res.status(200).json(article);
+        } catch (error) {
+            console.error('Injection error:', error);
+            res.status(500).json({ error: error.message });
+        }
+    }
+
     async createArticle(req, res) {
         try {
             const articleData = req.body;

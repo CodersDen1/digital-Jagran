@@ -7,6 +7,7 @@ import LayoutDesigner from './components/layout-designer/LayoutDesigner';
 import FreeformLayoutsList from './pages/FreeformLayoutsList';
 import FreeformDesigner from './components/freeform-designer/FreeformDesigner';
 import Login from './pages/Login';
+import InjectHtml from './pages/InjectHtml';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function App() {
@@ -99,6 +100,16 @@ function App() {
           element={
             <ProtectedRoute>
               <FreeformDesigner />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* HTML Injection */}
+        <Route
+          path="/inject-html"
+          element={
+            <ProtectedRoute>
+              <InjectHtml />
             </ProtectedRoute>
           }
         />

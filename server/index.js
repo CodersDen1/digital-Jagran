@@ -58,6 +58,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digital_j
 
 // Article Routes
 const articleRouter = express.Router();
+articleRouter.post('/articles/inject', (req, res) => articleController.injectArticle(req, res));
 articleRouter.post('/articles', (req, res) => articleController.createArticle(req, res));
 articleRouter.get('/articles', (req, res) => articleController.getAllArticles(req, res));
 articleRouter.get('/articles/trending', (req, res) => articleController.getTrendingArticles(req, res));

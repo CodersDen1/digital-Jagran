@@ -13,6 +13,7 @@ const Layout = ({ children, hideSidebar = false }) => {
         { label: 'Create Article', path: '/create', icon: <PenSquare size={20} /> },
         { label: 'Layout Templates', path: '/layouts', icon: <Palette size={20} /> },
         { label: 'New Legacy Editor', path: '/freeform-layouts', icon: <Sparkles size={20} /> },
+        { label: 'Inject HTML', path: '/inject-html', icon: <div className="font-bold font-mono text-xs border border-current rounded px-1">INJ</div> },
     ];
 
     // Full-width layout without sidebar

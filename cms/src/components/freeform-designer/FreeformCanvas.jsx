@@ -123,7 +123,7 @@ const FreeformCanvas = ({
             const minY = Math.min(selectionBox.startY, selectionBox.endY);
             const maxY = Math.max(selectionBox.startY, selectionBox.endY);
 
-            // Find elements within selection box
+
             const selectedElementIds = elements
                 .filter(el => {
                     const elRight = el.x + el.width;
@@ -139,7 +139,6 @@ const FreeformCanvas = ({
         }
     };
 
-    // Calculate alignment guides when dragging
     const calculateAlignmentGuides = useCallback((draggingId, newX, newY, newWidth, newHeight) => {
         if (!snapToElements) {
             setAlignmentGuides({ vertical: [], horizontal: [] });
