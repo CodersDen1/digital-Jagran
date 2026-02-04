@@ -309,7 +309,7 @@ const Dashboard = () => {
                                             {article.is_Published ? 'Unpublish' : 'Publish'}
                                         </button>
                                         <a
-                                            href={`http://localhost:5173/article/${article._id}`}
+                                            href={`${import.meta.env.VITE_CLIENT_URL || 'http://localhost:5173'}/article/${article._id}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-blue-600 hover:text-blue-900 mx-2 inline-block"
