@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { articleService, api } from '../../services/api';
 import {
     Save, ArrowLeft, Monitor, Smartphone, Undo, Redo, Settings, X,
 } from 'lucide-react';
@@ -31,16 +31,13 @@ const HtmlVisualEditor = () => {
 
     const fetchArticle = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`http://localhost:5001/api/articles/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setArticle(res.data);
+            const data = await articleService.getById(id);
+            setArticle(data);
 
             // Fetch HTML Content
-            if (res.data.storage_type === 'html') {
+            if (data.storage_type === 'html') {
                 try {
-                    const htmlRes = await axios.get(`http://localhost:5001/api/articles/${res.data._id}/content`);
+                    const htmlRes = await api.get(`/articles/${data._id}/content`);
                     setHtmlContent(htmlRes.data);
                 } catch (err) {
                     console.error("Failed to fetch HTML content", err);
@@ -69,12 +66,9 @@ const HtmlVisualEditor = () => {
 
             const finalHtml = doc.documentElement.outerHTML;
 
-            const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:5001/api/articles/${id}`, {
+            await articleService.update(id, {
                 ...article,
                 htmlContent: finalHtml
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
 
             alert('Saved successfully!');
