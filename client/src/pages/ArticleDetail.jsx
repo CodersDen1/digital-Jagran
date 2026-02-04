@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getArticleById, getLayoutById, getDefaultLayout, getArticles, trackArticleView, getFreeformLayoutById, getArticleHtmlContent } from '../services/api';
 import NewsLayout from '../components/layout/NewsLayout';
 import DynamicArticleRenderer from '../components/article/DynamicArticleRenderer';
+import ShadowHtmlRenderer from '../components/article/ShadowHtmlRenderer';
 import { SocialShare } from '../components/article/ElementRenderers';
 import { useLanguage } from '../context/LanguageContext';
 import { Loader, ArrowLeft, Clock, Eye } from 'lucide-react';
@@ -224,7 +225,7 @@ const ArticleDetail = () => {
             {/* Main Article Content */}
             <div className={`${(article?.published_language === 'HN' || article?.published_language === 'hi') ? 'bg-slate-50' : 'bg-white'} p-4 md:p-8 shadow-sm rounded-lg mb-8`}>
                 {htmlContent ? (
-                    <div dangerouslySetInnerHTML={{ __html: htmlContent }} className="w-full relative mx-auto" style={{ overflow: 'hidden' }} />
+                    <ShadowHtmlRenderer htmlContent={htmlContent} className="w-full relative mx-auto overflow-hidden" />
                 ) : (
                     <DynamicArticleRenderer article={article} layout={layout} />
                 )}
