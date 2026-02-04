@@ -37,7 +37,8 @@ const HtmlVisualEditor = () => {
             // Fetch HTML Content
             if (data.storage_type === 'html') {
                 try {
-                    const htmlRes = await api.get(`/articles/${data._id}/content`);
+                    const lang = data.published_language || 'en';
+                    const htmlRes = await api.get(`/articles/${data._id}/content?lang=${lang}`);
                     setHtmlContent(htmlRes.data);
                 } catch (err) {
                     console.error("Failed to fetch HTML content", err);
@@ -66,9 +67,11 @@ const HtmlVisualEditor = () => {
 
             const finalHtml = doc.documentElement.outerHTML;
 
+            const contentKey = (article.published_language === 'en') ? 'htmlContent_en' : 'htmlContent';
+
             await articleService.update(id, {
                 ...article,
-                htmlContent: finalHtml
+                [contentKey]: finalHtml
             });
 
             alert('Saved successfully!');
