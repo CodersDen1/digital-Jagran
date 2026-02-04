@@ -5,9 +5,10 @@ import CreateArticle from './components/dashboard/CreateArticle';
 import LayoutTemplatesList from './pages/LayoutTemplatesList';
 import LayoutDesigner from './components/layout-designer/LayoutDesigner';
 import FreeformLayoutsList from './pages/FreeformLayoutsList';
-import FreeformDesigner from './components/freeform-designer/FreeformDesigner';
+import HtmlVisualEditor from './components/html-editor/HtmlVisualEditor';
 import Login from './pages/Login';
 import InjectHtml from './pages/InjectHtml';
+import CreateHtmlArticle from './pages/CreateHtmlArticle';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function App() {
@@ -69,37 +70,13 @@ function App() {
           }
         />
 
-        {/* New Legacy Editor - Freeform Canvas */}
+
+        {/* Html Visual Editor */}
         <Route
-          path="/freeform-layouts"
+          path="/edit-html/:id"
           element={
             <ProtectedRoute>
-              <FreeformLayoutsList />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/freeform-layouts/new"
-          element={
-            <ProtectedRoute>
-              <FreeformDesigner />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/freeform-layouts/:id"
-          element={
-            <ProtectedRoute>
-              <FreeformDesigner />
-            </ProtectedRoute>
-          }
-        />
-        {/* Edit Article in Freeform Mode */}
-        <Route
-          path="/edit-freeform/:id"
-          element={
-            <ProtectedRoute>
-              <FreeformDesigner />
+              <HtmlVisualEditor />
             </ProtectedRoute>
           }
         />
@@ -110,6 +87,26 @@ function App() {
           element={
             <ProtectedRoute>
               <InjectHtml />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Create Visual Article (Redirect) */}
+        <Route
+          path="/create-visual"
+          element={
+            <ProtectedRoute>
+              <CreateHtmlArticle />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Html Visual Editor */}
+        <Route
+          path="/edit-html/:id"
+          element={
+            <ProtectedRoute>
+              <HtmlVisualEditor />
             </ProtectedRoute>
           }
         />

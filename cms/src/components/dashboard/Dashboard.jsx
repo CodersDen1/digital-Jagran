@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { articleService, freeformLayoutService } from '../../services/api';
 import Layout from '../common/Layout';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Edit, Trash2, Eye, TrendingUp, Copy } from 'lucide-react';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedArticles, setSelectedArticles] = useState([]);
@@ -15,6 +16,26 @@ const Dashboard = () => {
     useEffect(() => {
         loadArticles();
     }, []);
+
+    const handleCreateHtmlArticle = async () => {
+        try {
+            const uniqueSlug = `visual-article-${Date.now()}`;
+            const newArticle = await articleService.create({
+                article_header: 'New Visual Article',
+                slug: uniqueSlug,
+                is_Drafted: true,
+                is_Published: false,
+                storage_type: 'html',
+                author: 'Admin',
+                published_language: 'en',
+                htmlContent_en: '<div class="container mx-auto p-4"><section class="py-12"><h1 class="text-4xl font-bold mb-4">New Article</h1><p class="text-lg text-gray-600">Start editing this content...</p></section></div>'
+            });
+            navigate(`/edit-html/${newArticle._id}`);
+        } catch (error) {
+            console.error("Failed to create HTML article", error);
+            alert('Failed to start visual editor');
+        }
+    };
 
     const loadArticles = async () => {
         try {
@@ -178,9 +199,14 @@ const Dashboard = () => {
 
             <div className="mb-6 flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-800">Recent Articles</h1>
-                <Link to="/create" className="bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-800 transition">
-                    + New Article
-                </Link>
+                <div className="flex gap-2">
+                    <button onClick={handleCreateHtmlArticle} className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition flex items-center gap-2">
+                        + Visual Editor
+                    </button>
+                    <Link to="/create" className="bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-800 transition">
+                        + New Standard
+                    </Link>
+                </div>
             </div>
 
             {/* Bulk Actions */}
@@ -292,7 +318,7 @@ const Dashboard = () => {
                                             <Eye size={18} />
                                         </a>
                                         <Link
-                                            to={freeformLayoutIds.has(article.layoutTemplate) ? `/edit-freeform/${article._id}` : `/edit/${article._id}`}
+                                            to={article.storage_type === 'html' || article.layoutTemplate ? `/edit-html/${article._id}` : `/edit/${article._id}`}
                                             className="text-indigo-600 hover:text-indigo-900 mx-2 inline-block"
                                             title="Edit Article"
                                         >

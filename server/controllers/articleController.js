@@ -1,4 +1,5 @@
 const articleRepository = require('../repositories/articleRepository');
+const FreeformLayout = require('../models/FreeformLayout');
 const translationService = require('../services/translationService');
 const storageService = require('../services/storageService');
 const mongoose = require('mongoose');
@@ -34,15 +35,8 @@ class ArticleController {
                 views: 0
             };
 
-            // 3. Create Default Freeform Layout Wrapper
-            // We create a "fake" layout that wraps this HTML so it can be opened in the editor
-            // Ideally, we'd want a special "HTML Block" element in the editor.
-            // For now, let's just create the article and let the editor handle 'html' storage type logic 
-            // (Editor already checks storage_type='html' and loads content, but we might need a layout to represent it?)
-            // Actually, if we just save the article, the editor might need a 'layoutTemplate' reference.
-            // Let's create a blank freeform layout linked to this article if needed, or just leave it empty.
-            // If we leave it empty, the editor might fail to load.
-            // Let's use the 'default' layout or generate a new one.
+            // 3. Create Article Record (No Parsing, No Layout)
+            // The editor will load content directly from R2 using 'html_path'
 
             // Allow duplicate slug update
             let article = await articleRepository.findBySlug(slug);

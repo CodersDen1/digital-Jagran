@@ -9,7 +9,7 @@ const freeformElementSchema = new mongoose.Schema({
     type: {
         type: String,
         required: true,
-        enum: ['header', 'summary', 'body', 'image', 'video', 'author', 'date', 'tags', 'text', 'divider', 'spacer', 'shape', 'container', 'group']
+        enum: ['header', 'summary', 'body', 'image', 'video', 'author', 'date', 'tags', 'text', 'divider', 'spacer', 'shape', 'container', 'group', 'html']
     },
 
     // Absolute positioning (pixels) - optional for group elements
