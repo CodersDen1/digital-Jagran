@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { articleService, freeformLayoutService } from '../../services/api';
 import Layout from '../common/Layout';
 import { Link, useNavigate } from 'react-router-dom';
-import { Edit, Trash2, Eye, TrendingUp, Copy } from 'lucide-react';
+import { Edit, Trash2, Eye, TrendingUp, Copy, Languages, UploadCloud, CloudOff } from 'lucide-react';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -288,44 +288,58 @@ const Dashboard = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        {/* Translate Button */}
-                                        <button
-                                            onClick={() => handleTranslate(article._id)}
-                                            className="text-purple-600 hover:text-purple-900 mx-2 inline-block"
-                                            title="Translate"
-                                        >
-                                            <div className="flex items-center gap-1">
-                                                <span className="text-xs uppercase font-bold border border-purple-200 rounded px-1">
-                                                    {article.published_language === 'en' ? 'EN→HN' : 'HN→EN'}
-                                                </span>
-                                            </div>
-                                        </button>
+                                        <div className="flex justify-end items-center gap-2">
+                                            {/* Translate Button */}
+                                            <button
+                                                onClick={() => handleTranslate(article._id)}
+                                                className="text-purple-600 hover:text-purple-900 p-1 rounded hover:bg-purple-50 transition-colors"
+                                                title={`Translate (${article.published_language === 'en' ? 'EN→HN' : 'HN→EN'})`}
+                                            >
+                                                <Languages size={18} />
+                                            </button>
 
-                                        <button
-                                            onClick={() => handlePublish(article._id, article.is_Published)}
-                                            className={`mx-2 font-bold ${article.is_Published ? 'text-orange-600 hover:text-orange-900' : 'text-green-600 hover:text-green-900'}`}
-                                            title={article.is_Published ? "Unpublish" : "Publish"}
-                                        >
-                                            {article.is_Published ? 'Unpublish' : 'Publish'}
-                                        </button>
-                                        <a
-                                            href={`${import.meta.env.VITE_CLIENT_URL || 'http://localhost:5173'}/article/${article._id}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:text-blue-900 mx-2 inline-block"
-                                            title="View Article"
-                                        >
-                                            <Eye size={18} />
-                                        </a>
-                                        <Link
-                                            to={article.storage_type === 'html' || article.layoutTemplate ? `/edit-html/${article._id}` : `/edit/${article._id}`}
-                                            className="text-indigo-600 hover:text-indigo-900 mx-2 inline-block"
-                                            title="Edit Article"
-                                        >
-                                            <Edit size={18} />
-                                        </Link>
-                                        <button onClick={() => handleDuplicate(article._id)} className="text-blue-600 hover:text-blue-900 mx-2" title="Duplicate Article"><Copy size={18} /></button>
-                                        <button onClick={() => handleDelete(article._id)} className="text-red-600 hover:text-red-900 mx-2"><Trash2 size={18} /></button>
+                                            <button
+                                                onClick={() => handlePublish(article._id, article.is_Published)}
+                                                className={`p-1 rounded transition-colors ${article.is_Published ? 'text-orange-600 hover:text-orange-900 hover:bg-orange-50' : 'text-green-600 hover:text-green-900 hover:bg-green-50'}`}
+                                                title={article.is_Published ? "Unpublish" : "Publish"}
+                                            >
+                                                {article.is_Published ? <CloudOff size={18} /> : <UploadCloud size={18} />}
+                                            </button>
+
+                                            <a
+                                                href={`${import.meta.env.VITE_CLIENT_URL || 'http://localhost:5173'}/article/${article._id}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
+                                                title="View Article"
+                                            >
+                                                <Eye size={18} />
+                                            </a>
+
+                                            <Link
+                                                to={article.storage_type === 'html' || article.layoutTemplate ? `/edit-html/${article._id}` : `/edit/${article._id}`}
+                                                className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50 transition-colors"
+                                                title="Edit Article"
+                                            >
+                                                <Edit size={18} />
+                                            </Link>
+
+                                            <button
+                                                onClick={() => handleDuplicate(article._id)}
+                                                className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
+                                                title="Duplicate Article"
+                                            >
+                                                <Copy size={18} />
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleDelete(article._id)}
+                                                className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
+                                                title="Delete Article"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
