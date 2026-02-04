@@ -416,9 +416,12 @@ const Home = () => {
                                                             <span className="text-brand-red text-xs font-bold uppercase mb-1 block">
                                                                 {(t(article, 'tags') || [])[0] || 'News'}
                                                             </span>
-                                                            <h3 className="font-serif font-bold text-gray-900 line-clamp-2 text-sm group-hover:text-brand-red transition">
+                                                            <h3 className="font-serif font-bold text-gray-900 line-clamp-1 text-sm group-hover:text-brand-red transition">
                                                                 {t(article, 'article_header')}
                                                             </h3>
+                                                            <p className="text-gray-500 text-xs line-clamp-2 mt-1">
+                                                                {t(article, 'summary')}
+                                                            </p>
                                                         </>
                                                     )}
                                                 </div>
@@ -492,7 +495,7 @@ const Home = () => {
                                                                     {article.views || 0}
                                                                 </span>
                                                             </div>
-                                                            <h3 className="font-serif font-bold text-gray-900 group-hover:text-brand-red transition text-base line-clamp-2">
+                                                            <h3 className="font-serif font-bold text-gray-900 group-hover:text-brand-red transition text-base line-clamp-1">
                                                                 {t(article, 'article_header')}
                                                             </h3>
                                                             <p className="text-gray-500 mt-2 line-clamp-2 text-sm">

@@ -57,9 +57,12 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
                             {tags[0]}
                         </span>
                     )}
-                    <h3 className="font-serif font-bold text-gray-900 line-clamp-2 group-hover:text-brand-red transition">
+                    <h3 className="font-serif font-bold text-gray-900 line-clamp-1 group-hover:text-brand-red transition">
                         {header}
                     </h3>
+                    <p className="text-gray-500 text-xs line-clamp-2 mt-1">
+                        {summary}
+                    </p>
                     <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
                         <span className="flex items-center gap-1">
                             <User size={12} />
@@ -167,7 +170,7 @@ const NewsCard = ({ article, variant = 'default', featured = false }) => {
             </div>
 
             <div className="p-4">
-                <h3 className="font-serif font-bold text-gray-900 leading-tight group-hover:text-brand-red transition text-lg mb-2 line-clamp-2">
+                <h3 className="font-serif font-bold text-gray-900 leading-tight group-hover:text-brand-red transition text-lg mb-2 line-clamp-1">
                     {header}
                 </h3>
 
