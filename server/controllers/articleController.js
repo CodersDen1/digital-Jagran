@@ -330,13 +330,13 @@ class ArticleController {
 
             if (currentSlug) {
                 if (updates.htmlContent_en) {
-                    const path = await storageService.uploadArticleHtml(updates.htmlContent_en, `${currentSlug}-en`);
+                    const path = await storageService.uploadArticleHtml(updates.htmlContent_en, `${currentSlug}-en-${Date.now()}`);
                     updates.html_path_en = path;
                     updates.storage_type = 'html';
                     delete updates.htmlContent_en;
                 }
                 if (updates.htmlContent) {
-                    const path = await storageService.uploadArticleHtml(updates.htmlContent, `${currentSlug}-hi`);
+                    const path = await storageService.uploadArticleHtml(updates.htmlContent, `${currentSlug}-hi-${Date.now()}`);
                     updates.html_path = path;
                     updates.storage_type = 'html';
                     delete updates.htmlContent;

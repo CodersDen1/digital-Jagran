@@ -69,7 +69,7 @@ const ArticleDetail = () => {
                         const r2BaseUrl = import.meta.env.VITE_R2_PUBLIC_URL; // e.g. https://pub-xxx.r2.dev
                         // If public URL is configured, fetch directly (bypass backend)
                         if (r2BaseUrl) {
-                            const url = `${r2BaseUrl}/${path}`;
+                            const url = `${r2BaseUrl}/${path}?t=${new Date().getTime()}`;
                             const response = await fetch(url);
                             if (!response.ok) throw new Error('Failed to fetch from R2');
                             const html = await response.text();
