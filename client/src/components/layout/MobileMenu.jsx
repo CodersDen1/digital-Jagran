@@ -8,7 +8,7 @@ import { X, Globe, Briefcase, Laptop, Trophy, Film, ChevronRight, Search, Layout
  */
 const MobileMenu = ({ isOpen, onClose, onCategoryChange, activeCategory }) => {
     const { language, toggleLanguage } = useLanguage();
-    const [searchQuery, setSearchQuery] = useState('');
+
 
     const menuItems = [
         { label: 'All', icon: LayoutGrid },
@@ -44,19 +44,7 @@ const MobileMenu = ({ isOpen, onClose, onCategoryChange, activeCategory }) => {
                     </button>
                 </div>
 
-                {/* Search */}
-                <div className="p-4 border-b border-gray-100">
-                    <div className="relative">
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search news..."
-                            className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
-                        />
-                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    </div>
-                </div>
+                {/* Search Removed */}
 
                 {/* Navigation Links */}
                 <nav className="p-4 overflow-y-auto max-h-[calc(100vh-200px)]">

@@ -174,7 +174,7 @@ const Home = () => {
             </Helmet>
 
             {/* View Toggle */}
-            <div className="flex justify-end mb-6">
+            <div className="hidden md:flex justify-end mb-6">
                 <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
                     <button
                         onClick={() => setViewMode('default')}

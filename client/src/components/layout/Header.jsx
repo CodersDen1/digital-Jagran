@@ -55,9 +55,9 @@ const Header = ({ activeCategory, onCategoryChange }) => {
 
     return (
         <>
-            <header className="font-hind bg-[#1e293b] text-white relative z-40">
-                {/* Top Bar - Ticker */}
-                <div className="bg-[#0f172a] border-b border-[#334155]">
+            <header className="font-hind bg-[#1e293b] text-white relative z-40 sticky top-0 shadow-md">
+                {/* Top Bar - Ticker - Hiding on small mobile to save space if needed, or keeping it small */}
+                <div className="bg-[#0f172a] border-b border-[#334155] hidden sm:block">
                     <div className="max-w-[1300px] mx-auto">
                         <div className="flex items-center">
                             {/* Ticker Section */}
@@ -130,41 +130,16 @@ const Header = ({ activeCategory, onCategoryChange }) => {
 
                             {/* Logo - Right aligned, bottom aligned */}
                             <Link to="/" className="flex flex-col items-end py-3 lg:py-0 lg:pb-2">
-                                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white leading-none font-serif whitespace-nowrap">
+                                <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white leading-none font-serif whitespace-nowrap">
                                     Digital Jagran
                                 </h1>
                                 <p className="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-gray-400 mt-1">
                                     Information, Information and Information
                                 </p>
                             </Link>
-
-                            {/* Search (Mobile only) */}
-                            <button
-                                onClick={() => setIsSearchOpen(!isSearchOpen)}
-                                className="lg:hidden p-2 text-white hover:bg-[#334155] rounded-full transition self-center"
-                            >
-                                {isSearchOpen ? <X size={24} /> : <Search size={24} />}
-                            </button>
                         </div>
                     </div>
                 </div>
-
-                {/* Mobile Search Bar */}
-                {isSearchOpen && (
-                    <div className="absolute top-full left-0 right-0 bg-white shadow-xl border-t border-gray-100 p-4 z-50">
-                        <div className="max-w-3xl mx-auto relative">
-                            <input
-                                type="text"
-                                placeholder="Search for news, opinion, sports..."
-                                autoFocus
-                                className="w-full pl-5 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-full text-gray-800 placeholder-gray-500 focus:outline-none focus:border-[#1e293b] focus:ring-1 focus:ring-[#1e293b] transition"
-                            />
-                            <button className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-[#1e293b] text-white rounded-full hover:bg-[#0f172a] transition">
-                                <Search size={16} />
-                            </button>
-                        </div>
-                    </div>
-                )}
             </header>
 
             {/* Mobile Menu Overlay */}

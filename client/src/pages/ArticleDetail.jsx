@@ -249,7 +249,7 @@ const ArticleDetail = () => {
             </div>
 
             {/* Main Article Content */}
-            <div className={`${(article?.published_language === 'HN' || article?.published_language === 'hi') ? 'bg-slate-50' : 'bg-white'} p-4 md:p-8 shadow-sm rounded-lg mb-8`}>
+            <div className={`${(article?.published_language === 'HN' || article?.published_language === 'hi') ? 'bg-slate-50' : 'bg-white'} p-4 md:p-8 shadow-none md:shadow-sm rounded-none md:rounded-lg mb-8`}>
                 {htmlContent ? (
                     <ShadowHtmlRenderer htmlContent={htmlContent} className="w-full relative mx-auto overflow-hidden" />
                 ) : (
