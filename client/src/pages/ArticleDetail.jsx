@@ -207,6 +207,32 @@ const ArticleDetail = () => {
                     <meta name="twitter:title" content={truncateTitle(getArticleTitle())} />
                     <meta name="twitter:description" content={article.metadata || ''} />
                     {article.photos && article.photos.length > 0 && <meta name="twitter:image" content={article.photos[0]} />}
+
+                    {/* Schema.org for Google */}
+                    <script type="application/ld+json">
+                        {JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "NewsArticle",
+                            "headline": getArticleTitle(),
+                            "image": article.photos || [],
+                            "datePublished": article.createdAt,
+                            "dateModified": article.updatedAt,
+                            "author": [{
+                                "@type": "Person",
+                                "name": article.author || "Digital Jagran"
+                            }],
+                            "publisher": {
+                                "@type": "Organization",
+                                "name": "Digital Jagran",
+                                "logo": {
+                                    "@type": "ImageObject",
+                                    "url": "https://digitaljagran.com/logo.png" // Replace with actual logo if available
+                                }
+                            },
+                            "description": article.metadata || article.summary || '',
+                            "articleBody": htmlContent ? htmlContent.replace(/<[^>]+>/g, ' ') : (t(article, 'body') || '')
+                        })}
+                    </script>
                 </Helmet>
             )}
 
