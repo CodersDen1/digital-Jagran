@@ -25,14 +25,42 @@ class ArticleController {
             const r2Path = await storageService.uploadArticleHtml(htmlContent, `${slug}-${metaData.published_language || 'en'}`);
 
             // 2. Prepare Article Data
+            console.log("Injecting Article with metadata:", metaData);
+
+            // Map frontend/curl friendly fields to DB schema
+            const tags = metaData.tags || [];
+            if (metaData.category && !tags.includes(metaData.category)) {
+                tags.push(metaData.category);
+            }
+
+            const photos = metaData.photos || [];
+            if (metaData.featuredImage) {
+                photos.unshift(metaData.featuredImage);
+            }
+
+            // Ensure SEO defaults
+            const metaTitle = metaData.metaTitle || metaData.article_header_en || metaData.article_header;
+            const metaDescription = metaData.metaDescription || (metaData.summary || '').substring(0, 160);
+            const userKeywords = metaData.keywords || [];
+            // If comma separated string is passed
+            const parsedKeywords = typeof userKeywords === 'string' ? userKeywords.split(',').map(k => k.trim()) : userKeywords;
+
             const articleData = {
                 ...metaData,
                 slug,
                 html_path: r2Path,
-                html_path_en: r2Path, // Defaulting to EN for now or based on language
+                html_path_en: r2Path,
                 storage_type: 'html',
-                is_Published: true, // Default to published for injected
-                views: 0
+                is_Published: true,
+                views: 0,
+                tags: tags,
+                photos: photos,
+                metaTitle,
+                metaDescription,
+                keywords: parsedKeywords,
+                // Ensure English fields are populated for consistency if language is 'en'
+                article_header_en: metaData.published_language === 'en' ? (metaData.article_header_en || metaData.article_header) : metaData.article_header_en,
+                tags_en: tags // assuming same tags for now
             };
 
             // 3. Create Article Record (No Parsing, No Layout)

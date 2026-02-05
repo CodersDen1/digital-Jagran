@@ -276,6 +276,16 @@ const HtmlVisualEditor = () => {
                                             className="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
                                         />
                                     </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Tags / Categories (Comma separated)</label>
+                                        <input
+                                            type="text"
+                                            value={Array.isArray(article?.tags) ? article.tags.join(', ') : (article?.tags || '')}
+                                            onChange={(e) => setArticle({ ...article, tags: e.target.value.split(',').map(Boolean) })}
+                                            className="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            placeholder="World, Politics, Tech"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* SEO */}
@@ -291,13 +301,33 @@ const HtmlVisualEditor = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Keywords (Comma separated)</label>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">SEO Meta Keywords</label>
                                         <input
                                             type="text"
                                             value={Array.isArray(article?.keywords) ? article.keywords.join(', ') : (article?.keywords || '')}
                                             onChange={(e) => setArticle({ ...article, keywords: e.target.value.split(',').map(k => k.trim()) })}
                                             className="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
                                             placeholder="news, politics, update"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">SEO Meta Title</label>
+                                        <input
+                                            type="text"
+                                            value={article?.metaTitle || ''}
+                                            onChange={(e) => setArticle({ ...article, metaTitle: e.target.value })}
+                                            className="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            placeholder="Custom Title for SEO"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">SEO Meta Description</label>
+                                        <textarea
+                                            rows={2}
+                                            value={article?.metaDescription || ''}
+                                            onChange={(e) => setArticle({ ...article, metaDescription: e.target.value })}
+                                            className="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            placeholder="Custom Description for SEO (defaults to summary if empty)"
                                         />
                                     </div>
                                     <div>
