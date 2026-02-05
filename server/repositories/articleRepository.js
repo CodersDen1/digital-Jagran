@@ -1,4 +1,5 @@
 const Article = require('../models/Article');
+const mongoose = require('mongoose');
 
 class ArticleRepository {
     async create(articleData) {
@@ -30,9 +31,13 @@ class ArticleRepository {
         return await Article.find({ is_Published: true }).sort({ createdAt: -1 });
     }
 
-    async incrementViews(id) {
-        return await Article.findByIdAndUpdate(
-            id,
+    async incrementViews(idOrSlug) {
+        const query = mongoose.Types.ObjectId.isValid(idOrSlug)
+            ? { _id: idOrSlug }
+            : { slug: idOrSlug };
+
+        return await Article.findOneAndUpdate(
+            query,
             { $inc: { views: 1 } },
             { new: true }
         );
