@@ -8,6 +8,7 @@ const articleController = require('./controllers/articleController');
 const layoutController = require('./controllers/layoutController');
 const freeformLayoutController = require('./controllers/freeformLayoutController');
 const sitemapController = require('./controllers/sitemapController');
+const seoController = require('./controllers/seoController');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -102,6 +103,9 @@ app.use('/api', freeformLayoutRouter);
 
 // Sitemap Route (Root level)
 app.get('/sitemap.xml', (req, res) => sitemapController.generateSitemap(req, res));
+
+// SEO SSR Route (For Crawlers)
+app.get('/article-seo/:slug', (req, res) => seoController.serveArticleSeo(req, res));
 
 const HOST = process.env.HOST || '0.0.0.0';
 

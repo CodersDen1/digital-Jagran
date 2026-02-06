@@ -20,34 +20,7 @@ const ArticleDetail = () => {
     const [loading, setLoading] = useState(true);
     const viewTrackedRef = useRef(false);
 
-    // Helper function to truncate title to max 65 characters with ellipsis
-    const truncateTitle = (title, maxLength = 65) => {
-        if (!title) return '';
-        const suffix = ' | Digital Jagran';
-        const availableLength = maxLength - suffix.length;
-        if (title.length <= availableLength) {
-            return title + suffix;
-        }
-        return title.substring(0, availableLength - 3) + '...' + suffix;
-    };
 
-    // Get the raw title for meta tags
-    const getArticleTitle = () => {
-        // Try English specific fields first if language is English
-        if (language === 'en') {
-            return article?.metaTitle_en || article?.article_header_en || article?.metaTitle || article?.article_header || '';
-        }
-        // Fallback or Hindi
-        return article?.metaTitle || article?.article_header || '';
-    };
-
-    // Get description for meta tags
-    const getArticleDescription = () => {
-        if (language === 'en') {
-            return article?.metaDescription_en || article?.summary_en || article?.metadata_en || article?.metaDescription || article?.summary || article?.metadata || '';
-        }
-        return article?.metaDescription || article?.summary || article?.metadata || '';
-    };
 
     useEffect(() => {
         fetchArticle();
@@ -63,6 +36,68 @@ const ArticleDetail = () => {
             viewTrackedRef.current = true;
         }
     }, [article, id]);
+
+    // Calcluate SEO values safely
+
+    // Default values
+    let seoTitle = '';
+    let seoDescription = '';
+    let seoKeywords = '';
+    let seoCanonical = '';
+    let seoImage = '';
+    let seoKeywordsRaw = [];
+
+    // Only calculate if article is loaded
+    if (article) {
+        // Helper to truncate title
+        const truncate = (t, maxLength = 65) => {
+            if (!t) return '';
+            const suffix = ' | Digital Jagran';
+            const availableLength = maxLength - suffix.length;
+            if (t.length <= availableLength) return t + suffix;
+            return t.substring(0, availableLength - 3) + '...' + suffix;
+        };
+
+        // Title
+        let rawTitle = '';
+        if (language === 'en') {
+            rawTitle = article.metaTitle_en || article.article_header_en || article.metaTitle || article.article_header || '';
+        }
+        if (!rawTitle) {
+            rawTitle = article.metaTitle || article.article_header || '';
+        }
+        seoTitle = truncate(rawTitle);
+
+        // Description
+        let desc = '';
+        if (language === 'en') {
+            desc = article.metaDescription_en || article.summary_en || article.metadata_en || article.metaDescription || article.summary || article.metadata || '';
+        }
+        if (!desc) {
+            desc = article.metaDescription || article.summary || article.metadata || '';
+        }
+        seoDescription = desc;
+
+        // Keywords
+        let keywordsArray = [];
+        if (article.metaKeywords && Array.isArray(article.metaKeywords) && article.metaKeywords.length > 0) {
+            keywordsArray = article.metaKeywords;
+        } else if (article.keywords && Array.isArray(article.keywords) && article.keywords.length > 0) {
+            keywordsArray = article.keywords;
+        } else {
+            keywordsArray = article.tags_en || article.tags || [];
+        }
+
+        const keywordsSliced = keywordsArray.slice(0, 15);
+        seoKeywords = keywordsSliced.join(', ');
+        seoKeywordsRaw = keywordsSliced;
+
+        seoImage = (article.photos && article.photos.length > 0) ? article.photos[0] : '';
+        seoCanonical = article.canonicalUrl || window.location.href.split('?')[0];
+    }
+
+    // Debug info
+    console.log('SEO Debug Direct:', { seoTitle, seoDescription, seoKeywords, seoCanonical });
 
     const fetchArticle = async () => {
         setLoading(true);
@@ -128,7 +163,7 @@ const ArticleDetail = () => {
                 }
             }
 
-            if (!layoutData) {
+            if (!layoutData && articleData.storage_type !== 'html') {
                 layoutData = await getDefaultLayout();
             }
 
@@ -193,23 +228,7 @@ const ArticleDetail = () => {
         );
     }
 
-    // Calcluate SEO values safely
-    const seoTitle = article ? truncateTitle(getArticleTitle()) : '';
-    const seoDescription = article ? getArticleDescription() : '';
-    const seoKeywords = article ? (
-        article.metaKeywords && article.metaKeywords.length > 0
-            ? article.metaKeywords
-            : (article.keywords && article.keywords.length > 0 ? article.keywords : [])
-    ).join(', ') : '';
-    const seoImage = (article && article.photos && article.photos.length > 0) ? article.photos[0] : '';
-    const seoCanonical = article ? (article.canonicalUrl || window.location.href.split('?')[0]) : '';
 
-    // Debug info
-    useEffect(() => {
-        if (article) {
-            console.log('SEO Debug:', { seoTitle, seoDescription, seoKeywords, seoCanonical, seoImage });
-        }
-    }, [article, seoTitle, seoDescription, seoKeywords, seoCanonical, seoImage]);
 
     return (
         <NewsLayout>
@@ -226,6 +245,8 @@ const ArticleDetail = () => {
                     {/* Open Graph / Facebook */}
                     <meta property="og:type" content="article" />
                     <meta property="article:publisher" content="https://www.facebook.com/digitaljagran" />
+                    <meta property="article:author" content={article.author || "Digital Jagran"} />
+                    <meta property="article:section" content={seoKeywordsRaw[0] || 'News'} />
                     <meta property="og:title" content={seoTitle} />
                     <meta property="og:description" content={seoDescription} />
                     {seoImage && <meta property="og:image" content={seoImage} />}
