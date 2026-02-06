@@ -4,7 +4,7 @@ module.exports = {
       name: 'client',
       cwd: './client',
       script: 'npm',
-      args: 'run preview -- --host',
+      args: 'run start --port 5173',
       env: {
         PORT: 5173,
         NODE_ENV: 'production'
