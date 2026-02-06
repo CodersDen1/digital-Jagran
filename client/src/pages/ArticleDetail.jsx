@@ -33,7 +33,20 @@ const ArticleDetail = () => {
 
     // Get the raw title for meta tags
     const getArticleTitle = () => {
-        return article?.metaTitle || article?.article_header_en || article?.article_header || '';
+        // Try English specific fields first if language is English
+        if (language === 'en') {
+            return article?.metaTitle_en || article?.article_header_en || article?.metaTitle || article?.article_header || '';
+        }
+        // Fallback or Hindi
+        return article?.metaTitle || article?.article_header || '';
+    };
+
+    // Get description for meta tags
+    const getArticleDescription = () => {
+        if (language === 'en') {
+            return article?.metaDescription_en || article?.summary_en || article?.metadata_en || article?.metaDescription || article?.summary || article?.metadata || '';
+        }
+        return article?.metaDescription || article?.summary || article?.metadata || '';
     };
 
     useEffect(() => {
@@ -186,7 +199,7 @@ const ArticleDetail = () => {
                 <Helmet>
                     {/* Basic SEO - Always use English SEO fields */}
                     <title>{truncateTitle(getArticleTitle())}</title>
-                    <meta name="description" content={article.metadata || ''} />
+                    <meta name="description" content={getArticleDescription()} />
                     <meta name="keywords" content={
                         (article.metaKeywords && article.metaKeywords.length > 0
                             ? article.metaKeywords
@@ -200,14 +213,14 @@ const ArticleDetail = () => {
                     <meta property="og:type" content="article" />
                     <meta property="article:publisher" content="https://www.facebook.com/digitaljagran" />
                     <meta property="og:title" content={truncateTitle(getArticleTitle())} />
-                    <meta property="og:description" content={article.metadata || ''} />
+                    <meta property="og:description" content={getArticleDescription()} />
                     {article.photos && article.photos.length > 0 && <meta property="og:image" content={article.photos[0]} />}
                     <meta property="og:url" content={window.location.href} />
 
                     {/* Twitter */}
                     <meta name="twitter:card" content="summary_large_image" />
                     <meta name="twitter:title" content={truncateTitle(getArticleTitle())} />
-                    <meta name="twitter:description" content={article.metadata || ''} />
+                    <meta name="twitter:description" content={getArticleDescription()} />
                     {article.photos && article.photos.length > 0 && <meta name="twitter:image" content={article.photos[0]} />}
 
                     {/* Schema.org for Google */}
@@ -231,7 +244,7 @@ const ArticleDetail = () => {
                                     "url": "https://digitaljagran.com/logo.png" // Replace with actual logo if available
                                 }
                             },
-                            "description": article.metadata || article.summary || '',
+                            "description": getArticleDescription(),
                             "articleBody": htmlContent ? htmlContent.replace(/<[^>]+>/g, ' ') : (t(article, 'body') || '')
                         })}
                     </script>
