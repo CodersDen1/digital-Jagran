@@ -1,0 +1,52 @@
+import { Suspense } from 'react';
+import ArticleDetailPage from '@/components/pages/ArticleDetailPage';
+import { getArticleById } from '@/services/api';
+import { generateArticleMetadata } from '@/utils/metaTags';
+import { Metadata, ResolvingMetadata } from 'next';
+import { Loader } from 'lucide-react';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+interface PageProps {
+    params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata(
+    { params }: PageProps,
+    parent: ResolvingMetadata
+): Promise<Metadata> {
+    const { id } = await params;
+
+    try {
+        const article = await getArticleById(id);
+        if (!article) {
+            return {
+                title: 'Article Not Found | Digital Jagran'
+            };
+        }
+
+        // Use the utility we migrated primarily for article metadata
+        return generateArticleMetadata(article);
+    } catch (error) {
+        console.error('Error fetching metadata for article:', error);
+        return {
+            title: 'Digital Jagran'
+        };
+    }
+}
+
+export default async function Page({ params }: PageProps) {
+    const { id } = await params;
+    let initialArticle = null;
+
+    try {
+        initialArticle = await getArticleById(id);
+    } catch (e) {
+        console.error('Failed to fetch initial article server-side:', e);
+    }
+
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader className="animate-spin text-brand-red" size={32} /></div>}>
+            <ArticleDetailPage id={id} initialArticle={initialArticle} />
+        </Suspense>
+    );
+}

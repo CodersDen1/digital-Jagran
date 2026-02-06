@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-white text-gray-900 font-sans;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif font-bold;
+  }
+}
+
+/* Hindi Content Styling */
+.hindi-content blockquote {
+  font-family: 'Yantramanav', sans-serif;
+  font-weight: 300;
+  /* Light */
+  font-style: italic;
+  @apply text-xl pl-4 border-l-4 my-4 bg-gray-50 p-4 rounded-r;
+  border-color: #d91f27;
+}
+
+/* Hide scrollbar for ticker */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

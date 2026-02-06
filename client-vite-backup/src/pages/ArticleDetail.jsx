@@ -8,7 +8,11 @@ import { SocialShare } from '../components/article/ElementRenderers';
 import { useLanguage } from '../context/LanguageContext';
 import { Loader, ArrowLeft, Clock, Eye } from 'lucide-react';
 
-import { Helmet } from 'react-helmet-async';
+import { Helmet } from 'react-helmet-async'; // Keeping for now if I missed something, or remove if unused. 
+// actually I should remove it if I'm sure. I replaced the Helmet usage.
+// Let's replace line 11.
+import SeoHead from '../components/SeoHead';
+import { generateArticleMetaTags } from '../utils/metaTags';
 
 const ArticleDetail = () => {
     const { id } = useParams();
@@ -37,67 +41,10 @@ const ArticleDetail = () => {
         }
     }, [article, id]);
 
-    // Calcluate SEO values safely
-
-    // Default values
-    let seoTitle = '';
-    let seoDescription = '';
-    let seoKeywords = '';
-    let seoCanonical = '';
-    let seoImage = '';
-    let seoKeywordsRaw = [];
-
-    // Only calculate if article is loaded
-    if (article) {
-        // Helper to truncate title
-        const truncate = (t, maxLength = 65) => {
-            if (!t) return '';
-            const suffix = ' | Digital Jagran';
-            const availableLength = maxLength - suffix.length;
-            if (t.length <= availableLength) return t + suffix;
-            return t.substring(0, availableLength - 3) + '...' + suffix;
-        };
-
-        // Title
-        let rawTitle = '';
-        if (language === 'en') {
-            rawTitle = article.metaTitle_en || article.article_header_en || article.metaTitle || article.article_header || '';
-        }
-        if (!rawTitle) {
-            rawTitle = article.metaTitle || article.article_header || '';
-        }
-        seoTitle = truncate(rawTitle);
-
-        // Description
-        let desc = '';
-        if (language === 'en') {
-            desc = article.metaDescription_en || article.summary_en || article.metadata_en || article.metaDescription || article.summary || article.metadata || '';
-        }
-        if (!desc) {
-            desc = article.metaDescription || article.summary || article.metadata || '';
-        }
-        seoDescription = desc;
-
-        // Keywords
-        let keywordsArray = [];
-        if (article.metaKeywords && Array.isArray(article.metaKeywords) && article.metaKeywords.length > 0) {
-            keywordsArray = article.metaKeywords;
-        } else if (article.keywords && Array.isArray(article.keywords) && article.keywords.length > 0) {
-            keywordsArray = article.keywords;
-        } else {
-            keywordsArray = article.tags_en || article.tags || [];
-        }
-
-        const keywordsSliced = keywordsArray.slice(0, 15);
-        seoKeywords = keywordsSliced.join(', ');
-        seoKeywordsRaw = keywordsSliced;
-
-        seoImage = (article.photos && article.photos.length > 0) ? article.photos[0] : '';
-        seoCanonical = article.canonicalUrl || window.location.href.split('?')[0];
-    }
-
-    // Debug info
-    console.log('SEO Debug Direct:', { seoTitle, seoDescription, seoKeywords, seoCanonical });
+    // Generate SEO config
+    const seoConfig = React.useMemo(() => {
+        return generateArticleMetaTags(article, language);
+    }, [article, language]);
 
     const fetchArticle = async () => {
         setLoading(true);
@@ -233,57 +180,7 @@ const ArticleDetail = () => {
     return (
         <NewsLayout>
             {article && (
-                <Helmet>
-                    {/* Basic SEO - Always use English SEO fields */}
-                    <title>{seoTitle}</title>
-                    <meta name="description" content={seoDescription} />
-                    <meta name="keywords" content={seoKeywords} />
-
-                    {/* Canonical URL */}
-                    <link rel="canonical" href={seoCanonical} />
-
-                    {/* Open Graph / Facebook */}
-                    <meta property="og:type" content="article" />
-                    <meta property="article:publisher" content="https://www.facebook.com/digitaljagran" />
-                    <meta property="article:author" content={article.author || "Digital Jagran"} />
-                    <meta property="article:section" content={seoKeywordsRaw[0] || 'News'} />
-                    <meta property="og:title" content={seoTitle} />
-                    <meta property="og:description" content={seoDescription} />
-                    {seoImage && <meta property="og:image" content={seoImage} />}
-                    <meta property="og:url" content={window.location.href} />
-
-                    {/* Twitter */}
-                    <meta name="twitter:card" content="summary_large_image" />
-                    <meta name="twitter:title" content={seoTitle} />
-                    <meta name="twitter:description" content={seoDescription} />
-                    {seoImage && <meta name="twitter:image" content={seoImage} />}
-
-                    {/* Schema.org for Google */}
-                    <script type="application/ld+json">
-                        {JSON.stringify({
-                            "@context": "https://schema.org",
-                            "@type": "NewsArticle",
-                            "headline": seoTitle,
-                            "image": article.photos || [],
-                            "datePublished": article.createdAt,
-                            "dateModified": article.updatedAt,
-                            "author": [{
-                                "@type": "Person",
-                                "name": article.author || "Digital Jagran"
-                            }],
-                            "publisher": {
-                                "@type": "Organization",
-                                "name": "Digital Jagran",
-                                "logo": {
-                                    "@type": "ImageObject",
-                                    "url": "https://digitaljagran.com/logo.png"
-                                }
-                            },
-                            "description": seoDescription,
-                            "articleBody": htmlContent ? htmlContent.replace(/<[^>]+>/g, ' ') : (t(article, 'body') || '')
-                        })}
-                    </script>
-                </Helmet>
+                <SeoHead metaTags={seoConfig} />
             )}
 
             {/* Back Button */}
