@@ -193,42 +193,56 @@ const ArticleDetail = () => {
         );
     }
 
+    // Calcluate SEO values safely
+    const seoTitle = article ? truncateTitle(getArticleTitle()) : '';
+    const seoDescription = article ? getArticleDescription() : '';
+    const seoKeywords = article ? (
+        article.metaKeywords && article.metaKeywords.length > 0
+            ? article.metaKeywords
+            : (article.keywords && article.keywords.length > 0 ? article.keywords : [])
+    ).join(', ') : '';
+    const seoImage = (article && article.photos && article.photos.length > 0) ? article.photos[0] : '';
+    const seoCanonical = article ? (article.canonicalUrl || window.location.href.split('?')[0]) : '';
+
+    // Debug info
+    useEffect(() => {
+        if (article) {
+            console.log('SEO Debug:', { seoTitle, seoDescription, seoKeywords, seoCanonical, seoImage });
+        }
+    }, [article, seoTitle, seoDescription, seoKeywords, seoCanonical, seoImage]);
+
     return (
         <NewsLayout>
             {article && (
                 <Helmet>
                     {/* Basic SEO - Always use English SEO fields */}
-                    <title>{truncateTitle(getArticleTitle())}</title>
-                    <meta name="description" content={getArticleDescription()} />
-                    <meta name="keywords" content={
-                        (article.metaKeywords && article.metaKeywords.length > 0
-                            ? article.metaKeywords
-                            : (article.keywords && article.keywords.length > 0 ? article.keywords : [])
-                        ).join(', ')
-                    } />
-                    {/* Canonical URL - Fallback to current URL if not present */}
-                    <link rel="canonical" href={article.canonicalUrl || window.location.href.split('?')[0]} />
+                    <title>{seoTitle}</title>
+                    <meta name="description" content={seoDescription} />
+                    <meta name="keywords" content={seoKeywords} />
+
+                    {/* Canonical URL */}
+                    <link rel="canonical" href={seoCanonical} />
 
                     {/* Open Graph / Facebook */}
                     <meta property="og:type" content="article" />
                     <meta property="article:publisher" content="https://www.facebook.com/digitaljagran" />
-                    <meta property="og:title" content={truncateTitle(getArticleTitle())} />
-                    <meta property="og:description" content={getArticleDescription()} />
-                    {article.photos && article.photos.length > 0 && <meta property="og:image" content={article.photos[0]} />}
+                    <meta property="og:title" content={seoTitle} />
+                    <meta property="og:description" content={seoDescription} />
+                    {seoImage && <meta property="og:image" content={seoImage} />}
                     <meta property="og:url" content={window.location.href} />
 
                     {/* Twitter */}
                     <meta name="twitter:card" content="summary_large_image" />
-                    <meta name="twitter:title" content={truncateTitle(getArticleTitle())} />
-                    <meta name="twitter:description" content={getArticleDescription()} />
-                    {article.photos && article.photos.length > 0 && <meta name="twitter:image" content={article.photos[0]} />}
+                    <meta name="twitter:title" content={seoTitle} />
+                    <meta name="twitter:description" content={seoDescription} />
+                    {seoImage && <meta name="twitter:image" content={seoImage} />}
 
                     {/* Schema.org for Google */}
                     <script type="application/ld+json">
                         {JSON.stringify({
                             "@context": "https://schema.org",
                             "@type": "NewsArticle",
-                            "headline": getArticleTitle(),
+                            "headline": seoTitle,
                             "image": article.photos || [],
                             "datePublished": article.createdAt,
                             "dateModified": article.updatedAt,
@@ -241,10 +255,10 @@ const ArticleDetail = () => {
                                 "name": "Digital Jagran",
                                 "logo": {
                                     "@type": "ImageObject",
-                                    "url": "https://digitaljagran.com/logo.png" // Replace with actual logo if available
+                                    "url": "https://digitaljagran.com/logo.png"
                                 }
                             },
-                            "description": getArticleDescription(),
+                            "description": seoDescription,
                             "articleBody": htmlContent ? htmlContent.replace(/<[^>]+>/g, ' ') : (t(article, 'body') || '')
                         })}
                     </script>
