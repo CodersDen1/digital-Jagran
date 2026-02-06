@@ -46,6 +46,26 @@ export default async function Page({ params }: PageProps) {
 
     return (
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader className="animate-spin text-brand-red" size={32} /></div>}>
+            {initialArticle && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            '@context': 'https://schema.org',
+                            '@type': 'NewsArticle',
+                            headline: initialArticle.metaTitle || initialArticle.article_header,
+                            image: initialArticle.photos || [initialArticle.featuredImage],
+                            datePublished: initialArticle.createdAt,
+                            dateModified: initialArticle.updatedAt,
+                            author: [{
+                                '@type': 'Person',
+                                name: initialArticle.author || 'Digital Jagran',
+                                url: 'https://www.digitaljagran.com'
+                            }]
+                        })
+                    }}
+                />
+            )}
             <ArticleDetailPage id={id} initialArticle={initialArticle} />
         </Suspense>
     );

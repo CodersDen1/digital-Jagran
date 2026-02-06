@@ -2,6 +2,7 @@ const articleRepository = require('../repositories/articleRepository');
 const FreeformLayout = require('../models/FreeformLayout');
 const translationService = require('../services/translationService');
 const storageService = require('../services/storageService');
+const { pingGoogle } = require('../services/seoService');
 const mongoose = require('mongoose');
 
 class ArticleController {
@@ -76,6 +77,10 @@ class ArticleController {
             }
 
             res.status(200).json(article);
+
+            // SEO: Ping Google
+            // Fire and forget - don't await strictly to slow down response, or Promise.all if critical
+            pingGoogle().catch(err => console.error("Ping failed", err));
         } catch (error) {
             console.error('Injection error:', error);
             res.status(500).json({ error: error.message });
@@ -149,6 +154,11 @@ class ArticleController {
             // Create single article based on payload (Language is decided by client)
             const newArticle = await articleRepository.create(articleData);
             res.status(201).json(newArticle);
+
+            // SEO: Ping Google
+            if (newArticle.is_Published) {
+                pingGoogle().catch(err => console.error("Ping failed", err));
+            }
         } catch (error) {
             // Handle duplicate key error for slug
             if (error.code === 11000 && error.keyPattern && error.keyPattern.slug) {
