@@ -193,10 +193,12 @@ const ArticleDetail = () => {
                             : (article.keywords && article.keywords.length > 0 ? article.keywords : [])
                         ).join(', ')
                     } />
-                    {article.canonicalUrl && <link rel="canonical" href={article.canonicalUrl} />}
+                    {/* Canonical URL - Fallback to current URL if not present */}
+                    <link rel="canonical" href={article.canonicalUrl || window.location.href.split('?')[0]} />
 
                     {/* Open Graph / Facebook */}
                     <meta property="og:type" content="article" />
+                    <meta property="article:publisher" content="https://www.facebook.com/digitaljagran" />
                     <meta property="og:title" content={truncateTitle(getArticleTitle())} />
                     <meta property="og:description" content={article.metadata || ''} />
                     {article.photos && article.photos.length > 0 && <meta property="og:image" content={article.photos[0]} />}
