@@ -70,6 +70,9 @@ export const generateArticleMetadata = (article: any, language = 'en'): Metadata
         title,
         description,
         keywords,
+        icons: {
+            icon: '/favicon.ico',
+        },
         alternates: {
             canonical: canonical,
         },
@@ -78,7 +81,7 @@ export const generateArticleMetadata = (article: any, language = 'en'): Metadata
             description,
             images: [
                 {
-                    url: image,
+                    url: image, // Uses article.photos[0] or fallback
                     alt: title,
                 }
             ],
@@ -94,12 +97,8 @@ export const generateArticleMetadata = (article: any, language = 'en'): Metadata
             card: 'summary_large_image',
             title,
             description,
-            images: [image],
+            images: [image], // Uses article.photos[0] or fallback
         },
-        // Custom schema script can be handled separately in the page component if needed, 
-        // or using specific Next.js script strategy. 
-        // For simplicity, we are not returning the schema object in Metadata type (it's not supported directly in this object).
-        // We will export a separate function for JSON-LD.
     };
 };
 
