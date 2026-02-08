@@ -37,7 +37,12 @@ export async function GET() {
         const xml = `<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
             xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
-      ${recentArticles.map((article: any) => `
+      ${recentArticles.map((article: any) => {
+            const rawTitle = article.metaTitle || article.article_header || 'Untitled';
+            const cleanTitle = rawTitle.replace(/ \| Digital Jagran( \d{4})?/g, ''); // Removes " | Digital Jagran" and " | Digital Jagran 2026"
+            const date = new Date(article.createdAt).toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+            return `
       <url>
         <loc>${escapeXml(`https://www.digitaljagran.com/article/${article.slug}`)}</loc>
         <news:news>
@@ -45,11 +50,12 @@ export async function GET() {
             <news:name>Digital Jagran</news:name>
             <news:language>${article.published_language === 'en' ? 'en' : 'hi'}</news:language>
           </news:publication>
-          <news:publication_date>${new Date(article.createdAt).toISOString()}</news:publication_date>
-          <news:title>${escapeXml(article.metaTitle || article.article_header || 'Untitled')}</news:title>
+          <news:publication_date>${date}</news:publication_date>
+          <news:title>${escapeXml(cleanTitle)}</news:title>
         </news:news>
       </url>
-      `).join('')}
+      `;
+        }).join('')}
     </urlset>`;
 
         return new NextResponse(xml, {
