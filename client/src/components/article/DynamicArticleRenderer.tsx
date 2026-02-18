@@ -32,52 +32,91 @@ const DynamicArticleRenderer = ({ article, layout }: DynamicArticleRendererProps
     // Sort elements by row for proper rendering order
     const sortedElements = [...layout.elements].sort((a: any, b: any) => a.row - b.row);
 
-    // Generate CSS classes from config
-    const getConfigStyles = (config: any) => {
-        const classes = [];
+    // Convert config to inline styles instead of dynamic Tailwind classes
+    // Dynamic classes like `text-${val}` get purged in production builds
+    const getConfigInlineStyles = (config: any): React.CSSProperties => {
+        const styles: React.CSSProperties = {};
 
-        if (config.fontSize) classes.push(`text-${config.fontSize}`);
-        if (config.fontWeight) classes.push(`font-${config.fontWeight}`);
-        if (config.fontFamily) classes.push(`font-${config.fontFamily}`);
-        if (config.textAlign) classes.push(`text-${config.textAlign}`);
-        if (config.textColor) classes.push(`text-${config.textColor}`);
-        if (config.lineHeight && config.lineHeight !== 'normal') {
-            classes.push(`leading-${config.lineHeight}`);
+        const FONT_SIZE_MAP: Record<string, string> = {
+            'xs': '0.75rem', 'sm': '0.875rem', 'base': '1rem', 'lg': '1.125rem',
+            'xl': '1.25rem', '2xl': '1.5rem', '3xl': '1.875rem', '4xl': '2.25rem', '5xl': '3rem'
+        };
+        const FONT_WEIGHT_MAP: Record<string, number> = {
+            'light': 300, 'normal': 400, 'medium': 500, 'semibold': 600, 'bold': 700
+        };
+        const SPACING_MAP: Record<string, string> = {
+            '0': '0px', '1': '0.25rem', '2': '0.5rem', '3': '0.75rem', '4': '1rem',
+            '6': '1.5rem', '8': '2rem', '10': '2.5rem', '12': '3rem', '16': '4rem'
+        };
+        const LINE_HEIGHT_MAP: Record<string, number> = {
+            'tight': 1.25, 'normal': 1.5, 'relaxed': 1.625, 'loose': 2
+        };
+        const BORDER_RADIUS_MAP: Record<string, string> = {
+            'sm': '0.125rem', 'md': '0.375rem', 'lg': '0.5rem', 'xl': '0.75rem', '2xl': '1rem', 'full': '9999px'
+        };
+
+        if (config.fontSize && FONT_SIZE_MAP[config.fontSize]) styles.fontSize = FONT_SIZE_MAP[config.fontSize];
+        if (config.fontWeight && FONT_WEIGHT_MAP[config.fontWeight]) styles.fontWeight = FONT_WEIGHT_MAP[config.fontWeight];
+        if (config.fontFamily) {
+            const families: Record<string, string> = {
+                'serif': 'ui-serif, Georgia, serif',
+                'sans': 'ui-sans-serif, system-ui, sans-serif',
+                'mono': 'ui-monospace, monospace'
+            };
+            if (families[config.fontFamily]) styles.fontFamily = families[config.fontFamily];
         }
-        if (config.paddingTop && config.paddingTop !== '0') classes.push(`pt-${config.paddingTop}`);
-        if (config.paddingBottom && config.paddingBottom !== '0') classes.push(`pb-${config.paddingBottom}`);
-        if (config.paddingLeft && config.paddingLeft !== '0') classes.push(`pl-${config.paddingLeft}`);
-        if (config.paddingRight && config.paddingRight !== '0') classes.push(`pr-${config.paddingRight}`);
-        if (config.marginTop && config.marginTop !== '0') classes.push(`mt-${config.marginTop}`);
-        if (config.marginBottom && config.marginBottom !== '0') classes.push(`mb-${config.marginBottom}`);
+        if (config.textAlign) styles.textAlign = config.textAlign as any;
+        if (config.textColor) styles.color = config.textColor;
+        if (config.lineHeight && LINE_HEIGHT_MAP[config.lineHeight]) styles.lineHeight = LINE_HEIGHT_MAP[config.lineHeight];
+
+        if (config.paddingTop && config.paddingTop !== '0' && SPACING_MAP[config.paddingTop]) styles.paddingTop = SPACING_MAP[config.paddingTop];
+        if (config.paddingBottom && config.paddingBottom !== '0' && SPACING_MAP[config.paddingBottom]) styles.paddingBottom = SPACING_MAP[config.paddingBottom];
+        if (config.paddingLeft && config.paddingLeft !== '0' && SPACING_MAP[config.paddingLeft]) styles.paddingLeft = SPACING_MAP[config.paddingLeft];
+        if (config.paddingRight && config.paddingRight !== '0' && SPACING_MAP[config.paddingRight]) styles.paddingRight = SPACING_MAP[config.paddingRight];
+        if (config.marginTop && config.marginTop !== '0' && SPACING_MAP[config.marginTop]) styles.marginTop = SPACING_MAP[config.marginTop];
+        if (config.marginBottom && config.marginBottom !== '0' && SPACING_MAP[config.marginBottom]) styles.marginBottom = SPACING_MAP[config.marginBottom];
+
         if (config.backgroundColor && config.backgroundColor !== 'transparent') {
-            classes.push(`bg-${config.backgroundColor}`);
+            styles.backgroundColor = config.backgroundColor;
         }
-        if (config.borderRadius && config.borderRadius !== 'none') {
-            classes.push(`rounded-${config.borderRadius}`);
+        if (config.borderRadius && config.borderRadius !== 'none' && BORDER_RADIUS_MAP[config.borderRadius]) {
+            styles.borderRadius = BORDER_RADIUS_MAP[config.borderRadius];
         }
-        // Border left (only when explicitly enabled)
         if (config.borderLeft) {
-            classes.push(`border-l-4 border-${config.borderColor || 'gray-300'}`);
+            styles.borderLeft = `4px solid ${config.borderColor || '#d1d5db'}`;
         }
-        // Max height with overflow handling
         if (config.maxHeight) {
-            classes.push(`max-h-${config.maxHeight}`);
-            classes.push('overflow-hidden');
+            styles.maxHeight = SPACING_MAP[config.maxHeight] || `${parseInt(config.maxHeight) * 4}px`;
+            styles.overflow = 'hidden';
         }
 
-        return classes.join(' ');
+        return styles;
     };
 
     // Filter root elements (those without a parent)
     const rootElements = sortedElements.filter((el: any) => !el.parentId);
 
+    // Map gap values to pixels for inline styles
+    const GAP_MAP: Record<string, string> = {
+        '0': '0px', '1': '4px', '2': '8px', '3': '12px', '4': '16px',
+        '5': '20px', '6': '24px', '8': '32px', '10': '40px', '12': '48px'
+    };
+    const MAX_WIDTH_MAP: Record<string, string> = {
+        'sm': '640px', 'md': '768px', 'lg': '1024px', 'xl': '1280px',
+        '2xl': '1536px', '3xl': '1600px', '4xl': '896px', '5xl': '1024px',
+        '6xl': '1152px', '7xl': '1280px'
+    };
+
+    const gridGapValue = GAP_MAP[layout.gridGap] || GAP_MAP['4'];
+    const maxWidthValue = MAX_WIDTH_MAP[layout.maxWidth] || MAX_WIDTH_MAP['4xl'];
+
     return (
         <div
-            className={`grid grid-cols-12 gap-${layout.gridGap || '4'} max-w-${layout.maxWidth || '4xl'} mx-auto`}
+            className="grid grid-cols-12 mx-auto"
+            style={{ gap: gridGapValue, maxWidth: maxWidthValue }}
         >
             {rootElements.map((element: any) => {
-                const configStyles = getConfigStyles(element.config);
+                const configInlineStyles = getConfigInlineStyles(element.config);
 
                 // Handle nested sections
                 if (element.type === 'section') {
@@ -91,7 +130,7 @@ const DynamicArticleRenderer = ({ article, layout }: DynamicArticleRendererProps
                             style={{ gridColumn: `span ${element.width} / span ${element.width}` }}
                             className={`${!element.config.showOnMobile ? 'hidden md:block' : ''} ${!element.config.showOnDesktop ? 'md:hidden' : ''}`}
                         >
-                            <div className={`grid grid-cols-1 md:grid-cols-${columns} gap-4`}>
+                            <div className="grid grid-cols-1" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: '16px' }}>
                                 {Array.from({ length: columns }, (_, i) => i).map(colIndex => {
                                     const colElements = children
                                         .filter((child: any) => child.column === colIndex)
@@ -100,7 +139,7 @@ const DynamicArticleRenderer = ({ article, layout }: DynamicArticleRendererProps
                                     return (
                                         <div key={colIndex} className="flex flex-col gap-4">
                                             {colElements.map((child: any) => (
-                                                <div key={child.id} className={getConfigStyles(child.config)}>
+                                                <div key={child.id} style={getConfigInlineStyles(child.config)}>
                                                     <ElementRenderers
                                                         type={child.type}
                                                         elementId={child.id}
@@ -125,7 +164,7 @@ const DynamicArticleRenderer = ({ article, layout }: DynamicArticleRendererProps
                         style={{ gridColumn: `span ${element.width} / span ${element.width}` }}
                         className={`${!element.config.showOnMobile ? 'hidden md:block' : ''} ${!element.config.showOnDesktop ? 'md:hidden' : ''}`}
                     >
-                        <div className={configStyles}>
+                        <div style={configInlineStyles}>
                             <ElementRenderers
                                 type={element.type}
                                 elementId={element.id}

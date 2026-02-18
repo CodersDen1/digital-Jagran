@@ -8,15 +8,22 @@ class ArticleRepository {
     }
 
     async findAll() {
-        return await Article.find().sort({ createdAt: -1 });
+        return await Article.find().sort({ createdAt: -1 }).lean();
     }
 
     async findById(id) {
         return await Article.findById(id);
     }
 
+    /**
+     * Safe update using $set - prevents data loss from findOneAndReplace
+     */
     async update(id, updateData) {
-        return await Article.findByIdAndUpdate(id, updateData, { new: true });
+        return await Article.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        );
     }
 
     async delete(id) {
@@ -28,7 +35,9 @@ class ArticleRepository {
     }
 
     async findPublished() {
-        return await Article.find({ is_Published: true }).sort({ createdAt: -1 });
+        return await Article.find({ is_Published: true })
+            .sort({ createdAt: -1 })
+            .lean();
     }
 
     async incrementViews(idOrSlug) {
@@ -46,15 +55,12 @@ class ArticleRepository {
     async findTrending(limit = 10) {
         return await Article.find({ is_Published: true })
             .sort({ views: -1, createdAt: -1 })
-            .limit(limit);
+            .limit(limit)
+            .lean();
     }
 
     async findBySlug(slug) {
         return await Article.findOne({ slug });
-    }
-
-    async replace(id, data) {
-        return await Article.findOneAndReplace({ _id: id }, data, { new: true });
     }
 }
 

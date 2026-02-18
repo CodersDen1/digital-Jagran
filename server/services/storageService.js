@@ -35,7 +35,7 @@ const uploadArticleHtml = async (htmlContent, slug, date = new Date()) => {
             Key: key,
             Body: htmlContent,
             ContentType: 'text/html',
-            ACL: 'public-read', // Or private depending on bucket settings
+            // Note: R2 doesn't support ACL - use bucket-level public access settings instead
         });
 
         await s3Client.send(command);

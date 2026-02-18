@@ -21,7 +21,7 @@ const FreeformArticleRenderer = ({ article, layout }: FreeformArticleRendererPro
     const canvasWidth = layout.canvas?.width || 1200;
     const canvasHeight = layout.canvas?.height || 1800;
 
-    // Calculate responsive scale on mount and resize
+    // Calculate responsive scale on mount and resize (debounced)
     useEffect(() => {
         const calculateScale = () => {
             if (!containerRef.current) return;
@@ -31,9 +31,18 @@ const FreeformArticleRenderer = ({ article, layout }: FreeformArticleRendererPro
             setScale(newScale);
         };
 
+        let timeoutId: ReturnType<typeof setTimeout>;
+        const debouncedResize = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(calculateScale, 150);
+        };
+
         calculateScale();
-        window.addEventListener('resize', calculateScale);
-        return () => window.removeEventListener('resize', calculateScale);
+        window.addEventListener('resize', debouncedResize);
+        return () => {
+            window.removeEventListener('resize', debouncedResize);
+            clearTimeout(timeoutId);
+        };
     }, [canvasWidth]);
 
     // Sort elements by zIndex for correct layering

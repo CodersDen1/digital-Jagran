@@ -1,19 +1,13 @@
 const articleRepository = require('../repositories/articleRepository');
+const cache = require('../services/cacheService');
 
 class SitemapController {
     async generateSitemap(req, res) {
         try {
-            // Fetch all published articles
-            // Note: articleRepository.findAll() currently returns all. 
-            // We should ideally have a method for just published ones, or filter here.
-            // For efficiency, repository filtering is better, but I'll check what's available.
-            // Assuming findAll returns Mongoose documents, we can filter in memory for now if the set is small,
-            // or better, let's assume we can filter.
-
-            const articles = await articleRepository.findAll();
-
-            // Filter for published articles
-            const publishedArticles = articles.filter(article => article.is_Published);
+            // Use cached published articles instead of fetching all then filtering
+            const publishedArticles = await cache.getCachedPublishedArticles(
+                () => articleRepository.findPublished()
+            );
 
             const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 

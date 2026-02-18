@@ -95,7 +95,7 @@ const InjectHtml = () => {
 
             setSuccess('Article injected successfully!');
             setTimeout(() => {
-                navigate(`/edit-freeform/${response.data._id}`);
+                navigate(`/edit-html/${response.data._id}`);
             }, 1500);
 
         } catch (err) {

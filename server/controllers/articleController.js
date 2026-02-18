@@ -3,6 +3,7 @@ const FreeformLayout = require('../models/FreeformLayout');
 const translationService = require('../services/translationService');
 const storageService = require('../services/storageService');
 const { pingGoogle } = require('../services/seoService');
+const cache = require('../services/cacheService');
 const mongoose = require('mongoose');
 
 class ArticleController {
@@ -76,6 +77,7 @@ class ArticleController {
                 article = await articleRepository.create(articleData);
             }
 
+            cache.invalidateArticles();
             res.status(200).json(article);
 
             // SEO: Ping Google
@@ -153,6 +155,7 @@ class ArticleController {
 
             // Create single article based on payload (Language is decided by client)
             const newArticle = await articleRepository.create(articleData);
+            cache.invalidateArticles();
             res.status(201).json(newArticle);
 
             // SEO: Ping Google
@@ -254,13 +257,18 @@ class ArticleController {
 
     async getAllArticles(req, res) {
         try {
-            const articles = await articleRepository.findAll();
+            const articles = await cache.getCachedArticles(() => articleRepository.findAll());
 
-            // Disable caching
-            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-            res.set('Pragma', 'no-cache');
-            res.set('Expires', '0');
-            res.set('Surrogate-Control', 'no-store');
+            // For CMS: allow no-cache header to bypass
+            if (req.headers['cache-control'] === 'no-cache') {
+                const freshArticles = await articleRepository.findAll();
+                cache.invalidateArticles();
+                res.set('Cache-Control', 'no-store');
+                return res.status(200).json(freshArticles);
+            }
+
+            // Enable short browser caching for GET requests
+            res.set('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=120');
 
             res.status(200).json(articles);
         } catch (error) {
@@ -268,37 +276,85 @@ class ArticleController {
         }
     }
 
+    /**
+     * GET /api/articles/published - Optimized endpoint for client
+     * Returns only published articles with minimal fields for listing
+     * Supports pagination via ?page=1&limit=20
+     */
+    async getPublishedArticles(req, res) {
+        try {
+            const page = Math.max(1, parseInt(req.query.page) || 1);
+            const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+
+            const articles = await cache.getCachedPublishedArticles(
+                () => articleRepository.findPublished()
+            );
+
+            // Server-side pagination
+            const startIndex = (page - 1) * limit;
+            const paginatedArticles = articles.slice(startIndex, startIndex + limit);
+
+            // Strip heavy fields for listing (elements, body content)
+            const lightArticles = paginatedArticles.map(a => {
+                const obj = a.toObject ? a.toObject() : { ...a };
+                delete obj.elements;
+                delete obj.elementContent;
+                delete obj.elementContent_en;
+                delete obj.body;
+                delete obj.body_en;
+                delete obj.html_path;
+                delete obj.html_path_en;
+                return obj;
+            });
+
+            res.set('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=120');
+
+            res.status(200).json({
+                articles: lightArticles,
+                pagination: {
+                    page,
+                    limit,
+                    total: articles.length,
+                    totalPages: Math.ceil(articles.length / limit),
+                    hasMore: startIndex + limit < articles.length,
+                }
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
     async getArticleById(req, res) {
         try {
-            let article;
-            if (mongoose.Types.ObjectId.isValid(req.params.id)) {
-                article = await articleRepository.findById(req.params.id);
-            }
+            const idOrSlug = req.params.id;
 
-            if (!article) {
-                article = await articleRepository.findBySlug(req.params.id);
-
-                // Optimization: If fetching by SLUG (Client Viewer), and HTML exists, 
-                // don't send the heavy JSON source (elements/layout) to the client.
-                if (article && article.storage_type === 'html') {
-                    // Convert to POJO to allow modification
-                    article = article.toObject ? article.toObject() : article;
-
-                    // Remove heavy editorial data not needed for HTML rendering
-                    delete article.elements;
-                    delete article.elementContent;
-                    delete article.elementContent_en;
-                    delete article.layoutTemplate;
+            const article = await cache.getCachedArticle(idOrSlug, async () => {
+                let found;
+                if (mongoose.Types.ObjectId.isValid(idOrSlug)) {
+                    found = await articleRepository.findById(idOrSlug);
                 }
-            }
+
+                if (!found) {
+                    found = await articleRepository.findBySlug(idOrSlug);
+
+                    // Optimization: If fetching by SLUG (Client Viewer), and HTML exists, 
+                    // don't send the heavy JSON source (elements/layout) to the client.
+                    if (found && found.storage_type === 'html') {
+                        found = found.toObject ? found.toObject() : found;
+                        delete found.elements;
+                        delete found.elementContent;
+                        delete found.elementContent_en;
+                        delete found.layoutTemplate;
+                    }
+                }
+
+                return found;
+            });
 
             if (!article) return res.status(404).json({ message: 'Article not found' });
 
-            // Disable caching for this specific response
-            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-            res.set('Pragma', 'no-cache');
-            res.set('Expires', '0');
-            res.set('Surrogate-Control', 'no-store'); // For CDNs
+            // Short cache for article detail
+            res.set('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
 
             res.status(200).json(article);
         } catch (error) {
@@ -327,6 +383,7 @@ class ArticleController {
             };
 
             const newArticle = await articleRepository.create(newArticleData);
+            cache.invalidateArticles();
             res.status(201).json(newArticle);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -381,8 +438,10 @@ class ArticleController {
                 }
             }
 
-            const updatedArticle = await articleRepository.replace(req.params.id, updates);
+            const updatedArticle = await articleRepository.update(req.params.id, updates);
             if (!updatedArticle) return res.status(404).json({ message: 'Article not found' });
+            cache.invalidateArticle(req.params.id);
+            if (updatedArticle.slug) cache.invalidateArticle(updatedArticle.slug);
             res.status(200).json(updatedArticle);
         } catch (error) {
             if (error.code === 11000 && error.keyPattern && error.keyPattern.slug) {
@@ -396,6 +455,7 @@ class ArticleController {
         try {
             const deletedArticle = await articleRepository.delete(req.params.id);
             if (!deletedArticle) return res.status(404).json({ message: 'Article not found' });
+            cache.invalidateArticles();
             res.status(200).json({ message: 'Article deleted successfully' });
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -409,6 +469,7 @@ class ArticleController {
                 return res.status(400).json({ message: 'No article IDs provided' });
             }
             await articleRepository.deleteMany(ids);
+            cache.invalidateArticles();
             res.status(200).json({ message: 'Articles deleted successfully' });
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -419,6 +480,8 @@ class ArticleController {
         try {
             const article = await articleRepository.incrementViews(req.params.id);
             if (!article) return res.status(404).json({ message: 'Article not found' });
+            // Don't aggressively invalidate on every view - trending cache will expire naturally
+            cache.invalidateTrending();
             res.status(200).json({ views: article.views });
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -428,13 +491,12 @@ class ArticleController {
     async getTrendingArticles(req, res) {
         try {
             const limit = parseInt(req.query.limit) || 10;
-            const articles = await articleRepository.findTrending(limit);
+            const articles = await cache.getCachedTrending(limit, () =>
+                articleRepository.findTrending(limit)
+            );
 
-            // Disable caching
-            res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-            res.set('Pragma', 'no-cache');
-            res.set('Expires', '0');
-            res.set('Surrogate-Control', 'no-store');
+            // Allow short caching for trending
+            res.set('Cache-Control', 'public, max-age=30, s-maxage=90, stale-while-revalidate=180');
 
             res.status(200).json(articles);
         } catch (error) {

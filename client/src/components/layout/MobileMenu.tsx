@@ -16,12 +16,12 @@ const MobileMenu = ({ isOpen, onClose, onCategoryChange, activeCategory }: Mobil
     const { language, toggleLanguage } = useLanguage();
 
     const menuItems = [
-        { label: 'All', icon: LayoutGrid },
-        { label: 'Politics', icon: Vote },
-        { label: 'Business', icon: Briefcase },
-        { label: 'Tech', icon: Laptop },
-        { label: 'Sports', icon: Trophy },
-        { label: 'Entertainment', icon: Film },
+        { label: 'ALL', displayLabel: 'All', icon: LayoutGrid },
+        { label: 'Politics', displayLabel: 'Politics', icon: Vote },
+        { label: 'Business', displayLabel: 'Business', icon: Briefcase },
+        { label: 'Tech', displayLabel: 'Tech', icon: Laptop },
+        { label: 'Sports', displayLabel: 'Sports', icon: Trophy },
+        { label: 'Entertainment', displayLabel: 'Entertainment', icon: Film },
     ];
 
     if (!isOpen) return null;
@@ -70,7 +70,7 @@ const MobileMenu = ({ isOpen, onClose, onCategoryChange, activeCategory }: Mobil
                                         <div className="flex items-center gap-3">
                                             <Icon size={20} className={`transition ${isActive ? 'text-brand-red' : 'text-gray-500 group-hover:text-brand-red'}`} />
                                             <span className={`font-medium transition ${isActive ? 'text-brand-red' : 'text-gray-800 group-hover:text-brand-red'}`}>
-                                                {item.label}
+                                                {item.displayLabel}
                                             </span>
                                         </div>
                                         <ChevronRight size={18} className="text-gray-400 group-hover:translate-x-1 transition-transform" />

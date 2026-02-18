@@ -10,7 +10,7 @@ const DEFAULT_IMAGE = 'https://digitaljagran.com/logo.png'; // Fallback image
 /**
  * Utility function to truncate text
  */
-const truncate = (text: string, maxLength = 65, suffix = ' | Digital Jagran') => {
+const truncate = (text: string, maxLength = 80, suffix = ' | Digital Jagran') => {
     if (!text) return '';
     const availableLength = maxLength - suffix.length;
     if (text.length <= availableLength) return text + suffix;
@@ -64,7 +64,9 @@ export const generateArticleMetadata = (article: any, language = 'en'): Metadata
     const image = (article.photos && article.photos.length > 0) ? article.photos[0] : DEFAULT_IMAGE;
 
     // --- Canonical ---
-    const canonical = article.canonicalUrl || (typeof window !== 'undefined' ? window.location.href.split('?')[0] : DEFAULT_SITE_URL);
+    // Build canonical from article slug (never rely on window in server-side code)
+    const articleSlug = article.slug || article._id;
+    const canonical = article.canonicalUrl || `${DEFAULT_SITE_URL}/article/${articleSlug}`;
 
     return {
         title,

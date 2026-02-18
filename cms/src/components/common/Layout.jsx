@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, PenSquare, LogOut, Palette, Sparkles } from 'lucide-react';
+import { LayoutDashboard, PenSquare, LogOut, Palette, Sparkles, Layers } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import SessionTimer from '../auth/SessionTimer';
 
@@ -12,6 +12,7 @@ const Layout = ({ children, hideSidebar = false }) => {
         { label: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
         { label: 'Create Article', path: '/create', icon: <PenSquare size={20} /> },
         { label: 'Layout Templates', path: '/layouts', icon: <Palette size={20} /> },
+        { label: 'Freeform Layouts', path: '/freeform-layouts', icon: <Layers size={20} /> },
         { label: 'New Visual Article', path: '/create-visual', icon: <Sparkles size={20} /> },
         { label: 'Inject HTML', path: '/inject-html', icon: <div className="font-bold font-mono text-xs border border-current rounded px-1">INJ</div> },
     ];
@@ -37,19 +38,24 @@ const Layout = ({ children, hideSidebar = false }) => {
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === item.path
-                                ? 'bg-blue-50 text-primary font-medium'
-                                : 'text-gray-600 hover:bg-gray-50'
-                                }`}
-                        >
-                            {item.icon}
-                            {item.label}
-                        </Link>
-                    ))}
+                    {navItems.map((item) => {
+                        const isActive = item.path === '/' 
+                            ? location.pathname === '/' 
+                            : location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                                    ? 'bg-blue-50 text-primary font-medium'
+                                    : 'text-gray-600 hover:bg-gray-50'
+                                    }`}
+                            >
+                                {item.icon}
+                                {item.label}
+                            </Link>
+                        );
+                    })}
                 </nav>
 
                 <div className="p-4 border-t">
@@ -67,7 +73,10 @@ const Layout = ({ children, hideSidebar = false }) => {
             <main className="flex-1 overflow-y-auto">
                 <header className="bg-white shadow-sm p-4 flex justify-between items-center px-8">
                     <h2 className="text-xl font-semibold text-gray-800">
-                        {navItems.find(i => i.path === location.pathname)?.label || 'Admin'}
+                        {navItems.find(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/'))?.label || 
+                         (location.pathname.startsWith('/edit/') ? 'Edit Article' :
+                          location.pathname.startsWith('/edit-html/') ? 'Visual Editor' :
+                          location.pathname.startsWith('/layouts/') ? 'Layout Designer' : 'Admin')}
                     </h2>
                     <div className="flex items-center gap-4">
                         <SessionTimer />

@@ -72,58 +72,59 @@ const ArticleDetailPage = ({ id, initialArticle }: ArticleDetailPageProps) => {
 
     const fetchSecondaryData = async (articleData: any) => {
         try {
+            // Parallel fetches for layout and HTML content
+            const promises: Promise<any>[] = [];
+
             // Handle HTML Storage
             if (articleData.storage_type === 'html') {
-                try {
-                    const path = language === 'en' ? articleData.html_path_en : articleData.html_path;
-                    if (path) {
-                        const r2BaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
-                        if (r2BaseUrl) {
-                            const url = `${r2BaseUrl}/${path}?t=${new Date().getTime()}`;
-                            const response = await fetch(url);
-                            if (!response.ok) throw new Error('Failed to fetch from R2');
-                            const html = await response.text();
-                            setHtmlContent(html);
-                        } else {
-                            const html = await getArticleHtmlContent(id, language);
-                            setHtmlContent(html);
-                        }
+                const path = language === 'en' ? articleData.html_path_en : articleData.html_path;
+                if (path) {
+                    const r2BaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
+                    if (r2BaseUrl) {
+                        promises.push(
+                            fetch(`${r2BaseUrl}/${path}`)
+                                .then(r => r.ok ? r.text() : null)
+                                .catch(() => null)
+                        );
+                    } else {
+                        promises.push(
+                            getArticleHtmlContent(id, language).catch(() => null)
+                        );
                     }
-                } catch (e) {
-                    console.error('Failed to load HTML content:', e);
+                } else {
+                    promises.push(Promise.resolve(null));
                 }
+            } else {
+                promises.push(Promise.resolve(null));
             }
 
-            // Fetch Layout
-            let layoutData = null;
-            if (articleData.storage_type !== 'html') {
-                if (articleData.layoutTemplate) {
-                    try {
-                        layoutData = await getLayoutById(articleData.layoutTemplate);
-                        if (layoutData) layoutData.layoutType = 'grid';
-                    } catch (e) {
-                        console.log('Grid layout not found, trying freeform layout');
-                    }
-
-                    if (!layoutData) {
-                        try {
-                            layoutData = await getFreeformLayoutById(articleData.layoutTemplate);
-                            if (layoutData) layoutData.layoutType = 'freeform';
-                        } catch (e) {
-                            console.log('Freeform layout not found, trying default');
-                        }
-                    }
-                }
+            // Fetch Layout (only for non-HTML storage)
+            if (articleData.storage_type !== 'html' && articleData.layoutTemplate) {
+                promises.push(
+                    getLayoutById(articleData.layoutTemplate)
+                        .then(l => l ? { ...l, layoutType: 'grid' } : null)
+                        .catch(() =>
+                            getFreeformLayoutById(articleData.layoutTemplate)
+                                .then(l => l ? { ...l, layoutType: 'freeform' } : null)
+                                .catch(() => null)
+                        )
+                );
+            } else if (articleData.storage_type !== 'html') {
+                promises.push(getDefaultLayout().catch(() => null));
+            } else {
+                promises.push(Promise.resolve(null));
             }
 
-            if (!layoutData && articleData.storage_type !== 'html') {
-                layoutData = await getDefaultLayout();
-            }
+            // Fetch Related Articles (use already-fetched published articles, not ALL)
+            promises.push(getArticles().catch(() => []));
+
+            const [htmlResult, layoutData, allArticles] = await Promise.all(promises);
+
+            if (htmlResult) setHtmlContent(htmlResult);
             setLayout(layoutData);
 
-            // Fetch Related Articles
-            const allArticles = await getArticles();
-            const visibleArticles = allArticles.filter((a: any) => {
+            // Filter related articles
+            const visibleArticles = (allArticles || []).filter((a: any) => {
                 if (language === 'en') {
                     return a.published_language === 'en' || a.published_language === 'both';
                 } else {
@@ -232,6 +233,7 @@ const ArticleDetailPage = ({ id, initialArticle }: ArticleDetailPageProps) => {
                                             src={relatedArticle.photos[0]}
                                             alt={t(relatedArticle, 'article_header')}
                                             title={t(relatedArticle, 'article_header')}
+                                            loading="lazy"
                                             className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                                         />
                                     </div>

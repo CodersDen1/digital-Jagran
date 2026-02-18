@@ -81,6 +81,32 @@ function App() {
           }
         />
 
+        {/* Freeform Layouts List */}
+        <Route
+          path="/freeform-layouts"
+          element={
+            <ProtectedRoute>
+              <FreeformLayoutsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/freeform-layouts/new"
+          element={
+            <ProtectedRoute>
+              <HtmlVisualEditor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/freeform-layouts/:id"
+          element={
+            <ProtectedRoute>
+              <HtmlVisualEditor />
+            </ProtectedRoute>
+          }
+        />
+
         {/* HTML Injection */}
         <Route
           path="/inject-html"
@@ -101,15 +127,6 @@ function App() {
           }
         />
 
-        {/* Html Visual Editor */}
-        <Route
-          path="/edit-html/:id"
-          element={
-            <ProtectedRoute>
-              <HtmlVisualEditor />
-            </ProtectedRoute>
-          }
-        />
       </Routes>
     </Router>
   );

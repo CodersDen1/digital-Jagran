@@ -1,4 +1,5 @@
 const FreeformLayout = require('../models/FreeformLayout');
+const cache = require('../services/cacheService');
 
 /**
  * Freeform Layout Controller
@@ -21,6 +22,7 @@ exports.createFreeformLayout = async (req, res) => {
         const layout = new FreeformLayout(layoutData);
         await layout.save();
 
+        cache.invalidateFreeformLayouts();
         res.status(201).json(layout);
     } catch (error) {
         console.error('Error creating freeform layout:', error);
@@ -31,16 +33,18 @@ exports.createFreeformLayout = async (req, res) => {
 // Get all freeform layouts
 exports.getAllFreeformLayouts = async (req, res) => {
     try {
-        const layouts = await FreeformLayout.find({ isActive: true })
-            .select('name description isDefault canvas.width canvas.height elements createdAt updatedAt')
-            .sort({ updatedAt: -1 });
+        const layoutsWithMeta = await cache.getCachedFreeformLayouts(async () => {
+            const layouts = await FreeformLayout.find({ isActive: true })
+                .select('name description isDefault canvas.width canvas.height elements createdAt updatedAt')
+                .sort({ updatedAt: -1 });
 
-        // Add element count for display
-        const layoutsWithMeta = layouts.map(layout => ({
-            ...layout.toObject(),
-            elementCount: layout.elements?.length || 0
-        }));
+            return layouts.map(layout => ({
+                ...layout.toObject(),
+                elementCount: layout.elements?.length || 0
+            }));
+        });
 
+        res.set('Cache-Control', 'public, max-age=60, s-maxage=300');
         res.json(layoutsWithMeta);
     } catch (error) {
         console.error('Error fetching freeform layouts:', error);
@@ -51,12 +55,15 @@ exports.getAllFreeformLayouts = async (req, res) => {
 // Get a freeform layout by ID
 exports.getFreeformLayoutById = async (req, res) => {
     try {
-        const layout = await FreeformLayout.findById(req.params.id);
+        const layout = await cache.getCachedFreeformLayout(req.params.id, () =>
+            FreeformLayout.findById(req.params.id)
+        );
 
         if (!layout) {
             return res.status(404).json({ error: 'Freeform layout not found' });
         }
 
+        res.set('Cache-Control', 'public, max-age=60, s-maxage=300');
         res.json(layout);
     } catch (error) {
         console.error('Error fetching freeform layout:', error);
@@ -67,17 +74,19 @@ exports.getFreeformLayoutById = async (req, res) => {
 // Get the default freeform layout
 exports.getDefaultFreeformLayout = async (req, res) => {
     try {
-        let layout = await FreeformLayout.getDefault();
-
-        if (!layout) {
-            // Return first active layout if no default is set
-            layout = await FreeformLayout.findOne({ isActive: true });
-        }
+        const layout = await cache.getCachedDefaultFreeformLayout(async () => {
+            let found = await FreeformLayout.getDefault();
+            if (!found) {
+                found = await FreeformLayout.findOne({ isActive: true });
+            }
+            return found;
+        });
 
         if (!layout) {
             return res.status(404).json({ error: 'No freeform layout found' });
         }
 
+        res.set('Cache-Control', 'public, max-age=60, s-maxage=300');
         res.json(layout);
     } catch (error) {
         console.error('Error fetching default freeform layout:', error);
@@ -103,6 +112,7 @@ exports.updateFreeformLayout = async (req, res) => {
             return res.status(404).json({ error: 'Freeform layout not found' });
         }
 
+        cache.invalidateFreeformLayouts();
         res.json(layout);
     } catch (error) {
         console.error('Error updating freeform layout:', error);
@@ -120,6 +130,7 @@ exports.deleteFreeformLayout = async (req, res) => {
         }
 
         await FreeformLayout.findByIdAndDelete(req.params.id);
+        cache.invalidateFreeformLayouts();
         res.json({ message: 'Freeform layout deleted successfully' });
     } catch (error) {
         console.error('Error deleting freeform layout:', error);
@@ -147,6 +158,7 @@ exports.setDefaultFreeformLayout = async (req, res) => {
             return res.status(404).json({ error: 'Freeform layout not found' });
         }
 
+        cache.invalidateFreeformLayouts();
         res.json(layout);
     } catch (error) {
         console.error('Error setting default freeform layout:', error);
@@ -186,6 +198,7 @@ exports.duplicateFreeformLayout = async (req, res) => {
         });
 
         await duplicatedLayout.save();
+        cache.invalidateFreeformLayouts();
         res.status(201).json(duplicatedLayout);
     } catch (error) {
         console.error('Error duplicating freeform layout:', error);
@@ -216,6 +229,7 @@ exports.saveCanvasState = async (req, res) => {
             return res.status(404).json({ error: 'Freeform layout not found' });
         }
 
+        cache.invalidateFreeformLayouts();
         res.json({ success: true, updatedAt: layout.updatedAt });
     } catch (error) {
         console.error('Error saving canvas state:', error);
@@ -232,6 +246,7 @@ exports.bulkDeleteFreeformLayouts = async (req, res) => {
         }
 
         await FreeformLayout.deleteMany({ _id: { $in: ids } });
+        cache.invalidateFreeformLayouts();
         res.json({ message: 'Freeform layouts deleted successfully' });
     } catch (error) {
         console.error('Error bulk deleting freeform layouts:', error);

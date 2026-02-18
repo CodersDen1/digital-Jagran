@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const bodyParser = require('body-parser');
+const compression = require('compression');
 require('dotenv').config();
 
 const articleController = require('./controllers/articleController');
@@ -9,6 +9,7 @@ const layoutController = require('./controllers/layoutController');
 const freeformLayoutController = require('./controllers/freeformLayoutController');
 const sitemapController = require('./controllers/sitemapController');
 const seoController = require('./controllers/seoController');
+const cacheService = require('./services/cacheService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,7 +35,7 @@ const corsOptions = {
             callback(null, true);
         } else {
             console.log('Blocked by CORS:', origin);
-            callback(null, true); // Allow all origins in production for now, log blocked ones
+            callback(null, false);
         }
     },
     credentials: true,
@@ -50,7 +51,19 @@ app.use(cors(corsOptions));
 // Handle preflight requests explicitly
 app.options(/.*/, cors(corsOptions));
 
-app.use(bodyParser.json());
+// Gzip/Brotli compression for all responses (huge perf win)
+app.use(compression({
+    level: 6,
+    threshold: 1024, // Only compress responses > 1KB
+    filter: (req, res) => {
+        if (req.headers['x-no-compression']) return false;
+        return compression.filter(req, res);
+    }
+}));
+
+// JSON body parser with size limit (replaces deprecated body-parser)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digital_jagaran')
@@ -62,6 +75,7 @@ const articleRouter = express.Router();
 articleRouter.post('/articles/inject', (req, res) => articleController.injectArticle(req, res));
 articleRouter.post('/articles', (req, res) => articleController.createArticle(req, res));
 articleRouter.get('/articles', (req, res) => articleController.getAllArticles(req, res));
+articleRouter.get('/articles/published', (req, res) => articleController.getPublishedArticles(req, res));
 articleRouter.get('/articles/trending', (req, res) => articleController.getTrendingArticles(req, res));
 articleRouter.get('/articles/:id', (req, res) => articleController.getArticleById(req, res));
 articleRouter.get('/articles/:id/content', (req, res) => articleController.getArticleHtml(req, res));
@@ -106,6 +120,16 @@ app.get('/sitemap.xml', (req, res) => sitemapController.generateSitemap(req, res
 
 // SEO SSR Route (For Crawlers)
 app.get('/article-seo/:slug', (req, res) => seoController.serveArticleSeo(req, res));
+
+// Cache Stats Route (for monitoring)
+app.get('/api/cache/stats', (req, res) => {
+    res.json(cacheService.getStats());
+});
+
+// Health check
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime() });
+});
 
 const HOST = process.env.HOST || '0.0.0.0';
 

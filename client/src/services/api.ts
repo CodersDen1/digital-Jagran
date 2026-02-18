@@ -4,18 +4,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 export const api = axios.create({
     baseURL: API_URL,
+    timeout: 15000, // 15s timeout for reliability
 });
 
+/**
+ * Get published articles for client (uses optimized endpoint)
+ * No longer fetches ALL articles then filters - server handles it
+ */
 export const getArticles = async () => {
-    const response = await api.get('/articles');
-    // Filter for published articles only
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return response.data.filter((a: any) => a.is_Published);
+    const response = await api.get('/articles/published?limit=50');
+    return response.data.articles || response.data;
 };
 
 export const getArticleById = async (id: string) => {
-    // Append timestamp to prevent caching
-    const response = await api.get(`/articles/${id}?t=${new Date().getTime()}`);
+    const response = await api.get(`/articles/${id}`);
     return response.data;
 };
 
@@ -34,7 +36,7 @@ export const getDefaultLayout = async () => {
     }
 };
 
-// Track article view
+// Track article view (debounced on client side - only call once per article visit)
 export const trackArticleView = async (id: string) => {
     try {
         const response = await api.post(`/articles/${id}/view`);

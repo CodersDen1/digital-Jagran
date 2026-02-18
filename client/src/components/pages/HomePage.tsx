@@ -194,6 +194,7 @@ const HomePage = () => {
                                         src={article.photos?.[0] || 'https://placehold.co/400x250?text=News'}
                                         alt={t(article, 'article_header')}
                                         title={t(article, 'article_header')}
+                                        loading="lazy"
                                         className={`w-full h-full object-cover group-hover:scale-105 transition duration-300 ${article.isTranslating ? 'animate-pulse bg-gray-200 opacity-50' : ''}`}
                                     />
                                 </div>
@@ -381,6 +382,7 @@ const HomePage = () => {
                                                         src={article.photos?.[0] || 'https://placehold.co/100x100?text=News'}
                                                         alt={t(article, 'article_header')}
                                                         title={t(article, 'article_header')}
+                                                        loading="lazy"
                                                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                                                     />
                                                 </div>
@@ -453,6 +455,7 @@ const HomePage = () => {
                                                         src={article.photos?.[0] || 'https://placehold.co/400x300?text=News'}
                                                         alt={t(article, 'article_header')}
                                                         title={t(article, 'article_header')}
+                                                        loading="lazy"
                                                         className={`w-full h-full object-cover group-hover:scale-105 transition duration-300 ${article.isTranslating ? 'animate-pulse bg-gray-200 opacity-50' : ''}`}
                                                     />
                                                 </div>
