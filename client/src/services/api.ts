@@ -7,13 +7,56 @@ export const api = axios.create({
     timeout: 15000, // 15s timeout for reliability
 });
 
+export interface PaginatedResponse {
+    articles: any[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasMore: boolean;
+    };
+}
+
 /**
- * Get published articles for client (uses optimized endpoint)
- * No longer fetches ALL articles then filters - server handles it
+ * Get published articles with pagination.
+ * Falls back to /articles if /articles/published isn't deployed yet.
+ */
+export const getArticlesPaginated = async (page = 1, limit = 10): Promise<PaginatedResponse> => {
+    try {
+        const response = await api.get(`/articles/published?page=${page}&limit=${limit}`);
+        return response.data;
+    } catch (err: any) {
+        // Fallback: if /articles/published is not yet deployed (404), use old endpoint
+        if (err?.response?.status === 404) {
+            const response = await api.get('/articles');
+            const allArticles = Array.isArray(response.data) ? response.data : [];
+            const published = allArticles.filter(
+                (a: any) => a.status === 'published' || a.isPublished
+            );
+            const start = (page - 1) * limit;
+            const sliced = published.slice(start, start + limit);
+            return {
+                articles: sliced,
+                pagination: {
+                    page,
+                    limit,
+                    total: published.length,
+                    totalPages: Math.ceil(published.length / limit),
+                    hasMore: start + limit < published.length,
+                },
+            };
+        }
+        throw err;
+    }
+};
+
+/**
+ * Legacy: get all articles at once (kept for backward compat)
  */
 export const getArticles = async () => {
-    const response = await api.get('/articles/published?limit=50');
-    return response.data.articles || response.data;
+    const result = await getArticlesPaginated(1, 50);
+    return result.articles;
 };
 
 export const getArticleById = async (id: string) => {

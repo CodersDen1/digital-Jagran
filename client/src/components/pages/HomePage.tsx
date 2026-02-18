@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { getArticles, getTrendingArticles } from '@/services/api';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { getArticlesPaginated, getTrendingArticles } from '@/services/api';
 import NewsLayout from '@/components/layout/NewsLayout';
 import NewsCard from '@/components/common/NewsCard';
 import { useLanguage } from '@/context/LanguageContext';
@@ -9,17 +9,21 @@ import { Loader, ChevronRight, ChevronLeft, TrendingUp, Clock, Flame, Grid, Layo
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 
+const FIRST_CHUNK = 10;  // Initial fast load
+const NEXT_CHUNK = 20;   // Background chunks
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const HomePage = () => {
     const { t, language } = useLanguage();
     const [articles, setArticles] = useState<any[]>([]);
     const [trendingArticles, setTrendingArticles] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    // Active category is now derived from URL mainly, but we keep state for local optimistic updates or simple binding
+    const [initialLoading, setInitialLoading] = useState(true);   // Only true until first chunk arrives
+    const [loadingMore, setLoadingMore] = useState(false);        // True while background chunks load
+    const [hasMore, setHasMore] = useState(true);
+    const pageRef = useRef(1);
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    // Derived from URL
     const categoryFromUrl = searchParams.get('category') || 'ALL';
     const [activeCategory, setActiveCategory] = useState(categoryFromUrl);
 
@@ -28,12 +32,10 @@ const HomePage = () => {
 
     const categories = ['ALL', 'World', 'Politics', 'Business', 'Tech', 'Sports', 'Entertainment'];
 
-    // Sync state with URL
     useEffect(() => {
         setActiveCategory(categoryFromUrl);
     }, [categoryFromUrl]);
 
-    // Handle category change (update URL)
     const handleCategoryChange = (category: string) => {
         setActiveCategory(category);
         if (category === 'ALL') {
@@ -43,24 +45,78 @@ const HomePage = () => {
         }
     };
 
-    useEffect(() => {
-        fetchArticles();
+    /**
+     * Fetch next page of articles. Returns true if there are more pages.
+     */
+    const fetchPage = useCallback(async (page: number, limit: number): Promise<boolean> => {
+        const result = await getArticlesPaginated(page, limit);
+        setArticles(prev => {
+            // Deduplicate by _id in case of race conditions
+            const existingIds = new Set(prev.map(a => a._id));
+            const newArticles = result.articles.filter(a => !existingIds.has(a._id));
+            return [...prev, ...newArticles];
+        });
+        return result.pagination.hasMore;
     }, []);
 
-    const fetchArticles = async () => {
-        try {
-            const [articlesData, trendingData] = await Promise.all([
-                getArticles(),
-                getTrendingArticles(5)
-            ]);
-            setArticles(articlesData);
-            setTrendingArticles(trendingData);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    /**
+     * Initial load: fetch first chunk + trending in parallel.
+     * Page becomes visible as soon as this resolves.
+     */
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadInitial = async () => {
+            try {
+                const [moreAvailable] = await Promise.all([
+                    fetchPage(1, FIRST_CHUNK),
+                    getTrendingArticles(5).then(data => {
+                        if (!cancelled) setTrendingArticles(data);
+                    }),
+                ]);
+                if (!cancelled) {
+                    pageRef.current = 1;
+                    setHasMore(moreAvailable);
+                    setInitialLoading(false);
+
+                    // Immediately start loading the rest in background
+                    if (moreAvailable) {
+                        loadRemaining();
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load articles:', error);
+                if (!cancelled) setInitialLoading(false);
+            }
+        };
+
+        /**
+         * Background progressive loading: fetch remaining chunks
+         * without blocking the UI. Each chunk appends to state
+         * so the user sees articles appear progressively.
+         */
+        const loadRemaining = async () => {
+            setLoadingMore(true);
+            let page = 2;
+            let more = true;
+            while (more && !cancelled) {
+                try {
+                    more = await fetchPage(page, NEXT_CHUNK);
+                    page++;
+                } catch (err) {
+                    console.error('Background fetch error:', err);
+                    break;
+                }
+            }
+            if (!cancelled) {
+                setHasMore(false);
+                setLoadingMore(false);
+            }
+        };
+
+        loadInitial();
+        return () => { cancelled = true; };
+    }, [fetchPage]);
 
     // Filter articles by language
     const visibleArticles = articles.filter(article => {
@@ -128,7 +184,7 @@ const HomePage = () => {
     // Latest 5 published articles for Latest Stories section (independent of category filter)
     const latestArticles = visibleArticles.slice(0, 5);
 
-    if (loading) {
+    if (initialLoading) {
         return (
             <NewsLayout>
                 <div className="flex flex-col justify-center items-center h-64 gap-4">
@@ -601,6 +657,14 @@ const HomePage = () => {
                         </aside>
                     </div>
                 </>
+            )}
+
+            {/* Background loading indicator */}
+            {loadingMore && (
+                <div className="flex justify-center items-center gap-2 py-6 text-gray-400 text-sm">
+                    <Loader className="animate-spin" size={16} />
+                    Loading more stories...
+                </div>
             )}
         </NewsLayout>
     );
