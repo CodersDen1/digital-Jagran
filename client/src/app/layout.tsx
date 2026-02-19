@@ -50,6 +50,18 @@ export default function RootLayout({
         <LanguageProvider>
           {children}
         </LanguageProvider>
+        
+        {/* Multiplex Ad Unit */}
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'block' }}
+          data-ad-format="autorelaxed"
+          data-ad-client="ca-pub-4203996500031256"
+          data-ad-slot="1854576790"
+        />
+        <Script id="multiplex-ad" strategy="afterInteractive">
+          {`(adsbygoogle = window.adsbygoogle || []).push({});`}
+        </Script>
       </body>
     </html>
   );
