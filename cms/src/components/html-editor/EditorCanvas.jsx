@@ -202,25 +202,35 @@ const EditorCanvas = ({
             const prev = doc.querySelector('[data-editor-selected="true"]');
             if (prev) prev.removeAttribute('data-editor-selected');
 
-            e.target.setAttribute('data-editor-selected', 'true');
+            // Walk up to find the video container if clicking inside one
+            let targetEl = e.target;
+            const videoContainer = targetEl.closest ? targetEl.closest('[data-video-src]') : null;
+            if (videoContainer) targetEl = videoContainer;
+
+            targetEl.setAttribute('data-editor-selected', 'true');
 
             // Construct selection object
             const selectionData = {
-                tagName: e.target.tagName.toLowerCase(),
-                text: e.target.innerText,
-                href: e.target.getAttribute('href'),
-                src: e.target.getAttribute('src'),
-                styles: window.getComputedStyle(e.target),
-                domNode: e.target
+                tagName: targetEl.tagName.toLowerCase(),
+                text: targetEl.innerText,
+                href: targetEl.getAttribute('href'),
+                src: targetEl.getAttribute('src'),
+                styles: window.getComputedStyle(targetEl),
+                domNode: targetEl,
+                isVideoEmbed: targetEl.hasAttribute('data-video-src'),
+                videoSrc: targetEl.getAttribute('data-video-src') || '',
             };
 
             onSelectElement(selectionData);
 
             // Enable text editing (and disable dragging to allow text select)
+            // But NOT for video containers (they shouldn't be contentEditable)
             doc.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
-            e.target.contentEditable = true;
-            e.target.removeAttribute('draggable'); // Cannot drag while editing text
-            e.target.focus();
+            if (!selectionData.isVideoEmbed) {
+                targetEl.contentEditable = true;
+                targetEl.removeAttribute('draggable');
+                targetEl.focus();
+            }
         };
 
         doc.body.addEventListener('mouseover', handleMouseOver);

@@ -95,11 +95,60 @@ const HtmlVisualEditor = () => {
 
     const handleUpdateAttribute = (attr, value) => {
         if (!selectedElement || !selectedElement.domNode) return;
-        selectedElement.domNode.setAttribute(attr, value);
+        const node = selectedElement.domNode;
+        node.setAttribute(attr, value);
+
         const updated = { ...selectedElement };
         if (attr === 'src') updated.src = value;
         if (attr === 'href') updated.href = value;
+
+        // Video embed: when URL is set, replace placeholder with iframe
+        if (attr === 'data-video-src' && value) {
+            updated.videoSrc = value;
+            const embedUrl = convertToEmbedUrl(value);
+            if (embedUrl) {
+                node.innerHTML = '';
+                const iframe = node.ownerDocument.createElement('iframe');
+                iframe.src = embedUrl;
+                iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;';
+                iframe.setAttribute('allowfullscreen', 'true');
+                iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                iframe.setAttribute('loading', 'lazy');
+                node.appendChild(iframe);
+            }
+        } else if (attr === 'data-video-src' && !value) {
+            updated.videoSrc = '';
+            node.innerHTML = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:14px">Paste video URL in Properties →</div>';
+        }
+
         setSelectedElement(updated);
+    };
+
+    /**
+     * Convert YouTube/Vimeo watch URLs to embed URLs.
+     * If already an embed URL or direct .mp4, return as-is.
+     */
+    const convertToEmbedUrl = (url) => {
+        if (!url) return null;
+        try {
+            // YouTube: various formats
+            const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})/);
+            if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+
+            // Vimeo
+            const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+            if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+
+            // Already an embed or direct URL
+            if (url.includes('/embed/') || url.includes('player.vimeo.com') || url.endsWith('.mp4')) {
+                return url;
+            }
+
+            // Generic: try as-is (e.g., self-hosted iframes)
+            return url;
+        } catch {
+            return url;
+        }
     };
 
     const handleDelete = () => {

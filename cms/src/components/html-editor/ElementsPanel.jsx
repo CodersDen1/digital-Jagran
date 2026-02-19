@@ -36,7 +36,7 @@ const ElementsPanel = ({ onAddElement }) => {
             items: [
                 { label: "Image", icon: <ImageIcon size={18} />, tag: 'img', src: 'https://placehold.co/800x400' },
                 { label: "Figure", icon: <ImageIcon size={18} />, tag: 'figure', html: '<figure class="my-6"><img src="https://placehold.co/800x400" alt="Placeholder" class="w-full rounded mx-auto" /><figcaption class="text-center text-sm text-gray-500 mt-2">Image caption goes here</figcaption></figure>' },
-                { label: "Video", icon: <ImageIcon size={18} />, tag: 'video', html: '<div class="aspect-w-16 aspect-h-9 bg-gray-800 flex items-center justify-center text-white rounded">Video Placeholder (Embeds not yet active)</div>' },
+                { label: "Video", icon: <ImageIcon size={18} />, tag: 'video', html: '<div class="relative w-full" style="padding-bottom:56.25%;background:#1f2937;border-radius:8px;overflow:hidden" data-video-src=""><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:14px;flex-direction:column;gap:8px"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9A2.25 2.25 0 0 0 13.5 5.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>Click &amp; paste video URL in Properties →</div></div>' },
             ]
         },
         {

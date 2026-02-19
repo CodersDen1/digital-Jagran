@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Inter, Yantramanav, Merriweather } from 'next/font/google';
 import './globals.css';
 import { LanguageProvider } from '@/context/LanguageContext';
@@ -37,6 +38,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${merriweather.variable} ${yantramanav.variable}`}>
+      <head>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4203996500031256"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </head>
       <body className="font-sans antialiased">
         <LanguageProvider>
           {children}

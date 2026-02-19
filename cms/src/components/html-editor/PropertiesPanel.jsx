@@ -39,6 +39,23 @@ const PropertiesPanel = ({
                             Tag: <span className="text-indigo-400 font-bold uppercase">{selectedElement.tagName}</span>
                         </div>
 
+                        {/* Video Embed */}
+                        {selectedElement.isVideoEmbed && (
+                            <div className="space-y-3 pb-4 border-b border-slate-800">
+                                <label className="text-xs font-semibold text-slate-500 uppercase flex items-center gap-2">
+                                    <FileImage size={12} /> Video URL
+                                </label>
+                                <input
+                                    type="text"
+                                    value={selectedElement.videoSrc || ''}
+                                    placeholder="https://youtube.com/watch?v=... or embed URL"
+                                    className="w-full h-8 bg-slate-800 rounded border border-slate-700 px-2 text-sm text-blue-400 focus:border-indigo-500 outline-none"
+                                    onChange={(e) => onUpdateAttribute('data-video-src', e.target.value)}
+                                />
+                                <p className="text-[10px] text-slate-500">Supports YouTube, Vimeo, or direct embed URLs</p>
+                            </div>
+                        )}
+
                         {/* Image Specific */}
                         {selectedElement.tagName === 'img' && (
                             <div className="space-y-3 pb-4 border-b border-slate-800">
