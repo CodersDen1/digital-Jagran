@@ -118,6 +118,16 @@ const HomePage = () => {
         return () => { cancelled = true; };
     }, [fetchPage]);
 
+    // Initialize AdSense multiplex ad
+    useEffect(() => {
+        try {
+            // @ts-expect-error adsbygoogle is loaded globally
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+        } catch (e) {
+            console.error('AdSense error:', e);
+        }
+    }, []);
+
     // Filter articles by language
     const visibleArticles = articles.filter(article => {
         if (language === 'en') {
@@ -653,6 +663,17 @@ const HomePage = () => {
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+
+                            {/* Multiplex Ad Unit */}
+                            <div className="sticky top-4">
+                                <ins
+                                    className="adsbygoogle"
+                                    style={{ display: 'block' }}
+                                    data-ad-format="autorelaxed"
+                                    data-ad-client="ca-pub-4203996500031256"
+                                    data-ad-slot="1854576790"
+                                />
                             </div>
                         </aside>
                     </div>
