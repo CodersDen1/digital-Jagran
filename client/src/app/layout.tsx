@@ -39,6 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${merriweather.variable} ${yantramanav.variable}`}>
       <head>
+
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4203996500031256"
@@ -47,6 +48,8 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
+        
+        
         <LanguageProvider>
           {children}
         </LanguageProvider>

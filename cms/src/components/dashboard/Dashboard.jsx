@@ -359,15 +359,63 @@ const Dashboard = () => {
                         Previous
                     </button>
 
-                    {Array.from({ length: totalPages }, (_, i) => (
-                        <button
-                            key={i + 1}
-                            onClick={() => paginate(i + 1)}
-                            className={`px-3 py-1 rounded border ${currentPage === i + 1 ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                        >
-                            {i + 1}
-                        </button>
-                    ))}
+                    {(() => {
+                        const maxVisible = 10;
+                        const pages = [];
+                        
+                        if (totalPages <= maxVisible) {
+                            // Show all pages if total is within limit
+                            for (let i = 1; i <= totalPages; i++) {
+                                pages.push(i);
+                            }
+                        } else {
+                            // Always show first page
+                            pages.push(1);
+                            
+                            // Calculate range around current page
+                            let start = Math.max(2, currentPage - 3);
+                            let end = Math.min(totalPages - 1, currentPage + 3);
+                            
+                            // Adjust range to show more pages if near start or end
+                            if (currentPage <= 4) {
+                                end = Math.min(totalPages - 1, 8);
+                            } else if (currentPage >= totalPages - 3) {
+                                start = Math.max(2, totalPages - 7);
+                            }
+                            
+                            // Add ellipsis before range if needed
+                            if (start > 2) {
+                                pages.push('...');
+                            }
+                            
+                            // Add range pages
+                            for (let i = start; i <= end; i++) {
+                                pages.push(i);
+                            }
+                            
+                            // Add ellipsis after range if needed
+                            if (end < totalPages - 1) {
+                                pages.push('...');
+                            }
+                            
+                            // Always show last page
+                            pages.push(totalPages);
+                        }
+                        
+                        return pages.map((page, idx) => 
+                            page === '...' ? (
+                                <span key={`ellipsis-${idx}`} className="px-2 py-1 text-gray-500">...</span>
+                            ) : (
+                                <button
+                                    key={page}
+                                    onClick={() => paginate(page)}
+                                    className={`px-3 py-1 rounded border ${currentPage === page ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                                >
+                                    {page}
+                                </button>
+                            )
+                        );
+                    })()}
 
                     <button
                         onClick={nextPage}
