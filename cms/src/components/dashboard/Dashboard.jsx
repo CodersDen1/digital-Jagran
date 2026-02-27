@@ -354,62 +354,43 @@ const Dashboard = () => {
                     <button
                         onClick={prevPage}
                         disabled={currentPage === 1}
-                        className={`px-3 py-1 rounded border ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                        className={`px-4 py-2 rounded-lg border font-medium text-sm ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
                     >
-                        Previous
+                        ← Prev
                     </button>
 
                     {(() => {
-                        const maxVisible = 10;
                         const pages = [];
-                        
-                        if (totalPages <= maxVisible) {
-                            // Show all pages if total is within limit
-                            for (let i = 1; i <= totalPages; i++) {
-                                pages.push(i);
-                            }
-                        } else {
-                            // Always show first page
-                            pages.push(1);
-                            
-                            // Calculate range around current page
-                            let start = Math.max(2, currentPage - 3);
-                            let end = Math.min(totalPages - 1, currentPage + 3);
-                            
-                            // Adjust range to show more pages if near start or end
-                            if (currentPage <= 4) {
-                                end = Math.min(totalPages - 1, 8);
-                            } else if (currentPage >= totalPages - 3) {
-                                start = Math.max(2, totalPages - 7);
-                            }
-                            
-                            // Add ellipsis before range if needed
-                            if (start > 2) {
-                                pages.push('...');
-                            }
-                            
-                            // Add range pages
-                            for (let i = start; i <= end; i++) {
-                                pages.push(i);
-                            }
-                            
-                            // Add ellipsis after range if needed
-                            if (end < totalPages - 1) {
-                                pages.push('...');
-                            }
-                            
-                            // Always show last page
+
+                        // Always show first page
+                        pages.push(1);
+
+                        if (currentPage > 3) {
+                            pages.push('...');
+                        }
+
+                        // Show one page before and after current
+                        for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                            pages.push(i);
+                        }
+
+                        if (currentPage < totalPages - 2) {
+                            pages.push('...');
+                        }
+
+                        // Always show last page
+                        if (totalPages > 1) {
                             pages.push(totalPages);
                         }
-                        
-                        return pages.map((page, idx) => 
+
+                        return pages.map((page, idx) =>
                             page === '...' ? (
-                                <span key={`ellipsis-${idx}`} className="px-2 py-1 text-gray-500">...</span>
+                                <span key={`ellipsis-${idx}`} className="px-2 py-1 text-gray-400 text-sm">…</span>
                             ) : (
                                 <button
                                     key={page}
                                     onClick={() => paginate(page)}
-                                    className={`px-3 py-1 rounded border ${currentPage === page ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                                    className={`w-9 h-9 rounded-lg border text-sm font-medium ${currentPage === page ? 'bg-primary text-white border-primary' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
                                 >
                                     {page}
                                 </button>
@@ -417,12 +398,16 @@ const Dashboard = () => {
                         );
                     })()}
 
+                    <span className="px-3 py-1 text-sm text-gray-500">
+                        Page {currentPage} of {totalPages}
+                    </span>
+
                     <button
                         onClick={nextPage}
                         disabled={currentPage === totalPages}
-                        className={`px-3 py-1 rounded border ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                        className={`px-4 py-2 rounded-lg border font-medium text-sm ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'}`}
                     >
-                        Next
+                        Next →
                     </button>
                 </div>
             )}
