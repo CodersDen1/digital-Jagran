@@ -77,7 +77,7 @@ class ArticleController {
                 article = await articleRepository.create(articleData);
             }
 
-            cache.invalidateArticles();
+            await cache.invalidateArticles();
             res.status(200).json(article);
 
             // SEO: Ping Google
@@ -155,7 +155,7 @@ class ArticleController {
 
             // Create single article based on payload (Language is decided by client)
             const newArticle = await articleRepository.create(articleData);
-            cache.invalidateArticles();
+            await cache.invalidateArticles();
             res.status(201).json(newArticle);
 
             // SEO: Ping Google
@@ -262,7 +262,7 @@ class ArticleController {
             // For CMS: allow no-cache header to bypass
             if (req.headers['cache-control'] === 'no-cache') {
                 const freshArticles = await articleRepository.findAll();
-                cache.invalidateArticles();
+                await cache.invalidateArticles();
                 res.set('Cache-Control', 'no-store');
                 return res.status(200).json(freshArticles);
             }
@@ -286,26 +286,14 @@ class ArticleController {
             const page = Math.max(1, parseInt(req.query.page) || 1);
             const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
 
-            const articles = await cache.getCachedPublishedArticles(
-                () => articleRepository.findPublished()
+            // Use light fetcher — MongoDB projection skips heavy fields at the DB level
+            const articles = await cache.getCachedPublishedArticlesLight(
+                () => articleRepository.findPublishedLight()
             );
 
             // Server-side pagination
             const startIndex = (page - 1) * limit;
-            const paginatedArticles = articles.slice(startIndex, startIndex + limit);
-
-            // Strip heavy fields for listing (elements, body content)
-            const lightArticles = paginatedArticles.map(a => {
-                const obj = a.toObject ? a.toObject() : { ...a };
-                delete obj.elements;
-                delete obj.elementContent;
-                delete obj.elementContent_en;
-                delete obj.body;
-                delete obj.body_en;
-                delete obj.html_path;
-                delete obj.html_path_en;
-                return obj;
-            });
+            const lightArticles = articles.slice(startIndex, startIndex + limit);
 
             res.set('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=120');
 
@@ -383,7 +371,7 @@ class ArticleController {
             };
 
             const newArticle = await articleRepository.create(newArticleData);
-            cache.invalidateArticles();
+            await cache.invalidateArticles();
             res.status(201).json(newArticle);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -440,8 +428,8 @@ class ArticleController {
 
             const updatedArticle = await articleRepository.update(req.params.id, updates);
             if (!updatedArticle) return res.status(404).json({ message: 'Article not found' });
-            cache.invalidateArticle(req.params.id);
-            if (updatedArticle.slug) cache.invalidateArticle(updatedArticle.slug);
+            await cache.invalidateArticle(req.params.id);
+            if (updatedArticle.slug) await cache.invalidateArticle(updatedArticle.slug);
             res.status(200).json(updatedArticle);
         } catch (error) {
             if (error.code === 11000 && error.keyPattern && error.keyPattern.slug) {
@@ -455,7 +443,7 @@ class ArticleController {
         try {
             const deletedArticle = await articleRepository.delete(req.params.id);
             if (!deletedArticle) return res.status(404).json({ message: 'Article not found' });
-            cache.invalidateArticles();
+            await cache.invalidateArticles();
             res.status(200).json({ message: 'Article deleted successfully' });
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -469,7 +457,7 @@ class ArticleController {
                 return res.status(400).json({ message: 'No article IDs provided' });
             }
             await articleRepository.deleteMany(ids);
-            cache.invalidateArticles();
+            await cache.invalidateArticles();
             res.status(200).json({ message: 'Articles deleted successfully' });
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -481,7 +469,7 @@ class ArticleController {
             const article = await articleRepository.incrementViews(req.params.id);
             if (!article) return res.status(404).json({ message: 'Article not found' });
             // Don't aggressively invalidate on every view - trending cache will expire naturally
-            cache.invalidateTrending();
+            await cache.invalidateTrending();
             res.status(200).json({ views: article.views });
         } catch (error) {
             res.status(500).json({ error: error.message });

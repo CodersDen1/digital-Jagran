@@ -67,7 +67,20 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digital_jagaran')
-    .then(() => console.log('MongoDB Connected'))
+    .then(async () => {
+        console.log('MongoDB Connected');
+        // Precache articles into L1 (node-cache) + L2 (Redis) on startup
+        try {
+            const articleRepository = require('./repositories/articleRepository');
+            await cacheService.precacheArticles(
+                () => articleRepository.findPublished(),
+                () => articleRepository.findPublishedLight(),
+                (limit) => articleRepository.findTrending(limit)
+            );
+        } catch (err) {
+            console.error('Precache on startup failed:', err.message);
+        }
+    })
     .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Article Routes

@@ -21,7 +21,7 @@ class LayoutController {
             }
 
             const newLayout = await layoutRepository.create(layoutData);
-            cache.invalidateLayouts();
+            await cache.invalidateLayouts();
             res.status(201).json(newLayout);
         } catch (error) {
             console.error('Error creating layout:', error);
@@ -100,7 +100,7 @@ class LayoutController {
                 return res.status(404).json({ message: 'Layout template not found' });
             }
 
-            cache.invalidateLayouts();
+            await cache.invalidateLayouts();
             res.status(200).json(updatedLayout);
         } catch (error) {
             console.error('Error updating layout:', error);
@@ -121,7 +121,7 @@ class LayoutController {
                 return res.status(404).json({ message: 'Layout template not found' });
             }
 
-            cache.invalidateLayouts();
+            await cache.invalidateLayouts();
             res.status(200).json({ message: 'Layout template deleted successfully' });
         } catch (error) {
             console.error('Error deleting layout:', error);
@@ -142,7 +142,7 @@ class LayoutController {
                 return res.status(404).json({ message: 'Layout template not found' });
             }
 
-            cache.invalidateLayouts();
+            await cache.invalidateLayouts();
             res.status(200).json(layout);
         } catch (error) {
             console.error('Error setting default layout:', error);
@@ -160,7 +160,7 @@ class LayoutController {
             const { name } = req.body;
 
             const duplicatedLayout = await layoutRepository.duplicate(id, name);
-            cache.invalidateLayouts();
+            await cache.invalidateLayouts();
             res.status(201).json(duplicatedLayout);
         } catch (error) {
             console.error('Error duplicating layout:', error);
