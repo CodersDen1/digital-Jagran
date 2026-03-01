@@ -5,6 +5,10 @@ import { generateArticleMetadata } from '@/utils/metaTags';
 import { Metadata, ResolvingMetadata } from 'next';
 import { Loader } from 'lucide-react';
 
+// ISR: Revalidate article pages every 5 minutes
+export const revalidate = 300;
+export const dynamicParams = true;
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface PageProps {
     params: Promise<{ id: string }>;
