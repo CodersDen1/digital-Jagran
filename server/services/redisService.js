@@ -8,7 +8,7 @@ const Redis = require('ioredis');
  * and graceful fallback if Redis is unavailable.
  */
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://104.156.249.42:6379';
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
 let redis = null;
 let isReady = false;

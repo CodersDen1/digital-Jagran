@@ -70,16 +70,25 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digital_j
     .then(async () => {
         console.log('MongoDB Connected');
         // Precache articles into L1 (node-cache) + L2 (Redis) on startup
-        try {
-            const articleRepository = require('./repositories/articleRepository');
-            await cacheService.precacheArticles(
-                () => articleRepository.findPublished(),
-                () => articleRepository.findPublishedLight(),
-                (limit) => articleRepository.findTrending(limit)
-            );
-        } catch (err) {
-            console.error('Precache on startup failed:', err.message);
-        }
+        const articleRepository = require('./repositories/articleRepository');
+        const runPrecache = async () => {
+            try {
+                await cacheService.precacheArticles(
+                    () => articleRepository.findPublished(),
+                    () => articleRepository.findPublishedLight(),
+                    (limit) => articleRepository.findTrending(limit)
+                );
+            } catch (err) {
+                console.error('Precache failed:', err.message);
+            }
+        };
+
+        // Initial precache
+        await runPrecache();
+
+        // Repeat every 10 hours (36,000,000 ms)
+        setInterval(runPrecache, 10 * 60 * 60 * 1000);
+        console.log('[Cache] Background precache scheduled every 10 hours');
     })
     .catch(err => console.error('MongoDB Connection Error:', err));
 
