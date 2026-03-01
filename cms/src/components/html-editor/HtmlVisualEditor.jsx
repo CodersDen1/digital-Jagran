@@ -330,7 +330,7 @@ const HtmlVisualEditor = () => {
                                         <input
                                             type="text"
                                             value={Array.isArray(article?.tags) ? article.tags.join(', ') : (article?.tags || '')}
-                                            onChange={(e) => setArticle({ ...article, tags: e.target.value.split(',').map(Boolean) })}
+                                            onChange={(e) => setArticle({ ...article, tags: e.target.value.split(',').map(t => t.trim()) })}
                                             className="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
                                             placeholder="World, Politics, Tech"
                                         />
