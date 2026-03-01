@@ -115,6 +115,9 @@ const ShadowHtmlRenderer = ({ htmlContent, className = '' }: ShadowHtmlRendererP
         // 7. Re-execute scripts inside shadow DOM context.
         //    Rewrite document.getElementById / document.querySelectorAll to search
         //    within the shadow root so the article's JS can find its own elements.
+        //    Also handle DOMContentLoaded: by the time we run, the real event has
+        //    already fired, so we intercept addEventListener("DOMContentLoaded", cb)
+        //    and invoke the callback immediately.
         scriptContents.forEach(code => {
             try {
                 const fn = new Function('document', 'shadowRoot', `
@@ -126,6 +129,13 @@ const ShadowHtmlRenderer = ({ htmlContent, className = '' }: ShadowHtmlRendererP
                             if (prop === 'getElementById') return function(id) { return _sr.getElementById(id); };
                             if (prop === 'querySelectorAll') return function(sel) { return _sr.querySelectorAll(sel); };
                             if (prop === 'querySelector') return function(sel) { return _sr.querySelector(sel); };
+                            if (prop === 'addEventListener') return function(evt, cb) {
+                                // DOMContentLoaded already fired — run callback immediately
+                                if (evt === 'DOMContentLoaded') { cb(); return; }
+                                return target.addEventListener(evt, cb);
+                            };
+                            if (prop === 'body') return _sr;
+                            if (prop === 'documentElement') return _sr;
                             var val = target[prop];
                             return typeof val === 'function' ? val.bind(target) : val;
                         }
