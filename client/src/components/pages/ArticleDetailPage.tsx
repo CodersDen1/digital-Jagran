@@ -179,6 +179,28 @@ const ArticleDetailPage = ({ id, initialArticle }: ArticleDetailPageProps) => {
 
     return (
         <NewsLayout>
+            {/* Breadcrumb Navigation */}
+            <nav aria-label="Breadcrumb" className="mb-4 text-sm text-gray-500">
+                <ol className="flex items-center gap-2 flex-wrap">
+                    <li><Link href="/" className="hover:text-brand-red">Home</Link></li>
+                    <li>/</li>
+                    {article.tags_en?.[0] || article.tags?.[0] ? (
+                        <>
+                            <li>
+                                <Link
+                                    href={`/?category=${article.tags_en?.[0] || article.tags?.[0]}`}
+                                    className="hover:text-brand-red"
+                                >
+                                    {article.tags_en?.[0] || article.tags?.[0]}
+                                </Link>
+                            </li>
+                            <li>/</li>
+                        </>
+                    ) : null}
+                    <li className="text-gray-800 font-medium line-clamp-1">{t(article, 'article_header')}</li>
+                </ol>
+            </nav>
+
             {/* Back Button */}
             <div className="mb-6">
                 <Link

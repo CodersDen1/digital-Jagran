@@ -23,8 +23,27 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader className="animate-spin text-brand-red" size={32} /></div>}>
-      <HomePage />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Home',
+                item: 'https://www.digitaljagran.com',
+              },
+            ],
+          }),
+        }}
+      />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader className="animate-spin text-brand-red" size={32} /></div>}>
+        <HomePage />
+      </Suspense>
+    </>
   );
 }

@@ -65,6 +65,24 @@ export async function GET() {
         <priority>1.0</priority>
     </url>`;
 
+        // Static pages
+        const staticPages = [
+            { path: '/about', priority: '0.7', changefreq: 'monthly' },
+            { path: '/contact', priority: '0.7', changefreq: 'monthly' },
+            { path: '/privacy-policy', priority: '0.5', changefreq: 'yearly' },
+            { path: '/terms', priority: '0.5', changefreq: 'yearly' },
+            { path: '/disclaimer', priority: '0.5', changefreq: 'yearly' },
+        ];
+
+        staticPages.forEach(({ path, priority, changefreq }) => {
+            xml += `
+    <url>
+        <loc>${clientUrl}${path}</loc>
+        <changefreq>${changefreq}</changefreq>
+        <priority>${priority}</priority>
+    </url>`;
+        });
+
         // All published articles
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         publishedArticles.forEach((article: any) => {
