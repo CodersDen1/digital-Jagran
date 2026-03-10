@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Metadata } from 'next';
 import NewsLayout from '@/components/layout/NewsLayout';
 import Link from 'next/link';
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AboutPage() {
+function AboutContent() {
   return (
     <NewsLayout>
       <article className="max-w-4xl mx-auto px-4 py-8">
@@ -140,5 +141,13 @@ export default function AboutPage() {
         />
       </article>
     </NewsLayout>
+  );
+}
+
+export default function AboutPage() {
+  return (
+    <Suspense>
+      <AboutContent />
+    </Suspense>
   );
 }
