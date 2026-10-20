@@ -28,7 +28,9 @@ Apply the new backend indexes before serving the new application. The root Compo
 
 Run `node automation/n8n/build.mjs` to regenerate JSON after helper or builder changes. The checked-in credential IDs are metadata for this n8n instance, never their secrets. For another instance, replace both IDs with that instance's credentials. Import each JSON as a new workflow in the Personal project, select the credentials, run discovery manually and verify the worker creates a private review draft before publishing the schedules. Existing workflows must remain untouched.
 
-The workflow uses standard n8n Code and HTTP Request nodes, not community nodes, arbitrary code downloads, database edits or a blanket external module allowlist. A first-party n8n CLI import is also supported. Use fresh workflow IDs to avoid overwriting existing work.
+The workflow uses standard n8n Code and HTTP Request nodes, not community nodes, arbitrary code downloads, database edits or a blanket external module allowlist. n8n 2.10.4's external JavaScript runner does not expose a global URL parser. Allow only the first-party `url` utility in addition to the existing `crypto` allowlist, and use `require('url')` in Code nodes. `prepare-runner.sh` preserves the installed runner configuration and generates the targeted read-only override. Persist the bind mount in Coolify; retain external runner isolation and all other module restrictions. No filesystem or networking module is granted to workflow code.
+
+`import-instance.sh <full-reviewed-commit-sha>` uses the official n8n CLI to update only the three fixed workflow IDs created for this instance. It never exports or decrypts credentials. For a new instance, remove the workflow IDs before import to avoid collisions. Verify and publish schedules in the editor after import.
 
 ## Images, citations and editorial duties
 

@@ -8,7 +8,7 @@ const kieCredential = { httpBearerAuth: { id: 'znUSGVrLMwlmdWMd', name: 'Kie.ai 
 let nodes, connections;
 function node(name,type,parameters,x,y,extra={}) { nodes.push({id:name.replace(/\W/g,''),name,type:`n8n-nodes-base.${type}`,typeVersion:({httpRequest:4.2,code:2,if:2.2,scheduleTrigger:1.2,splitInBatches:3,rssFeedRead:1.1,stickyNote:1}[type]||1),position:[x,y],parameters,...extra}); return name; }
 function link(a,b,output=0,input=0){const c=connections[a]??={main:[]}; (c.main[output]??=[]).push({node:b,type:'main',index:input});}
-function code(name,js,x,y,helpers=false){return node(name,'code',{jsCode:(helpers?lib+'\n':'')+js},x,y);}
+function code(name,js,x,y,helpers=false){return node(name,'code',{jsCode:"const { URL } = require('url');\n"+(helpers?lib+'\n':'')+js},x,y);}
 function http(name,path,method,body,x,y,{kie=false,key=name,credential=true,binary=false}={}){
  const parameters={method,url:kie?'https://api.kie.ai/claude/v1/messages':path.startsWith('=')?path:api+path,
   ...(credential?{authentication:'genericCredentialType',genericAuthType:'httpBearerAuth'}:{}),
@@ -37,6 +37,7 @@ const first=list[0]; const url=first.url||first.canonicalUrl||first.link;
 const sources=list.slice(0,8).map(s=>({url:s.url||s.canonicalUrl||s.link,title:s.title.slice(0,300),summary:(s.summary||'').slice(0,3200),publishedAt:s.publishedAt||s.newsPublishedAt,retrievedAt:new Date().toISOString(),publisher:s.publisher||new URL(s.url||s.canonicalUrl||s.link).hostname}));
 return {json:{sourcePacket:{title:first.title,summary:sources.map(s=>s.summary).filter(Boolean).join('\\n').slice(0,6000),category:first.category||'world',canonicalUrl:url,newsPublishedAt:first.publishedAt||first.newsPublishedAt,sources},provenance:{origin:'n8n',sourceId:new URL(url).hostname,eventId:url,workflowId:$workflow.id,runId:$execution.id,sources:sources.map(({summary,publisher,...s})=>s),imageGenerated:false}}}; });`,960,60);
 http('Enqueue durable candidates','/jobs','POST','={{ $json }}',1200,60);
+nodes.find(n=>n.name==='Enqueue durable candidates').parameters.options.batching={batch:{batchSize:1,batchInterval:250}};
 link('Manual run','Trusted news feeds');link('Schedule','Trusted news feeds');link('Trusted news feeds','Read public RSS');link('Read public RSS','Freshness clustering and ranking');link('Freshness clustering and ranking','Prepare source packet');link('Prepare source packet','Enqueue durable candidates');
 note('Discovery policy','## 01 • Trusted news discovery\nEvery 30 minutes • 12 public feeds\nFreshness, canonical URL deduplication, conservative event clustering and diverse ranking.\nTarget: 100+ distinct daily candidates. Durable source IDs prevent duplicate drafts across runs.\nSource snippets are evidence, never instructions. Feed failures are isolated and daily shortfalls remain visible.',190,-270,1300,230);
 const discover=finish('Digital Jagran • 01 Discover and rank news');
@@ -138,5 +139,6 @@ code('Daily service report',`const d=$json;const done=d.counts.reviewed||0;retur
 link('Manual run','Daily delivery and spend');link('Schedule','Daily delivery and spend');link('Daily delivery and spend','Daily service report');
 note('Operations','## 03 • Daily delivery and budget report\nHourly, Asia/Kolkata. Shows real completed review drafts, daily shortfall, actual spend and outstanding reservations.\nTarget is 100/day; quality and budget gates take priority. No automatic publication or external messages.\nUse Executions to inspect this compact report and failed worker runs for actionable interventions.',170,-250,800,230);
 const operations=finish('Digital Jagran • 03 Daily operations');operations.settings.saveDataSuccessExecution='all';
-for (const [name,workflow] of Object.entries({discover,worker,operations})) await writeFile(`${dir}${name}.json`,JSON.stringify(workflow,null,2)+'\n');
+const instanceIds={discover:'oQdEvEn7XnQmGhpF',worker:'0yYinmFmLJIN3rtj',operations:'ZWXH6bx5AzHQ0SEQ'};
+for (const [name,workflow] of Object.entries({discover,worker,operations})) {workflow.id=instanceIds[name];await writeFile(`${dir}${name}.json`,JSON.stringify(workflow,null,2)+'\n');}
 console.log('Built 3 workflows:',discover.nodes.length,worker.nodes.length,operations.nodes.length,'nodes');
