@@ -13,7 +13,7 @@ const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 const en='NASA has announced a lunar research mission focused on scientific observations and public research information. The agency described the work as part of its continuing programme to study the Moon and improve understanding of the lunar environment. Its announcement sets out the research priorities and explains why the observations matter to scientists. The information comes from the agency statement, which readers can consult for the underlying details and context. The mission brings together scientific planning, observations and analysis within the stated research programme. Researchers will use the findings to examine questions about the Moon and its environment. The announcement provides a basis for following the programme as further information becomes available. Readers should distinguish the objectives described in the statement from results that have yet to be reported. The agency statement remains the source for the details of this announcement.';
 const hi='नासा ने चंद्रमा से जुड़े वैज्ञानिक अनुसंधान अभियान की घोषणा की है। एजेंसी के अनुसार अभियान का उद्देश्य चंद्र पर्यावरण को समझने के लिए वैज्ञानिक अवलोकन और अनुसंधान संबंधी जानकारी जुटाना है। घोषणा में शोध की प्राथमिकताओं और वैज्ञानिकों के लिए उनके महत्व का विवरण दिया गया है। इस जानकारी का आधार एजेंसी का वक्तव्य है। पाठक संबंधित विवरण और संदर्भ के लिए मूल वक्तव्य देख सकते हैं। अभियान में वैज्ञानिक योजना, अवलोकन और विश्लेषण को शामिल किया गया है। शोधकर्ता चंद्रमा और उसके पर्यावरण से जुड़े सवालों पर अध्ययन करेंगे। आगे की जानकारी उपलब्ध होने पर कार्यक्रम की प्रगति को समझा जा सकेगा। घोषणा में बताए गए उद्देश्यों को अभी तक प्रकाशित नहीं हुए परिणामों से अलग समझना जरूरी है। एजेंसी का मूल वक्तव्य इस घोषणा के विवरण का स्रोत है।';
 const draft={translations:{en:{title:'NASA announces lunar research mission',summary:'NASA outlines its lunar scientific research mission.',body:en,metaTitle:'NASA lunar research mission',description:'NASA describes its lunar research announcement and scientific objectives.'},hi:{title:'नासा ने चंद्र अनुसंधान अभियान की घोषणा की',summary:'नासा ने चंद्र वैज्ञानिक अनुसंधान अभियान का विवरण दिया।',body:hi,metaTitle:'नासा का चंद्र अनुसंधान अभियान',description:'नासा की चंद्र अनुसंधान घोषणा और वैज्ञानिक उद्देश्यों का विवरण।'}},imageSearchQuery:'Moon lunar surface',warnings:[]};
-async function harness(t,{unknownPaid=false,draftValue=draft,verifierValue={pass:true,unsupportedClaims:[],warnings:[]},publishedAt=new Date().toISOString()}={}){
+async function harness(t,{unknownPaid=false,credits=100,draftValue=draft,verifierValue={pass:true,unsupportedClaims:[],warnings:[]},publishedAt=new Date().toISOString()}={}){
  const dir=await mkdtemp(path.join(tmpdir(),'dj-flow-')); t.after(()=>rm(dir,{recursive:true,force:true}));
  const store=await fileStore(path.join(dir,'state.json'),false,{dailyBudgetMicroUsd:900000});
  const packet={title:draft.translations.en.title,summary:en,category:'explained',canonicalUrl:'https://nasa.gov/news/lunar-test',newsPublishedAt:publishedAt,sources:[{url:'https://nasa.gov/news/lunar-test',title:draft.translations.en.title,summary:en,publishedAt,retrievedAt:new Date().toISOString()}]};
@@ -21,7 +21,7 @@ async function harness(t,{unknownPaid=false,draftValue=draft,verifierValue={pass
  await atomic(()=>store.automation.enqueue({sourcePacket:packet,provenance:{sourceId:'nasa.gov',eventId:packet.canonicalUrl,sources:packet.sources.map(({summary,...s})=>s)}}));
  const data=new Map();let paid=0;
  const $=name=>({first:()=>data.get(name)?.[0],all:()=>data.get(name)||[]});
- async function run(start='Claim job',initial=[{json:{}}]){
+ async function run(start='Kie credit preflight',initial=[{json:{}}]){
   let current=start,input=initial;
   while(current){
    const node=worker.nodes.find(n=>n.name===current);assert.ok(node,current);let output=0,result;
@@ -32,7 +32,8 @@ async function harness(t,{unknownPaid=false,draftValue=draft,verifierValue={pass
    else if(node.type.endsWith('.httpRequest')){
     const url=expr(node.parameters.url),body=node.parameters.jsonBody?expr(node.parameters.jsonBody):null;
     let value;
-    if(url.includes('api.kie.ai')){paid++;if(unknownPaid)throw new Error('Unknown paid response');value={type:'message',id:'msg-'+paid,credits_consumed:0.15,usage:{input_tokens:1000,output_tokens:500},stop_reason:'end_turn',content:[{type:'text',text:JSON.stringify(paid===1?draftValue:verifierValue)}]};}
+    if(url.endsWith('/api/v1/chat/credit'))value={code:200,data:credits};
+    else if(url.includes('api.kie.ai')){paid++;if(unknownPaid)throw new Error('Unknown paid response');value={type:'message',id:'msg-'+paid,credits_consumed:0.15,usage:{input_tokens:1000,output_tokens:500},stop_reason:'end_turn',content:[{type:'text',text:JSON.stringify(paid===1?draftValue:verifierValue)}]};}
     else if(url.includes('commons.wikimedia.org'))value={query:{pages:{}}};
     else{
      const pathname=new URL(url).pathname.replace('/api/v1/automation',''); const parts=pathname.split('/');
@@ -82,4 +83,7 @@ test('a failed evidence check quarantines the draft and never submits it for app
 });
 test('stale queued news is quarantined before any paid call',async t=>{
  const h=await harness(t,{publishedAt:new Date(Date.now()-37*3600000).toISOString()});await h.run();assert.equal(h.paid,0);assert.equal((await h.store.automation.day()).counts.failed,1);
+});
+test('low provider balance stops before any job is claimed or cost reserved',async t=>{
+ const h=await harness(t,{credits:0});await assert.rejects(h.run(),/credit preflight/i);assert.equal(h.paid,0);const day=await h.store.automation.day();assert.equal(day.counts.claimed,0);assert.equal(day.spend.reservedMicroUsd,0);
 });

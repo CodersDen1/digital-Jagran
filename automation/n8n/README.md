@@ -18,6 +18,8 @@ Kie.ai Claude Haiku 5.5: `POST https://api.kie.ai/claude/v1/messages`, `stream:f
 
 Each call reserves a conservative input upper bound (UTF-8 request bytes plus 1,024 tokens for framing) and the full permitted output tokens at those prices. Actual `credits_consumed` is reconciled after a confirmed response. A missing response or missing billing field leaves the reservation in place and holds the uncertain job. No paid HTTP request has automatic retries. A provider price change or billing discrepancy cannot be retroactively prevented: actual overrun is recorded honestly and pauses more paid work. Recheck account pricing before activation and after any change. A price-review guard stops new calls after **20 November 2026 UTC** until deliberately updated after verification. This is not a Kie-account-wide billing hard limit.
 
+Before claiming a job, the worker calls Kie's free credit endpoint and requires a successful numeric balance of at least two credits. An unavailable or low balance stops before a lease, reservation or paid call. A successful credit check does not establish that the selected text-model channel is operational.
+
 Primary references: [Kie model pricing](https://kie.ai/claude-haiku-5-5), [request/response contract](https://docs.kie.ai/market/claude/claude-haiku-5-5), [n8n HTTP Request](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/).
 
 ## Credentials and installation
@@ -50,3 +52,12 @@ New logical polls and mutations use fresh HTTP keys; exact request retries retai
 * Media: inspect `npm run media:gc --prefix server` before any explicit cleanup. Orphan GridFS uploads may remain after interrupted transactions; committed media must be preserved. Existing backup/restore procedures still apply.
 
 Run `node --test automation/n8n/*.test.mjs` for source, rights, bilingual validation and generated-workflow integration checks. Backend tests separately exercise real Mongo replica-set contention, durable quotas, GridFS, expiry recovery and editor isolation.
+
+## Production verification — 20 October 2026
+
+Publication backend/CMS deployment: `049bd702df7422f8d8bf5fda2e2236ecf5abcb86`. Imported workflow version: `0399d239cd818a65ff0bacc9dc51070b1ab0c9c3`. The runner's targeted `crypto,url` configuration is persisted as a read-only Coolify bind mount and was verified after a full service recreation. The temporary Coolify API write token used to repair the broken Compose editor was revoked and its local secret files removed.
+
+The final successful discovery scan read 628 feed items, processed 147 nonempty source packets and live authenticated operations reported 159 distinct queued candidates with zero completed review drafts. Discovery (every 30 minutes) and operations (hourly) are published. Outstanding uncertain-call reservations total US$0.005319; confirmed spend is not yet available for those requests. Kie's free credit endpoint returned success with an available balance, but separate controlled Haiku 4.5 and Haiku 5.5 draft requests both returned HTTP 429, `Internal error, please try again later`. Their unknown outcomes retain budget reservations; no paid retry or fabricated article was submitted. **The paid worker remains unpublished pending provider recovery and billing reconciliation.** Discovery and hourly operations can run independently. Twenty automated helper/generated-workflow tests pass, including successful mocked review ingestion, low-credit rejection and uncertain-paid-response recovery; these do not replace a successful live provider-to-CMS test.
+
+After Kie confirms its text channel works, reconcile each uncertain job using confirmed provider billing/response evidence before any deliberate recovery. Run one fresh candidate through both model calls and verify the private CMS review/provenance panel, then publish the worker schedule. Do not replay an uncertain paid request or clear its reservation merely to unblock throughput.
+
