@@ -83,7 +83,7 @@
         60
       ],
       "parameters": {
-        "jsCode": "const { URL } = require('url');\nreturn $input.all().map(({json})=>{ const c=json.cluster; const list=c.items;\nconst first=list[0]; const url=first.url||first.canonicalUrl||first.link;\nconst sources=list.slice(0,8).map(s=>({url:s.url||s.canonicalUrl||s.link,title:s.title.slice(0,300),summary:(s.summary||'').slice(0,3200),publishedAt:s.publishedAt||s.newsPublishedAt,retrievedAt:new Date().toISOString(),publisher:s.publisher||new URL(s.url||s.canonicalUrl||s.link).hostname}));\nreturn {json:{sourcePacket:{title:first.title,summary:sources.map(s=>s.summary).filter(Boolean).join('\\n').slice(0,6000),category:first.category||'world',canonicalUrl:url,newsPublishedAt:first.publishedAt||first.newsPublishedAt,sources},provenance:{origin:'n8n',sourceId:new URL(url).hostname,eventId:url,workflowId:$workflow.id,runId:$execution.id,sources:sources.map(({summary,publisher,...s})=>s),imageGenerated:false}}}; });"
+        "jsCode": "const { URL } = require('url');\nreturn $input.all().filter(({json})=>json.cluster.items.some(s=>String(s.summary||'').trim().length>=40)).map(({json})=>{ const c=json.cluster; const list=c.items;\nconst first=list[0]; const url=first.url||first.canonicalUrl||first.link;\nconst sources=list.slice(0,8).map(s=>({url:s.url||s.canonicalUrl||s.link,title:s.title.slice(0,300),summary:(s.summary||'').slice(0,3200),publishedAt:s.publishedAt||s.newsPublishedAt,retrievedAt:new Date().toISOString(),publisher:s.publisher||new URL(s.url||s.canonicalUrl||s.link).hostname}));\nreturn {json:{sourcePacket:{title:first.title,summary:sources.map(s=>s.summary).filter(Boolean).join('\\n').slice(0,6000),category:first.category||'world',canonicalUrl:url,newsPublishedAt:first.publishedAt||first.newsPublishedAt,sources},provenance:{origin:'n8n',sourceId:new URL(url).hostname,eventId:url,workflowId:$workflow.id,runId:$execution.id,sources:sources.map(({summary,publisher,...s})=>s),imageGenerated:false}}}; });"
       }
     },
     {
@@ -139,7 +139,21 @@
       },
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 1500
+      "waitBetweenTries": 1500,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "Discoverydeliveryreport",
+      "name": "Discovery delivery report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        60
+      ],
+      "parameters": {
+        "jsCode": "const { URL } = require('url');\nconst items=$input.all().map(i=>i.json),failures=items.filter(i=>i.error||!i.job?.id);\nif(failures.length)throw new Error('Discovery processed '+items.length+' candidates with '+failures.length+' rejected queue writes. Accepted jobs are durable; inspect the HTTP output for individual reasons.');\nreturn [{json:{processed:items.length,enqueued:items.filter(i=>i.duplicate===false).length,duplicates:items.filter(i=>i.duplicate===true).length,failed:0,checkedAt:new Date().toISOString()}}];"
+      }
     },
     {
       "id": "Discoverypolicy",
@@ -219,6 +233,17 @@
         [
           {
             "node": "Enqueue durable candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enqueue durable candidates": {
+      "main": [
+        [
+          {
+            "node": "Discovery delivery report",
             "type": "main",
             "index": 0
           }

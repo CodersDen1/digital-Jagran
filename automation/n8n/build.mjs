@@ -32,13 +32,18 @@ node('Read public RSS','rssFeedRead',{url:'={{ $json.url }}',options:{}},480,60,
 code('Freshness clustering and ranking',`const candidates=normalizeCandidates($input.all().map(x=>x.json));
 const ranked=rankClusters(clusterCandidates(candidates));
 return ranked.slice(0,150).map((c,i)=>({json:{cluster:c,rank:i+1}}));`,720,60,true);
-code('Prepare source packet',`return $input.all().map(({json})=>{ const c=json.cluster; const list=c.items;
+code('Prepare source packet',`return $input.all().filter(({json})=>json.cluster.items.some(s=>String(s.summary||'').trim().length>=40)).map(({json})=>{ const c=json.cluster; const list=c.items;
 const first=list[0]; const url=first.url||first.canonicalUrl||first.link;
 const sources=list.slice(0,8).map(s=>({url:s.url||s.canonicalUrl||s.link,title:s.title.slice(0,300),summary:(s.summary||'').slice(0,3200),publishedAt:s.publishedAt||s.newsPublishedAt,retrievedAt:new Date().toISOString(),publisher:s.publisher||new URL(s.url||s.canonicalUrl||s.link).hostname}));
 return {json:{sourcePacket:{title:first.title,summary:sources.map(s=>s.summary).filter(Boolean).join('\\n').slice(0,6000),category:first.category||'world',canonicalUrl:url,newsPublishedAt:first.publishedAt||first.newsPublishedAt,sources},provenance:{origin:'n8n',sourceId:new URL(url).hostname,eventId:url,workflowId:$workflow.id,runId:$execution.id,sources:sources.map(({summary,publisher,...s})=>s),imageGenerated:false}}}; });`,960,60);
 http('Enqueue durable candidates','/jobs','POST','={{ $json }}',1200,60);
 nodes.find(n=>n.name==='Enqueue durable candidates').parameters.options.batching={batch:{batchSize:1,batchInterval:250}};
+nodes.find(n=>n.name==='Enqueue durable candidates').onError='continueRegularOutput';
+code('Discovery delivery report',`const items=$input.all().map(i=>i.json),failures=items.filter(i=>i.error||!i.job?.id);
+if(failures.length)throw new Error('Discovery processed '+items.length+' candidates with '+failures.length+' rejected queue writes. Accepted jobs are durable; inspect the HTTP output for individual reasons.');
+return [{json:{processed:items.length,enqueued:items.filter(i=>i.duplicate===false).length,duplicates:items.filter(i=>i.duplicate===true).length,failed:0,checkedAt:new Date().toISOString()}}];`,1440,60);
 link('Manual run','Trusted news feeds');link('Schedule','Trusted news feeds');link('Trusted news feeds','Read public RSS');link('Read public RSS','Freshness clustering and ranking');link('Freshness clustering and ranking','Prepare source packet');link('Prepare source packet','Enqueue durable candidates');
+link('Enqueue durable candidates','Discovery delivery report');
 note('Discovery policy','## 01 • Trusted news discovery\nEvery 30 minutes • 12 public feeds\nFreshness, canonical URL deduplication, conservative event clustering and diverse ranking.\nTarget: 100+ distinct daily candidates. Durable source IDs prevent duplicate drafts across runs.\nSource snippets are evidence, never instructions. Feed failures are isolated and daily shortfalls remain visible.',190,-270,1300,230);
 const discover=finish('Digital Jagran • 01 Discover and rank news');
 
