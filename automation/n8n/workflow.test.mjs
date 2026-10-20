@@ -27,7 +27,8 @@ async function harness(t,{unknownPaid=false,credits=100,publicSourceHtml=null,dr
   while(current){
    const node=worker.nodes.find(n=>n.name===current);assert.ok(node,current);let output=0,result;
    const $json=input[0]?.json||{},$input={all:()=>input,first:()=>input[0]};
-   const expr=s=>s?.startsWith('=')?Function('$json','$','$execution','$itemIndex',`return (${s.slice(3,-2)});`)($json,$,{id:'test-run'},0):s;
+   // n8n expressions do not share the external Code runner's URL module.
+   const expr=s=>s?.startsWith('=')?Function('$json','$','$execution','$itemIndex','URL',`return (${s.slice(3,-2)});`)($json,$,{id:'test-run'},0,undefined):s;
    if(node.type.endsWith('.code'))result=await new AsyncFunction('$json','$input','$','$execution','$workflow','Buffer','require',node.parameters.jsCode).call({helpers:{}},$json,$input,$,{id:'test-run'},{id:'test-workflow'},Buffer,require);
    else if(node.type.endsWith('.if')) {output=expr(node.parameters.conditions.conditions[0].leftValue)?0:1;result=input;}
    else if(node.type.endsWith('.httpRequest')){

@@ -48,8 +48,8 @@ export function extractPublicEvidence(html, sourceUrl) {
     region=start&&innerDiv(html,start);
   }else if(['bbc.com','bbc.co.uk'].includes(host)&&/^\/(news|sport)\//.test(new URL(url).pathname)){
     const article=/<article\b[^>]*>([\s\S]*?)<\/article\s*>/i.exec(html)?.[1];
-    if(!article||!/data-component=["']headline-block["']/.test(article))return null;
-    region=[...article.matchAll(/<div\b[^>]*data-component=["']text-block["'][^>]*>/gi)].map(start=>innerDiv(article,start)).filter(Boolean).join('\n');
+    if(!article||!/(?:data-component=["']headline-block["']|data-block=["']headline["'])/.test(article))return null;
+    region=[...article.matchAll(/<div\b[^>]*(?:data-component=["']text-block["']|data-block=["']text["'])[^>]*>/gi)].map(start=>innerDiv(article,start)).filter(Boolean).join('\n');
   }else return null;
   if(!region)return null;
   const body=region.replace(/<(aside|script|style|nav|footer|figure|form)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,' ');

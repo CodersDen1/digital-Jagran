@@ -27,6 +27,7 @@ test('public evidence extractor requires a free Guardian article and excludes un
 test('BBC evidence is confined to article text blocks and rejects an explicit access gate',()=>{
  const html='<nav><p>Unrelated</p></nav><article><div data-component="headline-block">Headline</div><div data-component="text-block"><div><p>'+en+' '+en+'</p></div></div><div data-component="related"><p>Other story</p></div></article>';
  const text=extractPublicEvidence(html,'https://bbc.co.uk/news/articles/fixture');assert.ok(text.includes('NASA'));assert.ok(!text.includes('Other story')&&!text.includes('Unrelated'));
+ assert.ok(extractPublicEvidence(html.replace('data-component="headline-block"','data-block="headline"').replace('data-component="text-block"','data-block="text"'),'https://bbc.co.uk/sport/football/articles/fixture').includes('NASA'));
  assert.equal(extractPublicEvidence(html+'<div data-component="paywall"></div>','https://bbc.com/news/articles/fixture'),null);
  assert.equal(extractPublicEvidence(html.replace('headline-block','unknown'),'https://bbc.com/news/articles/fixture'),null);
 });
