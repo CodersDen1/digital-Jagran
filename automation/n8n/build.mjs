@@ -62,8 +62,13 @@ const lease="$('Claim job').first().json.leaseToken";
 const patch=(phase,checkpoint='{}')=>`={{ {leaseToken:${lease},revision:$json.job.revision,action:'checkpoint',phase:'${phase}',checkpoint:${checkpoint}} }}`;
 const jobPath="={{ '"+api+"/jobs/' + $json.job.id }}";
 test('Needs draft preparation',"={{ $json.job.phase === 'queued' }}",900,60);
-test('Source needs public evidence',"={{ ['theguardian.com','bbc.com','bbc.co.uk'].includes(new URL($json.job.sourcePacket.canonicalUrl).hostname) }}",900,-300);
-http('Read public source article',"={{ (new URL($json.job.sourcePacket.canonicalUrl).hostname === 'theguardian.com' ? 'https://www.theguardian.com' : 'https://www.bbc.com') + new URL($json.job.sourcePacket.canonicalUrl).pathname + new URL($json.job.sourcePacket.canonicalUrl).search }}",'GET',null,1140,-300,{credential:false});
+// Expressions and external Code runners have different globals. Parse only in
+// the Code node with its explicitly allowed first-party URL module.
+code('Prepare source evidence route',`const url=new URL($json.job.sourcePacket.canonicalUrl);const host=url.hostname.replace(/^www\\./,'');
+const allowed=url.protocol==='https:'&&!url.username&&!url.password&&!url.port&&['theguardian.com','bbc.com','bbc.co.uk'].includes(host);
+return [{json:{...$json,publicSourceUrl:allowed?(host==='theguardian.com'?'https://www.theguardian.com':'https://www.bbc.com')+url.pathname+url.search:''}}];`,660,-300);
+test('Source needs public evidence','={{ !!$json.publicSourceUrl }}',900,-300);
+http('Read public source article','={{ $json.publicSourceUrl }}','GET',null,1140,-300,{credential:false});
 const sourceRead=nodes.find(n=>n.name==='Read public source article');sourceRead.retryOnFail=false;sourceRead.onError='continueRegularOutput';sourceRead.parameters.options.timeout=15000;sourceRead.parameters.options.response={response:{responseFormat:'text',outputPropertyName:'data'}};
 sourceRead.parameters.headerParameters.parameters.push({name:'User-Agent',value:'DigitalJagranNewsroom/1.0 (+https://digitaljagran.com)'});
 code('Collect public source evidence',`const state=$('Source needs public evidence').first().json;const packet=JSON.parse(JSON.stringify(state.job.sourcePacket));
@@ -143,7 +148,7 @@ http('Submit for human approval','/articles','POST','={{ $json.job.checkpoint.ar
 nodes.find(n=>n.name==='Submit for human approval').parameters.headerParameters.parameters.find(p=>p.name==='Idempotency-Key').value="={{ $json.job.checkpoint.submissionKeys.ingest }}";
 http('Complete durable job',"={{ '"+api+"/jobs/' + $('CMS submission can replay').first().json.job.id }}",'PATCH',`={{ {leaseToken:${lease},revision:$('CMS submission can replay').first().json.job.revision,action:'complete'} }}`,9300,60);
 link('Manual run','Kie credit preflight');link('Schedule','Kie credit preflight');link('Kie credit preflight','Credit availability gate');link('Credit availability gate','Claim job');link('Claim job','Job available');link('Job available','Recover safely');link('Recover safely','Needs draft preparation');
-link('Needs draft preparation','Source needs public evidence');link('Source needs public evidence','Read public source article');link('Read public source article','Collect public source evidence');link('Collect public source evidence','Prepare immutable draft');link('Source needs public evidence','Prepare immutable draft',1);link('Prepare immutable draft','Save draft plan');link('Save draft plan','Draft ready to send');link('Needs draft preparation','Draft ready to send',1);
+link('Needs draft preparation','Prepare source evidence route');link('Prepare source evidence route','Source needs public evidence');link('Source needs public evidence','Read public source article');link('Read public source article','Collect public source evidence');link('Collect public source evidence','Prepare immutable draft');link('Source needs public evidence','Prepare immutable draft',1);link('Prepare immutable draft','Save draft plan');link('Save draft plan','Draft ready to send');link('Needs draft preparation','Draft ready to send',1);
 link('Draft ready to send','Price guard draft');link('Draft ready to send','Needs factcheck preparation',1);link('Save draft output','Needs factcheck preparation');
 link('Needs factcheck preparation','Prepare immutable verification');link('Prepare immutable verification','Save verification plan');link('Save verification plan','Verification ready to send');link('Needs factcheck preparation','Verification ready to send',1);
 link('Verification ready to send','Price guard factcheck');link('Verification ready to send','Ready for editorial assets',1);link('Save factcheck output','Ready for editorial assets');

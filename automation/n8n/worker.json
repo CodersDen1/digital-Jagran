@@ -218,6 +218,19 @@
       }
     },
     {
+      "id": "Preparesourceevidenceroute",
+      "name": "Prepare source evidence route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -300
+      ],
+      "parameters": {
+        "jsCode": "const { URL } = require('url');\nconst url=new URL($json.job.sourcePacket.canonicalUrl);const host=url.hostname.replace(/^www\\./,'');\nconst allowed=url.protocol==='https:'&&!url.username&&!url.password&&!url.port&&['theguardian.com','bbc.com','bbc.co.uk'].includes(host);\nreturn [{json:{...$json,publicSourceUrl:allowed?(host==='theguardian.com'?'https://www.theguardian.com':'https://www.bbc.com')+url.pathname+url.search:''}}];"
+      }
+    },
+    {
       "id": "Sourceneedspublicevidence",
       "name": "Source needs public evidence",
       "type": "n8n-nodes-base.if",
@@ -237,7 +250,7 @@
           "conditions": [
             {
               "id": "Source needs public evidence",
-              "leftValue": "={{ ['theguardian.com','bbc.com','bbc.co.uk'].includes(new URL($json.job.sourcePacket.canonicalUrl).hostname) }}",
+              "leftValue": "={{ !!$json.publicSourceUrl }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -262,7 +275,7 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "={{ (new URL($json.job.sourcePacket.canonicalUrl).hostname === 'theguardian.com' ? 'https://www.theguardian.com' : 'https://www.bbc.com') + new URL($json.job.sourcePacket.canonicalUrl).pathname + new URL($json.job.sourcePacket.canonicalUrl).search }}",
+        "url": "={{ $json.publicSourceUrl }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -2059,7 +2072,7 @@
       "main": [
         [
           {
-            "node": "Source needs public evidence",
+            "node": "Prepare source evidence route",
             "type": "main",
             "index": 0
           }
@@ -2067,6 +2080,17 @@
         [
           {
             "node": "Draft ready to send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare source evidence route": {
+      "main": [
+        [
+          {
+            "node": "Source needs public evidence",
             "type": "main",
             "index": 0
           }
