@@ -165,6 +165,23 @@ test(
           .status,
         200,
       );
+      // Exercise the HTTP precondition with BSON Dates, not only store writes.
+      const editable = await a.get(results[0].body.article.id);
+      await setup.db.collection("articles").updateOne(
+        { _id: new mongoose.Types.ObjectId(editable.id) },
+        { $set: { updatedAt: new Date("2026-10-20T16:50:00.731Z") } },
+      );
+      const editUrl = base2 + "/api/v1/admin/articles/" + editable.id;
+      const editorCopy = await (await fetch(editUrl, { headers: { cookie } })).json();
+      const edited = { ...editorCopy.article, author: "Mongo editor" };
+      const saveFromEditor = () => fetch(editUrl, {
+        method: "PUT",
+        headers: { cookie, "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+        body: JSON.stringify(edited),
+      });
+      const savedFromEditor = await saveFromEditor();
+      assert.equal(savedFromEditor.status, 200, JSON.stringify(await savedFromEditor.json()));
+      assert.equal((await saveFromEditor()).status, 409, "Real stale revisions stay protected");
       const raw = await setup.db.collection("newsroom_sessions").findOne({});
       assert.ok(raw._id !== cookie.split("=")[1]);
       await fetch(base2 + "/api/v1/auth/logout", {

@@ -221,7 +221,7 @@ function validateArticle(input, previous = null) {
     views: previous?.views || 0,
     createdAt: previous?.createdAt || new Date().toISOString(),
     updatedAt: new Date(
-      Math.max(Date.now(), Date.parse(previous?.updatedAt) + 1 || 0),
+      Math.max(Date.now(), new Date(previous?.updatedAt).getTime() + 1 || 0),
     ).toISOString(),
     publishedAt: new Date(publishedAt).toISOString(),
   };

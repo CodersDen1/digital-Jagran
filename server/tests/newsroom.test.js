@@ -505,3 +505,37 @@ test("RSS is bilingual and private workflow states stay out of feeds", async () 
   assert.match(result.data, /<language>en<\/language>/);
   assert.match((await call("/hi/feed.xml")).data, /<language>hi<\/language>/);
 });
+
+
+test("Mongo Date revisions retain milliseconds through editor saves", async (t) => {
+  const revision = "2026-10-20T16:50:00.731Z";
+  const initial = { ...validateArticle(story()), updatedAt: revision };
+  await store.save(initial);
+  const originalGet = store.get;
+  store.get = async (...args) => {
+    const result = await originalGet(...args);
+    return result?.id === initial.id ? { ...result, updatedAt: new Date(result.updatedAt) } : result;
+  };
+  t.after(() => { store.get = originalGet; });
+  const route = "/api/v1/admin/articles/" + initial.id;
+  const loaded = await call(route, { authenticated: true });
+  assert.equal(loaded.data.article.updatedAt, revision);
+  const edited = { ...loaded.data.article, author: "Updated reporter" };
+  const saved = await call(route, {
+    authenticated: true, method: "PUT", body: edited,
+    headers: { "Idempotency-Key": crypto.randomUUID() },
+  });
+  assert.equal(saved.response.status, 200, JSON.stringify(saved.data));
+  assert.equal(saved.data.article.author, "Updated reporter");
+  const stale = await call(route, {
+    authenticated: true, method: "PUT", body: edited,
+    headers: { "Idempotency-Key": crypto.randomUUID() },
+  });
+  assert.equal(stale.response.status, 409, "A real stale edit must still be rejected");
+});
+
+test("revisions advance past Mongo Date values even within the same millisecond", () => {
+  const previous = { ...validateArticle(story()), updatedAt: new Date(Math.floor(Date.now() / 1000) * 1000 + 60731) };
+  const next = validateArticle(previous, previous);
+  assert.equal(new Date(next.updatedAt).getTime(), previous.updatedAt.getTime() + 1);
+});

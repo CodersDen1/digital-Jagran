@@ -448,7 +448,7 @@ function createApp({
     mutation(200, async (req) => {
       const previous = await store.get(req.params.id);
       if (!previous) throw new HttpError(404, "Story not found.");
-      if (Date.parse(req.body.updatedAt) !== Date.parse(previous.updatedAt))
+      if (new Date(req.body.updatedAt).getTime() !== new Date(previous.updatedAt).getTime())
         throw new HttpError(
           409,
           "This story changed in another session. Reload before saving.",

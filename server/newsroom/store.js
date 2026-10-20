@@ -177,7 +177,7 @@ async function fileStore(filename, seed = true, automationConfig = {}) {
         const old = next.articles.find((x) => x.id === a.id);
         if (
           expected &&
-          (!old || Date.parse(old.updatedAt) !== Date.parse(expected))
+          (!old || new Date(old.updatedAt).getTime() !== new Date(expected).getTime())
         )
           throw new HttpError(
             409,
@@ -195,7 +195,7 @@ async function fileStore(filename, seed = true, automationConfig = {}) {
       mutate((next) => {
         const a = next.articles.find((x) => x.id === id);
         if (!a) throw new HttpError(404, "Story not found.");
-        if (expected && Date.parse(a.updatedAt) !== Date.parse(expected))
+        if (expected && new Date(a.updatedAt).getTime() !== new Date(expected).getTime())
           throw new HttpError(
             409,
             "This story changed in another session. Reload before archiving.",
@@ -203,7 +203,7 @@ async function fileStore(filename, seed = true, automationConfig = {}) {
         a.status = "archived";
         a.schemaVersion = 2;
         a.updatedAt = new Date(
-          Math.max(Date.now(), Date.parse(a.updatedAt) + 1),
+          Math.max(Date.now(), new Date(a.updatedAt).getTime() + 1),
         ).toISOString();
         return structuredClone(a);
       }),
