@@ -33,6 +33,61 @@
       }
     },
     {
+      "id": "Kiecreditpreflight",
+      "name": "Kie credit preflight",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        160,
+        -200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.kie.ai/api/v1/chat/credit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "znUSGVrLMwlmdWMd",
+          "name": "Kie.ai | Newsroom text"
+        }
+      },
+      "retryOnFail": false,
+      "maxTries": 1,
+      "waitBetweenTries": 1500
+    },
+    {
+      "id": "Creditavailabilitygate",
+      "name": "Credit availability gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -200
+      ],
+      "parameters": {
+        "jsCode": "const { URL } = require('url');\nif($json.code!==200||typeof $json.data!=='number'||!Number.isFinite($json.data)||$json.data<2)throw new Error('Kie credit preflight failed or balance below two credits. No job claimed and no paid call made.');return [{json:{providerReady:true}}];"
+      }
+    },
+    {
       "id": "Claimjob",
       "name": "Claim job",
       "type": "n8n-nodes-base.httpRequest",
@@ -1835,7 +1890,7 @@
       "main": [
         [
           {
-            "node": "Claim job",
+            "node": "Kie credit preflight",
             "type": "main",
             "index": 0
           }
@@ -1843,6 +1898,28 @@
       ]
     },
     "Schedule": {
+      "main": [
+        [
+          {
+            "node": "Kie credit preflight",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kie credit preflight": {
+      "main": [
+        [
+          {
+            "node": "Credit availability gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Credit availability gate": {
       "main": [
         [
           {

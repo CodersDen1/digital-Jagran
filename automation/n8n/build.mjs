@@ -48,6 +48,10 @@ note('Discovery policy','## 01 • Trusted news discovery\nEvery 30 minutes • 
 const discover=finish('Digital Jagran • 01 Discover and rank news');
 
 start('Worker',5);
+http('Kie credit preflight','','GET',null,160,-200,{kie:true});
+nodes.find(n=>n.name==='Kie credit preflight').parameters.url='https://api.kie.ai/api/v1/chat/credit';
+nodes.find(n=>n.name==='Kie credit preflight').parameters.options.timeout=10000;
+code('Credit availability gate',`if($json.code!==200||typeof $json.data!=='number'||!Number.isFinite($json.data)||$json.data<2)throw new Error('Kie credit preflight failed or balance below two credits. No job claimed and no paid call made.');return [{json:{providerReady:true}}];`,400,-200);
 http('Claim job','/jobs/claim','POST',"={{ {workerId:'n8n-'+$execution.id,leaseSeconds:300} }}",220,60);
 test('Job available','={{ !!$json.job }}',440,60);
 code('Recover safely',`const j=$json.job;
@@ -124,7 +128,7 @@ http('Submit for human approval','/articles','POST','={{ $json.job.checkpoint.ar
 // Keep article ingestion key stable even after the ordinary request replay TTL expires.
 nodes.find(n=>n.name==='Submit for human approval').parameters.headerParameters.parameters.find(p=>p.name==='Idempotency-Key').value="={{ $json.job.checkpoint.submissionKeys.ingest }}";
 http('Complete durable job',"={{ '"+api+"/jobs/' + $('CMS submission can replay').first().json.job.id }}",'PATCH',`={{ {leaseToken:${lease},revision:$('CMS submission can replay').first().json.job.revision,action:'complete'} }}`,9300,60);
-link('Manual run','Claim job');link('Schedule','Claim job');link('Claim job','Job available');link('Job available','Recover safely');link('Recover safely','Needs draft preparation');
+link('Manual run','Kie credit preflight');link('Schedule','Kie credit preflight');link('Kie credit preflight','Credit availability gate');link('Credit availability gate','Claim job');link('Claim job','Job available');link('Job available','Recover safely');link('Recover safely','Needs draft preparation');
 link('Needs draft preparation','Prepare immutable draft');link('Prepare immutable draft','Save draft plan');link('Save draft plan','Draft ready to send');link('Needs draft preparation','Draft ready to send',1);
 link('Draft ready to send','Price guard draft');link('Draft ready to send','Needs factcheck preparation',1);link('Save draft output','Needs factcheck preparation');
 link('Needs factcheck preparation','Prepare immutable verification');link('Prepare immutable verification','Save verification plan');link('Save verification plan','Verification ready to send');link('Needs factcheck preparation','Verification ready to send',1);
