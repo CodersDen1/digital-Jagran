@@ -51,7 +51,7 @@ start('Worker',5);
 http('Kie credit preflight','','GET',null,160,-200,{kie:true});
 nodes.find(n=>n.name==='Kie credit preflight').parameters.url='https://api.kie.ai/api/v1/chat/credit';
 nodes.find(n=>n.name==='Kie credit preflight').parameters.options.timeout=10000;
-code('Credit availability gate',`if($json.code!==200||typeof $json.data!=='number'||!Number.isFinite($json.data)||$json.data<2)throw new Error('Kie credit preflight failed or balance below two credits. No job claimed and no paid call made.');return [{json:{providerReady:true}}];`,400,-200);
+code('Credit availability gate',`if($json.code!==200||typeof $json.data!=='number'||!Number.isFinite($json.data)||$json.data<10)throw new Error('Kie credit preflight failed or balance below ten credits. No job claimed and no paid call made.');return [{json:{providerReady:true}}];`,400,-200);
 http('Claim job','/jobs/claim','POST',"={{ {workerId:'n8n-'+$execution.id,leaseSeconds:300} }}",220,60);
 test('Job available','={{ !!$json.job }}',440,60);
 code('Recover safely',`const j=$json.job;

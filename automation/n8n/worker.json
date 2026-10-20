@@ -84,7 +84,7 @@
         -200
       ],
       "parameters": {
-        "jsCode": "const { URL } = require('url');\nif($json.code!==200||typeof $json.data!=='number'||!Number.isFinite($json.data)||$json.data<2)throw new Error('Kie credit preflight failed or balance below two credits. No job claimed and no paid call made.');return [{json:{providerReady:true}}];"
+        "jsCode": "const { URL } = require('url');\nif($json.code!==200||typeof $json.data!=='number'||!Number.isFinite($json.data)||$json.data<10)throw new Error('Kie credit preflight failed or balance below ten credits. No job claimed and no paid call made.');return [{json:{providerReady:true}}];"
       }
     },
     {
