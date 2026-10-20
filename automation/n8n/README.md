@@ -14,11 +14,11 @@ The target is at least 100 distinct collected candidates and 100 completed revie
 
 User-authorized limit: **US$0.90 per Asia/Kolkata day**, for these workflows only. Configure `AUTOMATION_DAILY_BUDGET_MICRO_USD=900000` on the publication server. The default is zero (paid work paused). Other applications using the same Kie account are outside this ledger.
 
-Kie.ai Claude Haiku 4.5: `POST https://api.kie.ai/claude/v1/messages`, `stream:false`, `thinkingFlag:false`, draft `max_tokens:2400`, checker `max_tokens:600`, no tools. As checked on 20 October 2026, Kie lists input **US$0.275/million tokens**, output **US$1.425/million tokens**, equivalent to 55/285 credits per million. One credit corresponds to US$0.005 at the displayed base price. Bonus credits are not assumed.
+Kie.ai Claude Haiku 5.5: `POST https://api.kie.ai/claude/v1/messages`, `stream:false`, `thinkingFlag:false`, draft `max_tokens:2400`, checker `max_tokens:600`, no tools. As checked on 20 October 2026, Kie lists input **US$0.06/million tokens**, output **US$0.30/million tokens**, equivalent to 12/60 credits per million. One credit corresponds to US$0.005 at the displayed base price. Bonus credits are not assumed.
 
 Each call reserves a conservative input upper bound (UTF-8 request bytes plus 1,024 tokens for framing) and the full permitted output tokens at those prices. Actual `credits_consumed` is reconciled after a confirmed response. A missing response or missing billing field leaves the reservation in place and holds the uncertain job. No paid HTTP request has automatic retries. A provider price change or billing discrepancy cannot be retroactively prevented: actual overrun is recorded honestly and pauses more paid work. Recheck account pricing before activation and after any change. A price-review guard stops new calls after **20 November 2026 UTC** until deliberately updated after verification. This is not a Kie-account-wide billing hard limit.
 
-Primary references: [Kie model pricing](https://kie.ai/claude-haiku-4-5), [request/response contract](https://docs.kie.ai/market/claude/claude-haiku-4-5), [n8n HTTP Request](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/).
+Primary references: [Kie model pricing](https://kie.ai/claude-haiku-5-5), [request/response contract](https://docs.kie.ai/market/claude/claude-haiku-5-5), [n8n HTTP Request](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/).
 
 ## Credentials and installation
 
