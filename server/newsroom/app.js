@@ -13,8 +13,10 @@ const {
   publicArticle,
 } = require("./domain");
 const { createAuth } = require("./auth");
+const { automationAuth, automationArticle } = require("./automation");
 const { observability } = require("./runtime");
 const { digest, options } = require("./store");
+const { validateMedia } = require("./automation-media");
 const escape = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
@@ -91,9 +93,14 @@ function createApp({
   production = false,
   origin = "http://localhost:5001",
   allowedOrigins = [],
+  automationToken,
   trustProxy = false,
   logger,
 }) {
+  if (automationToken && automationToken === adminPassword)
+    throw new Error(
+      "AUTOMATION_INGEST_TOKEN must be different from ADMIN_PASSWORD.",
+    );
   const app = express();
   app.disable("x-powered-by");
   observability(app, store, { trustProxy, logger });
@@ -119,7 +126,7 @@ function createApp({
     if (req.method === "OPTIONS")
       return res
         .set({
-          "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+          "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
           "Access-Control-Allow-Headers":
             "Content-Type, Idempotency-Key, X-Request-Id, traceparent",
         })
@@ -131,6 +138,11 @@ function createApp({
       return next(new HttpError(415, "Send application/json."));
     next();
   });
+  app.use(
+    "/api/automation/media",
+    automationAuth(automationToken),
+    express.json({ limit: "8mb" }),
+  );
   app.use(express.json({ limit: "1mb" }));
   app.use((req, res, next) => {
     if (
@@ -272,11 +284,17 @@ function createApp({
         422,
         "Supply an Idempotency-Key of 8–128 printable ASCII characters.",
       );
-    const run = async () => ({ status, body: await fn(req, res) });
+    const run = async () => {
+      const body = await fn(req, res);
+      return {
+        status: typeof status === "function" ? status(body) : status,
+        body,
+      };
+    };
     const result = raw
       ? await store.idempotent(
           digest(
-            `${req.user?.email || "newsletter"}:${req.method}:${req.path}:${raw}`,
+            `${req.automation ? "automation:ingest" : req.user?.email || "newsletter"}:${req.method}:${req.path}:${raw}`,
           ),
           digest(canonical(req.body)),
           run,
@@ -308,6 +326,58 @@ function createApp({
       return { ok: true };
     }),
   );
+  app.use("/api/automation", automationAuth(automationToken));
+  app.post(
+    "/api/automation/media",
+    mutation(201, async (req) => {
+      const media = await store.putMedia(await validateMedia(req.body));
+      return { media: { ...media, url: `${origin}/media/${media.hash}.webp` } };
+    }),
+  );
+  app.post(
+    "/api/automation/articles",
+    mutation(
+      (body) => (body.duplicate ? 200 : 201),
+      async (req) => store.ingestAutomation(automationArticle(req.body)),
+    ),
+  );
+  app.post(
+    "/api/automation/jobs",
+    mutation(
+      (body) => (body.duplicate ? 200 : 201),
+      (req) => store.automation.enqueue(req.body),
+    ),
+  );
+  app.post(
+    "/api/automation/jobs/claim",
+    mutation(
+      (body) => (body ? 200 : 204),
+      (req) => store.automation.claim(req.body),
+    ),
+  );
+  app.get("/api/automation/jobs/:id", async (req, res) =>
+    res.json(await store.automation.get(req.params.id)),
+  );
+  app.patch(
+    "/api/automation/jobs/:id",
+    mutation(200, (req) => store.automation.patch(req.params.id, req.body)),
+  );
+  app.post(
+    "/api/automation/jobs/:id/reservations",
+    mutation(201, (req) => store.automation.reserve(req.params.id, req.body)),
+  );
+  app.patch(
+    "/api/automation/jobs/:id/reservations/:key",
+    mutation(200, (req) =>
+      store.automation.reconcile(req.params.id, req.params.key, req.body),
+    ),
+  );
+  app.get("/api/automation/days/current", async (req, res) =>
+    res.json(await store.automation.day()),
+  );
+  app.get("/api/automation/days/:day", async (req, res) =>
+    res.json(await store.automation.day(req.params.day)),
+  );
   app.use("/api/admin", auth.requireUser);
   app.get("/api/admin/articles", async (req, res) => {
     const result = await store.query({
@@ -319,6 +389,14 @@ function createApp({
       ...result,
       articles: result.articles.map((a) => ({
         ...a,
+        ...(a.provenance
+          ? {
+              provenance: {
+                origin: a.provenance.origin,
+                imageGenerated: false,
+              },
+            }
+          : {}),
         status: effectiveStatus(a),
       })),
       sections: categories,
@@ -341,6 +419,14 @@ function createApp({
       })),
       recent: recent.articles.map((a) => ({
         ...a,
+        ...(a.provenance
+          ? {
+              provenance: {
+                origin: a.provenance.origin,
+                imageGenerated: false,
+              },
+            }
+          : {}),
         status: effectiveStatus(a),
       })),
       demo: store.demo,
@@ -398,6 +484,24 @@ function createApp({
   app.use("/api", (req, res) =>
     res.status(404).json({ error: "API route not found." }),
   );
+  app.get("/media/:filename", async (req, res, next) => {
+    const match = /^([a-f0-9]{64})\.webp$/.exec(req.params.filename);
+    if (!match) throw new HttpError(404, "Media not found.");
+    const media = await store.getMedia(match[1]);
+    if (!media) throw new HttpError(404, "Media not found.");
+    res.type(media.contentType).set({
+      ETag: `"${media.hash}"`,
+      "Cache-Control":
+        req.get("cookie") || req.get("authorization")
+          ? "no-store"
+          : "public, max-age=31536000, immutable",
+      "Content-Length": String(media.bytes),
+    });
+    if (req.fresh) return res.status(304).end();
+    const stream = media.open();
+    stream.on("error", next);
+    stream.pipe(res);
+  });
   app.get("/robots.txt", (req, res) =>
     res
       .type("text")

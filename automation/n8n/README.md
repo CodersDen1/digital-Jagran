@@ -1,0 +1,50 @@
+# Digital Jagran daily newsroom
+
+Three importable n8n workflows collect and rank public news, prepare English/Hindi drafts through Kie.ai, and report daily delivery. All submissions enter **review**. There is no automatic publication path.
+
+## Workflows
+
+* `discover.json`: 12 public RSS feeds every 30 minutes, 36-hour freshness window, canonical URLs, conservative event clustering and source-diversity ranking, up to 150 candidates per scan. Permanent server aliases deduplicate repeated discoveries.
+* `worker.json`: one leased job every five minutes (288 possible ticks/day), original bilingual brief, bounded second evidence check, reusable Commons photograph when available, durable CMS image upload, exact immutable approval payload and idempotent ingestion.
+* `operations.json`: hourly Asia/Kolkata delivery counts, spend, reservations and an explicit shortfall against the 100-review-drafts/day target. View its execution output in n8n.
+
+The target is at least 100 distinct collected candidates and 100 completed review drafts daily. Evidence, source availability, paid provider availability and the spending cap may reduce completed drafts. The report records that shortfall; the workflow must not invent facts or overspend to meet a number. Thin source packets or failed verification stop for editorial investigation. An AI check against snippets is an evidence-consistency check, not independent reporting or a guarantee of truth.
+
+## Budget and text model
+
+User-authorized limit: **US$0.90 per Asia/Kolkata day**, for these workflows only. Configure `AUTOMATION_DAILY_BUDGET_MICRO_USD=900000` on the publication server. The default is zero (paid work paused). Other applications using the same Kie account are outside this ledger.
+
+Kie.ai Claude Haiku 4.5: `POST https://api.kie.ai/claude/v1/messages`, `stream:false`, `thinkingFlag:false`, draft `max_tokens:2400`, checker `max_tokens:600`, no tools. As checked on 20 October 2026, Kie lists input **US$0.275/million tokens**, output **US$1.425/million tokens**, equivalent to 55/285 credits per million. One credit corresponds to US$0.005 at the displayed base price. Bonus credits are not assumed.
+
+Each call reserves a conservative input upper bound (UTF-8 request bytes plus 1,024 tokens for framing) and the full permitted output tokens at those prices. Actual `credits_consumed` is reconciled after a confirmed response. A missing response or missing billing field leaves the reservation in place and holds the uncertain job. No paid HTTP request has automatic retries. A provider price change or billing discrepancy cannot be retroactively prevented: actual overrun is recorded honestly and pauses more paid work. Recheck account pricing before activation and after any change. A price-review guard stops new calls after **20 November 2026 UTC** until deliberately updated after verification. This is not a Kie-account-wide billing hard limit.
+
+Primary references: [Kie model pricing](https://kie.ai/claude-haiku-4-5), [request/response contract](https://docs.kie.ai/market/claude/claude-haiku-4-5), [n8n HTTP Request](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/).
+
+## Credentials and installation
+
+Keep secrets in Coolify and n8n credentials, never in workflow JSON or Git. Kie credential is Bearer Auth, restricted to `api.kie.ai`. Review API credential is a separate 32+ character machine token, restricted to `server.digitaljagran.com`; it cannot sign in as an editor or publish articles. The server's `AUTOMATION_INGEST_TOKEN` must match it. Keep this token runtime-only, unavailable during image builds.
+
+Apply the new backend indexes before serving the new application. The root Compose startup already runs the explicit additive index migration. [Backend contract](../../server/AUTOMATION.md) covers leases, revisions, reservations, idempotency, storage and manual reconciliation.
+
+Run `node automation/n8n/build.mjs` to regenerate JSON after helper or builder changes. The checked-in credential IDs are metadata for this n8n instance, never their secrets. For another instance, replace both IDs with that instance's credentials. Import each JSON as a new workflow in the Personal project, select the credentials, run discovery manually and verify the worker creates a private review draft before publishing the schedules. Existing workflows must remain untouched.
+
+The workflow uses standard n8n Code and HTTP Request nodes, not community nodes, arbitrary code downloads, database edits or a blanket external module allowlist. A first-party n8n CLI import is also supported. Use fresh workflow IDs to avoid overwriting existing work.
+
+## Images, citations and editorial duties
+
+No AI images or image-generation charges. Commons search results must have a supported still-image format, a Wikimedia upload URL, file-page source, explicit reusable license link and creator attribution. Missing/ambiguous/NC/ND licenses are rejected. Bytes are uploaded to immutable CMS media storage, preserving source/credit/license metadata. If none qualifies, the review draft remains imageless with a warning. Do not label an archive photograph as depicting the actual reported event. Licensing and topical relevance still require an editor's check: [Commons reuse guidance](https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia).
+
+RSS text is untrusted evidence, never an instruction. The prompts forbid invented facts, quotes, sources, reporting claims and copied paragraphs. Every draft includes visible source links, headline/description metadata and an AI-assistance disclosure. Publication dates are assigned by the CMS, distinct from original source dates. The CMS provenance panel preserves source snapshots, model/task IDs, workflow/run IDs, warnings and image rights. An editor must verify timely factual claims, Hindi/English agreement, allegations, attribution and image relevance before approval.
+
+The public application already supplies server-rendered metadata, NewsArticle structured data, canonical/hreflang URLs, robots, RSS and sitemaps. These support discovery and citation eligibility. Search ranking or citation by an AI service cannot be guaranteed; original reporting, accuracy and editorial quality remain essential.
+
+## Recovery and maintenance
+
+New logical polls and mutations use fresh HTTP keys; exact request retries retain the same key/body. Source identity survives the ordinary replay ledger's expiry. Leases/revisions coordinate concurrent workers.
+
+* `draft_uncertain` / `factcheck_uncertain`: never automatically submit another paid call. Reconcile the exact saved request, provider message/task ID, confirmed response and its cost; keep the reservation if the provider cannot establish the outcome.
+* `ingest_uncertain`: replay only `checkpoint.articlePayload` with `checkpoint.submissionKeys.ingest`. Permanent deduplication returns the existing article without overwriting editor changes.
+* Quality failures: inspect the saved source packet and model output. Correct source supply/prompt issues deliberately; never bypass the evidence or human-approval gate just to hit volume.
+* Media: inspect `npm run media:gc --prefix server` before any explicit cleanup. Orphan GridFS uploads may remain after interrupted transactions; committed media must be preserved. Existing backup/restore procedures still apply.
+
+Run `node --test automation/n8n/*.test.mjs` for source, rights, bilingual validation and generated-workflow integration checks. Backend tests separately exercise real Mongo replica-set contention, durable quotas, GridFS, expiry recovery and editor isolation.

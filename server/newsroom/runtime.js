@@ -33,7 +33,8 @@ function observability(
     res.set("Cache-Control", "no-cache");
     const privateRequest = Boolean(
       req.get("cookie") ||
-        /^\/api\/(admin|auth|newsletter)/.test(req.path) ||
+        req.get("authorization") ||
+        /^\/api\/(admin|auth|newsletter|automation)/.test(req.path) ||
         /\/(search|saved)(?:\/|$|\?)/.test(req.path) ||
         req.path.startsWith("/newsroom"),
     );

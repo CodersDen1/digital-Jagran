@@ -17,6 +17,7 @@ import {
 import { api, formatDate, publicUrl, sections } from "./api";
 import { Alert, Field, Loading, Status } from "./ui";
 import { mutationFor } from "./transport";
+import { ProvenancePanel } from "./Provenance.jsx";
 
 const blank = () => ({
   slug: "",
@@ -61,7 +62,11 @@ function Preview({ article, locale }) {
       {/^https?:\/\//.test(article.image) && (
         <figure>
           <img src={article.image} alt={article.imageAlt} />
-          <figcaption>{article.imageCredit}</figcaption>
+          <figcaption>{article.imageCredit}
+            {article.provenance?.imageGenerated === true && <span className="image-origin-disclosure">
+              {article.provenance.imageDisclosure || "AI-generated illustration"}
+            </span>}
+          </figcaption>
         </figure>
       )}
       <div className="preview-body">
@@ -376,6 +381,7 @@ export default function Editor() {
           </button>
         </div>
       )}
+      <ProvenancePanel provenance={article.provenance} />
       <div className="language-editor-tabs">
         {["en", "hi"].map((l) => (
           <button
@@ -461,7 +467,7 @@ export default function Editor() {
                 <div className="panel-heading">
                   <div>
                     <h2>Lead image</h2>
-                    <p>A photograph that adds something to the story.</p>
+                    <p>An image that adds context, with a verified source and reuse rights.</p>
                   </div>
                 </div>
                 <div className="editor-fields">

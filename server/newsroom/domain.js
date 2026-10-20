@@ -215,6 +215,9 @@ function validateArticle(input, previous = null) {
     breaking: Boolean(input.breaking),
     sources,
     correction: text(input.correction, 2000),
+    ...(previous?.provenance
+      ? { provenance: structuredClone(previous.provenance) }
+      : {}),
     views: previous?.views || 0,
     createdAt: previous?.createdAt || new Date().toISOString(),
     updatedAt: new Date(

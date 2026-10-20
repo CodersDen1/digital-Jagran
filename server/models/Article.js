@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const articleSchema = new mongoose.Schema({
   schemaVersion: { type: Number },
+  provenance: { type: mongoose.Schema.Types.Mixed },
   // New newsroom fields are additive: legacy documents and custom layout data remain intact.
   translations: { type: mongoose.Schema.Types.Mixed },
   category: { type: String },

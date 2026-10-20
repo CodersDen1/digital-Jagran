@@ -46,3 +46,7 @@ Private/authenticated/search/saved/errors use `Cache-Control: no-store`; public 
 `npm test --prefix server` uses disposable files. `TEST_MONGODB_URI` additionally enables replica-set tests and must name a new database beginning `dj_test_`; those tests create indexes and drop only that explicit disposable database. They never read the real `.env` or use `MONGODB_URI`. Build the client SSR bundle before the HTML checks. No existing database is contacted by default.
 
 Primary references used: [Mongo transaction API](https://www.mongodb.com/docs/drivers/node/current/fundamentals/transactions/), [Node HTTP server timeouts and close methods](https://nodejs.org/api/http.html).
+
+## Review-only automation
+
+See [the automation API contract](AUTOMATION.md) for machine authentication, source deduplication, durable jobs/leases, Asia/Kolkata quotas, conservative spend reservations, immutable retry checkpoints and licensed reference-image storage. Paid work defaults to paused; automation cannot publish articles or generate images. Apply the additive automation/media indexes before rolling out this version.

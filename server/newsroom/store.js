@@ -3,6 +3,8 @@ const { createHash } = require("node:crypto");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { demoArticles } = require("./content");
+const { sourceKeys } = require("./automation");
+const { createAutomationQueue } = require("./automation-queue");
 const {
   HttpError,
   normalizeLegacy,
@@ -83,7 +85,7 @@ function runtimeMemory() {
     },
   };
 }
-async function fileStore(filename, seed = true) {
+async function fileStore(filename, seed = true, automationConfig = {}) {
   let state;
   try {
     state = JSON.parse(await fs.readFile(filename, "utf8"));
@@ -228,6 +230,75 @@ async function fileStore(filename, seed = true) {
             schemaVersion: 2,
           });
       }),
+    putMedia: (media) =>
+      mutate(async (next) => {
+        next.media ||= {};
+        if (next.media[media.hash])
+          return structuredClone(next.media[media.hash]);
+        await fs.mkdir(filename + ".media", { recursive: true });
+        try {
+          await fs.writeFile(
+            path.join(filename + ".media", media.hash + ".webp"),
+            media.buffer,
+            { flag: "wx" },
+          );
+        } catch (e) {
+          if (e.code !== "EEXIST") throw e;
+        }
+        const metadata = {
+          hash: media.hash,
+          contentType: media.contentType,
+          bytes: media.buffer.length,
+          width: media.width,
+          height: media.height,
+          rights: media.rights,
+          createdAt: new Date().toISOString(),
+          schemaVersion: 2,
+        };
+        next.media[media.hash] = metadata;
+        return structuredClone(metadata);
+      }),
+    getMedia: async (hash) => {
+      const media = state.media?.[hash];
+      if (!media) return undefined;
+      return {
+        ...structuredClone(media),
+        open: () =>
+          require("node:fs").createReadStream(
+            path.join(filename + ".media", hash + ".webp"),
+          ),
+      };
+    },
+    ingestAutomation: (article) =>
+      mutate(async (next) => {
+        next.automationKeys ||= {};
+        const keys = sourceKeys(article.provenance);
+        const ids = [
+          ...new Set(
+            keys
+              .map((key) => next.automationKeys[key]?.articleId)
+              .filter(Boolean),
+          ),
+        ];
+        if (ids.length > 1)
+          throw new HttpError(
+            409,
+            "Source event and fingerprint refer to different existing articles.",
+          );
+        const duplicate = ids.length === 1;
+        const saved = duplicate
+          ? await store.get(ids[0])
+          : await store.save(article);
+        const articleId = ids[0] || saved.id;
+        for (const key of keys)
+          next.automationKeys[key] ||= {
+            articleId,
+            createdAt: new Date().toISOString(),
+            schemaVersion: 2,
+          };
+        if (!duplicate) await store.automation.recordIngest();
+        return { article: saved || null, articleId, duplicate };
+      }),
     idempotent: (key, hash, fn) =>
       mutate(async (next) => {
         next.ledger ||= {};
@@ -255,6 +326,61 @@ async function fileStore(filename, seed = true) {
       await queue;
     },
   };
+  const automationState = () => {
+    const s = current();
+    s.automationState ||= { jobs: {}, keys: {}, days: {} };
+    return s.automationState;
+  };
+  const writeAutomation = (fn) => mutate(() => fn(automationState()));
+  store.automation = createAutomationQueue(
+    {
+      assertAtomic: () => {
+        if (!context.getStore())
+          throw new Error("Automation writes require an atomic operation.");
+      },
+      getJob: async (id) => structuredClone(automationState().jobs[id]),
+      putJob: (job) =>
+        writeAutomation((s) => {
+          s.jobs[job.id] = structuredClone(job);
+        }),
+      getDay: async (day) => structuredClone(automationState().days[day]),
+      putDay: (day) =>
+        writeAutomation((s) => {
+          s.days[day.day] = structuredClone(day);
+        }),
+      getKeys: async (keys) =>
+        keys
+          .map((k) => automationState().keys[k])
+          .filter(Boolean)
+          .map((x) => structuredClone(x)),
+      putKey: (key, jobId) =>
+        writeAutomation((s) => {
+          const old = s.keys[key];
+          if (old && old.jobId !== jobId)
+            throw new HttpError(409, "Source job identity conflict.");
+          s.keys[key] ||= { jobId, schemaVersion: 2 };
+        }),
+      findCandidate: async (now, maxAttempts) =>
+        structuredClone(
+          Object.values(automationState().jobs)
+            .filter(
+              (j) =>
+                j.attempts < maxAttempts &&
+                ((j.state === "queued" && j.availableAt <= now) ||
+                  (j.state === "leased" && j.leaseUntil <= now)),
+            )
+            .sort(
+              (a, b) =>
+                (a.recoveryPriority ?? 1) - (b.recoveryPriority ?? 1) ||
+                a.availableAt - b.availableAt ||
+                a.id.localeCompare(b.id),
+            )[0],
+        ),
+      articleForKeys: async (keys) =>
+        keys.map((k) => current().automationKeys?.[k]?.articleId).find(Boolean),
+    },
+    automationConfig,
+  );
   return store;
 }
 function mongoChanges(a, updating) {
@@ -370,7 +496,7 @@ const projection = {
   _publishedAt: 0,
   _category: 0,
 };
-async function mongoStore(uri) {
+async function mongoStore(uri, automationConfig = {}) {
   const mongoose = require("mongoose");
   const connection = await mongoose
     .createConnection(uri, {
@@ -740,6 +866,93 @@ async function mongoStore(uri) {
         retryAfter: Math.max(1, Math.ceil((expiresAt - now) / 1000)),
       };
     },
+    putMedia: async (media) => {
+      if (!context.getStore())
+        throw new Error("Media finalization requires a transaction.");
+      const collection = db.collection("newsroom_media");
+      const existing = await collection.findOne({ _id: media.hash }, opt());
+      if (existing) {
+        const { _id, gridFsId, ...metadata } = existing;
+        return metadata;
+      }
+      // GridFS cannot participate in multi-document transactions. Upload complete
+      // immutable bytes first, then atomically finalize their reference with replay.
+      const bucket = new mongoose.mongo.GridFSBucket(db, {
+        bucketName: "newsroom_media_bytes",
+      });
+      const upload = bucket.openUploadStream(media.hash + ".webp", {
+        metadata: { hash: media.hash, stagedAt: new Date() },
+      });
+      await new Promise((resolve, reject) => {
+        upload.on("finish", resolve);
+        upload.on("error", reject);
+        upload.end(media.buffer);
+      });
+      const metadata = {
+        hash: media.hash,
+        contentType: media.contentType,
+        bytes: media.buffer.length,
+        width: media.width,
+        height: media.height,
+        rights: media.rights,
+        createdAt: new Date().toISOString(),
+        schemaVersion: 2,
+      };
+      await collection.insertOne(
+        { _id: media.hash, gridFsId: upload.id, ...metadata },
+        opt(),
+      );
+      return metadata;
+    },
+    getMedia: async (hash) => {
+      const media = await db
+        .collection("newsroom_media")
+        .findOne({ _id: hash }, { maxTimeMS: 5000 });
+      if (!media) return undefined;
+      const { _id, gridFsId, ...metadata } = media;
+      return {
+        ...metadata,
+        open: () =>
+          new mongoose.mongo.GridFSBucket(db, {
+            bucketName: "newsroom_media_bytes",
+          }).openDownloadStream(gridFsId),
+      };
+    },
+    ingestAutomation: async (article) => {
+      if (!context.getStore())
+        throw new Error("Automation ingest requires a transaction.");
+      const sources = db.collection("newsroom_automation_sources");
+      const keys = sourceKeys(article.provenance);
+      const previous = await sources
+        .find({ _id: { $in: keys } }, opt())
+        .limit(keys.length)
+        .toArray();
+      const ids = [...new Set(previous.map((x) => x.articleId))];
+      if (ids.length > 1)
+        throw new HttpError(
+          409,
+          "Source event and fingerprint refer to different existing articles.",
+        );
+      const duplicate = ids.length === 1;
+      const saved = duplicate
+        ? await store.get(ids[0])
+        : await store.save(article);
+      const articleId = ids[0] || saved.id;
+      for (const key of keys)
+        await sources.updateOne(
+          { _id: key },
+          {
+            $setOnInsert: {
+              articleId,
+              createdAt: new Date(),
+              schemaVersion: 2,
+            },
+          },
+          { ...opt(), upsert: true },
+        );
+      if (!duplicate) await store.automation.recordIngest();
+      return { article: saved || null, articleId, duplicate };
+    },
     idempotent: async (key, hash, fn) => {
       const replay = (v) => {
         if (v.hash !== hash)
@@ -803,6 +1016,67 @@ async function mongoStore(uri) {
     },
     close: () => connection.close(),
   };
+  const jobs = db.collection("newsroom_automation_jobs"),
+    jobKeys = db.collection("newsroom_automation_job_keys"),
+    days = db.collection("newsroom_automation_days");
+  const clean = (value) => {
+    if (!value) return undefined;
+    const { _id, ...rest } = value;
+    return rest;
+  };
+  store.automation = createAutomationQueue(
+    {
+      assertAtomic: () => {
+        if (!context.getStore())
+          throw new Error("Automation writes require a transaction.");
+      },
+      getJob: async (id) => clean(await jobs.findOne({ _id: id }, opt())),
+      putJob: (job) =>
+        jobs.replaceOne(
+          { _id: job.id },
+          { ...job, _id: job.id },
+          { ...opt(), upsert: true },
+        ),
+      getDay: async (day) => clean(await days.findOne({ _id: day }, opt())),
+      putDay: (day) =>
+        days.replaceOne(
+          { _id: day.day },
+          { ...day, _id: day.day },
+          { ...opt(), upsert: true },
+        ),
+      getKeys: (keys) =>
+        jobKeys
+          .find({ _id: { $in: keys } }, opt())
+          .limit(keys.length)
+          .toArray(),
+      putKey: (key, jobId) =>
+        jobKeys.updateOne(
+          { _id: key },
+          { $setOnInsert: { jobId, schemaVersion: 2 } },
+          { ...opt(), upsert: true },
+        ),
+      findCandidate: async (now, maxAttempts) =>
+        clean(
+          await jobs.findOne(
+            {
+              attempts: { $lt: maxAttempts },
+              $or: [
+                { state: "queued", availableAt: { $lte: now } },
+                { state: "leased", leaseUntil: { $lte: now } },
+              ],
+            },
+            { ...opt(), sort: { recoveryPriority: 1, availableAt: 1, _id: 1 } },
+          ),
+        ),
+      articleForKeys: async (keys) =>
+        (
+          await db
+            .collection("newsroom_automation_sources")
+            .findOne({ _id: { $in: keys } }, opt())
+        )?.articleId,
+    },
+    automationConfig,
+  );
   return store;
 }
 module.exports = {

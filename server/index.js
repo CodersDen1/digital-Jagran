@@ -16,6 +16,14 @@ async function start() {
     );
   if (production && process.env.ADMIN_PASSWORD === "newsroom-local-2026")
     throw new Error("Choose a unique production admin password.");
+  require("./newsroom/automation").automationAuth(
+    process.env.AUTOMATION_INGEST_TOKEN,
+  );
+  if (
+    process.env.AUTOMATION_INGEST_TOKEN &&
+    process.env.AUTOMATION_INGEST_TOKEN === process.env.ADMIN_PASSWORD
+  )
+    throw new Error("Automation and editor credentials must differ.");
   const mode = process.env.DATA_STORE || "file";
   if (!["file", "mongo"].includes(mode))
     throw new Error("DATA_STORE must be file or mongo.");
@@ -25,14 +33,22 @@ async function start() {
     );
   if (mode === "mongo" && !process.env.MONGODB_URI)
     throw new Error("MONGODB_URI is required for mongo storage.");
+  const automationConfig = {
+    dailyBudgetMicroUsd: process.env.AUTOMATION_DAILY_BUDGET_MICRO_USD,
+    maxAttempts: process.env.AUTOMATION_MAX_ATTEMPTS,
+    dailyMaxJobs: process.env.AUTOMATION_DAILY_MAX_JOBS,
+    minimumReservationMicroUsd:
+      process.env.AUTOMATION_MIN_RESERVATION_MICRO_USD,
+  };
   const store =
     mode === "mongo"
-      ? await mongoStore(process.env.MONGODB_URI)
+      ? await mongoStore(process.env.MONGODB_URI, automationConfig)
       : await fileStore(
           path.resolve(
             process.env.DATA_FILE || path.join(__dirname, "data/newsroom.json"),
           ),
           !production && process.env.SEED_DEMO !== "false",
+          automationConfig,
         );
   if (production && store.demo)
     throw new Error(
@@ -66,6 +82,7 @@ async function start() {
     adminEmail: process.env.ADMIN_EMAIL || "editor@digitaljagran.local",
     adminPassword: process.env.ADMIN_PASSWORD || "newsroom-local-2026",
     trustProxy: process.env.TRUST_PROXY || false,
+    automationToken: process.env.AUTOMATION_INGEST_TOKEN,
     allowedOrigins: (
       process.env.ALLOWED_ORIGINS ||
       (!production ? "http://localhost:5173,http://localhost:5174" : "")

@@ -14,6 +14,52 @@ const indexes = {
     },
     { key: { updatedAt: -1, _id: 1 }, options: { name: "newsroom_recent" } },
   ],
+  newsroom_media: [
+    {
+      key: { gridFsId: 1 },
+      options: { name: "media_gridfs_unique", unique: true },
+    },
+    { key: { hash: 1 }, options: { name: "media_hash_unique", unique: true } },
+  ],
+  "newsroom_media_bytes.files": [
+    {
+      key: { filename: 1, uploadDate: 1 },
+      options: { name: "filename_1_uploadDate_1" },
+    },
+  ],
+  "newsroom_media_bytes.chunks": [
+    {
+      key: { files_id: 1, n: 1 },
+      options: { name: "files_id_1_n_1", unique: true },
+    },
+  ],
+  newsroom_automation_jobs: [
+    {
+      key: {
+        state: 1,
+        recoveryPriority: 1,
+        availableAt: 1,
+        leaseUntil: 1,
+        attempts: 1,
+      },
+      options: { name: "automation_claim" },
+    },
+  ],
+  newsroom_automation_job_keys: [
+    { key: { jobId: 1 }, options: { name: "automation_job_reference" } },
+  ],
+  newsroom_automation_days: [
+    {
+      key: { day: 1 },
+      options: { name: "automation_day_unique", unique: true },
+    },
+  ],
+  newsroom_automation_sources: [
+    {
+      key: { articleId: 1 },
+      options: { name: "automation_article_reference" },
+    },
+  ],
   newslettersubscribers: [
     { key: { email: 1 }, options: { name: "email_1", unique: true } },
     {

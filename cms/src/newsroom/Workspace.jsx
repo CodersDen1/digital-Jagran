@@ -20,6 +20,7 @@ import {
 import { api, formatDate, sections, storyTitle } from "./api";
 import { mutationFor } from "./transport";
 import { collectSubscribers, subscriberCsv } from "./subscriberExport";
+import { AutomationBadge } from "./Provenance.jsx";
 import { Pagination, Alert, Loading, PageHeader, Status } from "./ui";
 
 export function Overview() {
@@ -333,6 +334,7 @@ export function Stories() {
                           <span className="overline">{a.category}</span>
                           <strong>{storyTitle(a)}</strong>
                           <small>{a.author}</small>
+                          <AutomationBadge provenance={a.provenance} />
                         </div>
                       </Link>
                     </td>

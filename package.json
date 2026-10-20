@@ -7,7 +7,7 @@
     "build": "node scripts/workspace.cjs build",
     "dev": "node scripts/workspace.cjs dev",
     "start": "npm start --prefix server",
-    "test": "node scripts/workspace.cjs test",
+    "test": "node scripts/workspace.cjs test && node --test automation/n8n/*.test.mjs",
     "check": "node scripts/check.cjs",
     "check:deploy": "node scripts/check-deploy.cjs"
   },
