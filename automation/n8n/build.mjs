@@ -13,7 +13,7 @@ function http(name,path,method,body,x,y,{kie=false,key=name,credential=true,bina
  const parameters={method,url:kie?'https://api.kie.ai/claude/v1/messages':path.startsWith('=')?path:api+path,
   ...(credential?{authentication:'genericCredentialType',genericAuthType:'httpBearerAuth'}:{}),
   sendHeaders:true,headerParameters:{parameters:[{name:'Accept',value:'application/json'},...(method==='GET'?[]:[{name:'Idempotency-Key',value:`={{ 'dj-' + $execution.id + '-${key}-' + ($json.job?.revision || $itemIndex) }}`}])]},
-  ...(body?{sendBody:true,specifyBody:'json',jsonBody:body}:{}),options:{timeout:kie?90000:20000,redirect:{redirect:{followRedirects:false}},...(binary?{response:{response:{responseFormat:'file',outputPropertyName:'data'}}}:{})}};
+  ...(body?{sendBody:true,specifyBody:'json',jsonBody:body.startsWith('={{')?body.slice(0,-2).replace(/\}{2,}/g,m=>m.split('').join(' '))+'}}':body}:{}),options:{timeout:kie?90000:20000,redirect:{redirect:{followRedirects:false}},...(binary?{response:{response:{responseFormat:'file',outputPropertyName:'data'}}}:{})}};
  return node(name,'httpRequest',parameters,x,y,{...(credential?{credentials:kie?kieCredential:cmsCredential}:{}),retryOnFail:!kie,maxTries:kie?1:3,waitBetweenTries:1500});
 }
 function test(name,expr,x,y){return node(name,'if',{conditions:{options:{caseSensitive:true,leftValue:'',typeValidation:'strict',version:2},conditions:[{id:name,leftValue:expr,rightValue:true,operator:{type:'boolean',operation:'true',singleValue:true}}],combinator:'and'},options:{}},x,y);}
@@ -93,14 +93,18 @@ try{draft=JSON.parse(j.checkpoint.draftText);verifier=JSON.parse(j.checkpoint.fa
 const result=validateDraft(draft,{verifier,sources:j.sourcePacket.sources});if(!result.valid)return [{json:{...$json,qualityError:'Evidence gate: '+result.errors.join('; ')}}];
 return [{json:{...$json,draft,verifier,imageQuery:String(draft.imageSearchQuery||j.sourcePacket.title).replace(/[^\\p{L}\\p{N} -]/gu,' ').slice(0,120)}}];`,6180,-100,true);
 http('Search reusable web photographs',"={{ 'https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=5&gsrsearch='+encodeURIComponent($json.imageQuery)+'&prop=imageinfo&iiprop=url%7Csize%7Cmime%7Cextmetadata&iiurlwidth=1200' }}",'GET',null,6420,-100,{credential:false});
+nodes.find(n=>n.name==='Search reusable web photographs').onError='continueRegularOutput';
 code('Check photo rights',`const base=$('Evidence and bilingual gate').first().json;
 const reference=selectCommonsImage(Object.values($json.query?.pages||{}));return [{json:{...base,reference}}];`,6660,-100,true);
 test('Reusable photo found','={{ !!$json.reference }}',6900,-100);
 http('Download approved photograph','={{ $json.reference.url }}','GET',null,7140,-240,{credential:false,binary:true});
 code('Prepare durable image',`const reference=$('Check photo rights').first().json.reference;
-const bytes=await this.helpers.getBinaryDataBuffer(0,'data');if(bytes.length>5*1024*1024)throw new Error('Photo exceeds 5MiB');
+if(!$input.first().binary?.data)return [{json:{photoError:'Photograph download unavailable'}}];
+const bytes=await this.helpers.getBinaryDataBuffer(0,'data');if(bytes.length>5*1024*1024)return [{json:{photoError:'Photo exceeds 5MiB'}}];
 return [{json:{...reference,base64:bytes.toString('base64'),contentType:$input.first().binary.data.mimeType}}];`,7380,-240);
 http('Store credited photo','/media','POST','={{ $json }}',7620,-240);
+nodes.find(n=>n.name==='Store credited photo').onError='continueRegularOutput';
+for(const name of ['Search reusable web photographs','Download approved photograph']){const n=nodes.find(n=>n.name===name);n.parameters.headerParameters.parameters.push({name:'User-Agent',value:'DigitalJagran-Newsroom/1.0 (+https://digitaljagran.com)'});n.parameters.options.timeout=10000;n.maxTries=2;n.onError='continueRegularOutput';}
 code('Prepare review-only article',`const base=$('Check photo rights').first().json;const j=base.job,d=base.draft;const r=base.reference;
 const image=$json.media?.url||'';const sources=j.sourcePacket.sources.map(s=>({label:(s.title||s.publisher||new URL(s.url).hostname).slice(0,200),url:s.url}));
 const warnings=[...(d.warnings||[]),...(base.verifier.warnings||[]),'AI-assisted bilingual draft; editor must independently verify facts, translations, rights and timeliness.',...(sources.length<2?['Only one independent source available; corroboration required.']:[]),...(image?['Illustrative archive image; not verified as a photograph of this event.']:['No verified reusable photograph found; editor must choose an appropriate licensed image.'])].slice(0,20).map(w=>String(w).slice(0,500));
@@ -127,6 +131,8 @@ for(const [source,gate,x,y] of [['Recover safely','Source remains timely',800,26
  const old=connections[source].main[0];connections[source].main[0]=[];
  test(gate,'={{ !$json.qualityError }}',x,y);link(source,gate);connections[gate]={main:[old,[{node:'Quarantine rejected candidate',type:'main',index:0}]]};
 }
+test('Photo bytes available','={{ !!$json.base64 }}',7500,120);
+connections['Prepare durable image'].main[0]=[{node:'Photo bytes available',type:'main',index:0}];link('Photo bytes available','Store credited photo');link('Photo bytes available','Prepare review-only article',1);
 note('Worker guarantees','## 02 • Bilingual news desk • Human approval only\nOne durable job per five-minute tick (capacity 288/day); authenticated writes and atomic job leases coordinate concurrent workers.\nUS$0.90/day shared server ledger. Reserve bounded maximum token cost BEFORE each Kie request, then reconcile reported credits.\nNO automatic paid-call retries. Unknown paid outcomes are held for operator reconciliation.\nEvery article remains REVIEW. Public publication requires an editor.',160,-570,1740,270);
 note('Writing','## Bounded writing + evidence check\nKie.ai Claude Haiku 4.5 • max_tokens 2400/600 • thinking off • no tools\nEnglish + Hindi, original headlines, summaries, source citations and metadata.\nIndependent second pass checks against the supplied evidence; this does not replace human fact-checking.\nPricing checked 20 Oct 2026; paid work pauses for price review after 20 Nov.',2000,-540,3550,230,4);
 note('Web imagery','## Reference photos, no AI images\nWikimedia Commons only • reusable license allowlist • creator, source and license retained.\nByte upload into durable CMS storage. No image? Keep draft imageless with a clear editorial warning.\nPhotograph is illustrative, never asserted to show the reported event.',6120,-570,1950,250,6);

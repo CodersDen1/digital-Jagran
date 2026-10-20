@@ -204,7 +204,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'draft_prepared',checkpoint:{draftRequest:$json.request,submissionKeys:{draft:'dj-'+$json.job.id+'-draft',factcheck:'dj-'+$json.job.id+'-factcheck',ingest:'dj-'+$json.job.id+'-ingest'}}} }}",
+        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'draft_prepared',checkpoint:{draftRequest:$json.request,submissionKeys:{draft:'dj-'+$json.job.id+'-draft',factcheck:'dj-'+$json.job.id+'-factcheck',ingest:'dj-'+$json.job.id+'-ingest'} } } }}",
         "options": {
           "timeout": 20000,
           "redirect": {
@@ -349,7 +349,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'draft_uncertain',checkpoint:{}} }}",
+        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'draft_uncertain',checkpoint:{} } }}",
         "options": {
           "timeout": 20000,
           "redirect": {
@@ -509,7 +509,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'draft_done',checkpoint:{draftText:$('Validate draft billing').first().json.text,draftTaskId:$('Validate draft billing').first().json.taskId}} }}",
+        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'draft_done',checkpoint:{draftText:$('Validate draft billing').first().json.text,draftTaskId:$('Validate draft billing').first().json.taskId} } }}",
         "options": {
           "timeout": 20000,
           "redirect": {
@@ -605,7 +605,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'factcheck_prepared',checkpoint:{factcheckRequest:$json.request}} }}",
+        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'factcheck_prepared',checkpoint:{factcheckRequest:$json.request} } }}",
         "options": {
           "timeout": 20000,
           "redirect": {
@@ -750,7 +750,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'factcheck_uncertain',checkpoint:{}} }}",
+        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'factcheck_uncertain',checkpoint:{} } }}",
         "options": {
           "timeout": 20000,
           "redirect": {
@@ -910,7 +910,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'factcheck_done',checkpoint:{factcheckText:$('Validate factcheck billing').first().json.text,factcheckTaskId:$('Validate factcheck billing').first().json.taskId}} }}",
+        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'factcheck_done',checkpoint:{factcheckText:$('Validate factcheck billing').first().json.text,factcheckTaskId:$('Validate factcheck billing').first().json.taskId} } }}",
         "options": {
           "timeout": 20000,
           "redirect": {
@@ -995,11 +995,15 @@
             {
               "name": "Accept",
               "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "DigitalJagran-Newsroom/1.0 (+https://digitaljagran.com)"
             }
           ]
         },
         "options": {
-          "timeout": 20000,
+          "timeout": 10000,
           "redirect": {
             "redirect": {
               "followRedirects": false
@@ -1008,8 +1012,9 @@
         }
       },
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 1500
+      "maxTries": 2,
+      "waitBetweenTries": 1500,
+      "onError": "continueRegularOutput"
     },
     {
       "id": "Checkphotorights",
@@ -1076,11 +1081,15 @@
             {
               "name": "Accept",
               "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "DigitalJagran-Newsroom/1.0 (+https://digitaljagran.com)"
             }
           ]
         },
         "options": {
-          "timeout": 20000,
+          "timeout": 10000,
           "redirect": {
             "redirect": {
               "followRedirects": false
@@ -1095,8 +1104,9 @@
         }
       },
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 1500
+      "maxTries": 2,
+      "waitBetweenTries": 1500,
+      "onError": "continueRegularOutput"
     },
     {
       "id": "Preparedurableimage",
@@ -1108,7 +1118,7 @@
         -240
       ],
       "parameters": {
-        "jsCode": "const { URL } = require('url');\nconst reference=$('Check photo rights').first().json.reference;\nconst bytes=await this.helpers.getBinaryDataBuffer(0,'data');if(bytes.length>5*1024*1024)throw new Error('Photo exceeds 5MiB');\nreturn [{json:{...reference,base64:bytes.toString('base64'),contentType:$input.first().binary.data.mimeType}}];"
+        "jsCode": "const { URL } = require('url');\nconst reference=$('Check photo rights').first().json.reference;\nif(!$input.first().binary?.data)return [{json:{photoError:'Photograph download unavailable'}}];\nconst bytes=await this.helpers.getBinaryDataBuffer(0,'data');if(bytes.length>5*1024*1024)return [{json:{photoError:'Photo exceeds 5MiB'}}];\nreturn [{json:{...reference,base64:bytes.toString('base64'),contentType:$input.first().binary.data.mimeType}}];"
       }
     },
     {
@@ -1158,7 +1168,8 @@
       },
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 1500
+      "waitBetweenTries": 1500,
+      "onError": "continueRegularOutput"
     },
     {
       "id": "Preparereviewonlyarticle",
@@ -1202,7 +1213,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'ingest_prepared',checkpoint:{articlePayload:$json.article}} }}",
+        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'ingest_prepared',checkpoint:{articlePayload:$json.article} } }}",
         "options": {
           "timeout": 20000,
           "redirect": {
@@ -1285,7 +1296,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'ingest_uncertain',checkpoint:{}} }}",
+        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'checkpoint',phase:'ingest_uncertain',checkpoint:{} } }}",
         "options": {
           "timeout": 20000,
           "redirect": {
@@ -1466,7 +1477,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'fail',checkpoint:{lastError:String($json.qualityError).slice(0,2000)}} }}",
+        "jsonBody": "={{ {leaseToken:$('Claim job').first().json.leaseToken,revision:$json.job.revision,action:'fail',checkpoint:{lastError:String($json.qualityError).slice(0,2000)} } }}",
         "options": {
           "timeout": 20000,
           "redirect": {
@@ -1575,6 +1586,40 @@
             {
               "id": "Evidence check passed",
               "leftValue": "={{ !$json.qualityError }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "Photobytesavailable",
+      "name": "Photo bytes available",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        7500,
+        120
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Photo bytes available",
+              "leftValue": "={{ !!$json.base64 }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -2063,7 +2108,7 @@
       "main": [
         [
           {
-            "node": "Store credited photo",
+            "node": "Photo bytes available",
             "type": "main",
             "index": 0
           }
@@ -2202,6 +2247,24 @@
         [
           {
             "node": "Quarantine rejected candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Photo bytes available": {
+      "main": [
+        [
+          {
+            "node": "Store credited photo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare review-only article",
             "type": "main",
             "index": 0
           }
