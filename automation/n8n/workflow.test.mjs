@@ -33,7 +33,7 @@ async function harness(t,{unknownPaid=false,credits=100,draftValue=draft,verifie
     const url=expr(node.parameters.url),body=node.parameters.jsonBody?expr(node.parameters.jsonBody):null;
     let value;
     if(url.endsWith('/api/v1/chat/credit'))value={code:200,data:credits};
-    else if(url.includes('api.kie.ai')){paid++;if(unknownPaid)throw new Error('Unknown paid response');value={type:'message',id:'msg-'+paid,credits_consumed:0.15,usage:{input_tokens:1000,output_tokens:500},stop_reason:'end_turn',content:[{type:'text',text:JSON.stringify(paid===1?draftValue:verifierValue)}]};}
+    else if(url.includes('api.kie.ai')){paid++;assert.equal(url,'https://api.kie.ai/codex/v1/responses');assert.equal(body.model,'gpt-6-luna');assert.equal(body.stream,false);assert.equal(body.reasoning.effort,'low');assert.ok(body.input[0].content[0].text);if(unknownPaid)throw new Error('Unknown paid response');value={credits_consumed:0.15,usage:{input_tokens:1000,output_tokens:500},status:'completed',output:[{type:'reasoning',id:'rs-'+paid,summary:[]},{type:'message',role:'assistant',id:'msg-'+paid,status:'completed',content:[{type:'output_text',text:JSON.stringify(paid===1?draftValue:verifierValue)}]}]};}
     else if(url.includes('commons.wikimedia.org'))value={query:{pages:{}}};
     else{
      const pathname=new URL(url).pathname.replace('/api/v1/automation',''); const parts=pathname.split('/');
@@ -56,6 +56,8 @@ async function harness(t,{unknownPaid=false,credits=100,draftValue=draft,verifie
 test('generated worker performs two bounded paid calls and submits a bilingual review with honest missing-photo warning',async t=>{
  const h=await harness(t);await h.run();assert.equal(h.paid,2);
  const job=h.data.get('Complete durable job')[0].json.job;assert.equal(job.phase,'completed');
+ assert.ok(h.data.get('Price guard draft')[0].json.reservationMicroUsd>=19200,'Reserve all 128K output tokens, including reasoning');
+ assert.ok(h.data.get('Price guard factcheck')[0].json.reservationMicroUsd>=19200);
  const result=h.data.get('Submit for human approval')[0].json;assert.equal(result.article.status,'review');assert.equal(result.article.image,'');assert.equal(result.article.provenance.imageGenerated,false);
  assert.ok(result.article.provenance.warnings.some(w=>w.includes('No verified reusable photograph')));
  const day=await h.store.automation.day();assert.equal(day.counts.reviewed,1);assert.equal(day.spend.actualMicroUsd,1500);assert.equal(day.spend.reservedMicroUsd,0);
