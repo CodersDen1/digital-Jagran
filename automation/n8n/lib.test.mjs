@@ -23,6 +23,13 @@ test('public evidence extractor requires a free Guardian article and excludes un
  assert.equal(extractPublicEvidence(html.replace('article-body-viewer-selector','unrelated'),'https://www.theguardian.com/science/fixture'),null);
  assert.equal(extractPublicEvidence(html.replace(body,'Too little evidence.'),'https://www.theguardian.com/science/fixture'),null);
 });
+
+test('BBC evidence is confined to article text blocks and rejects an explicit access gate',()=>{
+ const html='<nav><p>Unrelated</p></nav><article><div data-component="headline-block">Headline</div><div data-component="text-block"><div><p>'+en+' '+en+'</p></div></div><div data-component="related"><p>Other story</p></div></article>';
+ const text=extractPublicEvidence(html,'https://bbc.co.uk/news/articles/fixture');assert.ok(text.includes('NASA'));assert.ok(!text.includes('Other story')&&!text.includes('Unrelated'));
+ assert.equal(extractPublicEvidence(html+'<div data-component="paywall"></div>','https://bbc.com/news/articles/fixture'),null);
+ assert.equal(extractPublicEvidence(html.replace('headline-block','unknown'),'https://bbc.com/news/articles/fixture'),null);
+});
 const validate = (value, options = {}) => validateDraft(value, { verifier: approval, sources, ...options });
 
 test('source URLs require HTTPS publisher hosts and retain meaningful query parameters', () => {

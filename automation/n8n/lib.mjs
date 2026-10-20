@@ -27,22 +27,32 @@ export function canonicalizeSourceUrl(value) {
   } catch { return null; }
 }
 
-// A narrow extractor for the freely accessible Guardian layout verified on
+// Narrow extractors for public BBC/Guardian layouts verified on
 // 20 Oct 2026. No generic page text, navigation, paywall or script instructions.
 export function extractPublicEvidence(html, sourceUrl) {
   const url = canonicalizeSourceUrl(sourceUrl);
-  if (!url || new URL(url).hostname !== 'theguardian.com' || typeof html !== 'string' || html.length > 2000000) return null;
-  if (!/"isAccessibleForFree"\s*:\s*true/.test(html) || /"isAccessibleForFree"\s*:\s*false/.test(html)) return null;
-  const start = /<div\b[^>]*class=["'][^"']*\barticle-body-viewer-selector\b[^"']*["'][^>]*>/i.exec(html);
-  if (!start) return null;
-  const tail = html.slice(start.index + start[0].length);
-  let depth = 1, end = -1;
-  for (const tag of tail.matchAll(/<\/?div\b[^>]*>/gi)) {
-    depth += /^<\//.test(tag[0]) ? -1 : 1;
-    if (!depth) { end = tag.index; break; }
-  }
-  if (end < 0) return null;
-  const body = tail.slice(0, end).replace(/<(aside|script|style|nav|footer|figure|form)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ');
+  if (!url || typeof html !== 'string' || html.length > 2000000) return null;
+  const host=new URL(url).hostname;
+  if (/"isAccessibleForFree"\s*:\s*false|data-component=["']paywall["']|data-testid=["']paywall["']/i.test(html)) return null;
+  const innerDiv = (source, start) => {
+    const tail=source.slice(start.index+start[0].length);let depth=1;
+    for(const tag of tail.matchAll(/<\/?div\b[^>]*>/gi)){
+      depth+=/^<\//.test(tag[0])?-1:1;if(!depth)return tail.slice(0,tag.index);
+    }
+    return null;
+  };
+  let region;
+  if(host==='theguardian.com'){
+    if(!/"isAccessibleForFree"\s*:\s*true/.test(html))return null;
+    const start=/<div\b[^>]*class=["'][^"']*\barticle-body-viewer-selector\b[^"']*["'][^>]*>/i.exec(html);
+    region=start&&innerDiv(html,start);
+  }else if(['bbc.com','bbc.co.uk'].includes(host)&&/^\/(news|sport)\//.test(new URL(url).pathname)){
+    const article=/<article\b[^>]*>([\s\S]*?)<\/article\s*>/i.exec(html)?.[1];
+    if(!article||!/data-component=["']headline-block["']/.test(article))return null;
+    region=[...article.matchAll(/<div\b[^>]*data-component=["']text-block["'][^>]*>/gi)].map(start=>innerDiv(article,start)).filter(Boolean).join('\n');
+  }else return null;
+  if(!region)return null;
+  const body=region.replace(/<(aside|script|style|nav|footer|figure|form)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,' ');
   const entities = {amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',rsquo:'’',lsquo:'‘',rdquo:'”',ldquo:'“',ndash:'–',mdash:'—',hellip:'…'};
   const decode = text => text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (all, value) => {
     if (value[0] !== '#') return entities[value.toLowerCase()] ?? all;
