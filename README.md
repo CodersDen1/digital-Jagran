@@ -84,6 +84,8 @@ Before public launch, replace demonstration copy and images, verify image rights
 
 ## Kubernetes delivery
 
+For the user's selected Coolify hosting, use the [Coolify runbook](docs/coolify-runbook.md) and root `docker-compose.yaml`. It includes a fresh authenticated MongoDB replica set with private networking and persistent volumes; production secrets belong in Coolify.
+
 The [Helm chart](deploy/helm/digital-jagran/) targets two or more replicas with TLS ingress, restrictive network policies, readiness/liveness probes, graceful shutdown, rolling updates, a disruption budget and optional HPA/Prometheus resources. The runtime image runs as a non-root user with a read-only root filesystem. Choose an installed, supported ingress controller explicitly.
 
 Follow the [Kubernetes runbook](docs/kubernetes-runbook.md) for required infrastructure, secrets, index provisioning, rollout, rollback and recovery. The [production considerations register](docs/production-considerations.md) addresses idempotency and all 110 requested topics, distinguishing implemented behavior from deployment responsibilities and deferred features. These artifacts have not been deployed to a live cluster.
