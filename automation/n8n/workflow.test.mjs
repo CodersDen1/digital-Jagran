@@ -13,10 +13,11 @@ const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 const en='NASA has announced a lunar research mission focused on scientific observations and public research information. The agency described the work as part of its continuing programme to study the Moon and improve understanding of the lunar environment. Its announcement sets out the research priorities and explains why the observations matter to scientists. The information comes from the agency statement, which readers can consult for the underlying details and context. The mission brings together scientific planning, observations and analysis within the stated research programme. Researchers will use the findings to examine questions about the Moon and its environment. The announcement provides a basis for following the programme as further information becomes available. Readers should distinguish the objectives described in the statement from results that have yet to be reported. The agency statement remains the source for the details of this announcement.';
 const hi='नासा ने चंद्रमा से जुड़े वैज्ञानिक अनुसंधान अभियान की घोषणा की है। एजेंसी के अनुसार अभियान का उद्देश्य चंद्र पर्यावरण को समझने के लिए वैज्ञानिक अवलोकन और अनुसंधान संबंधी जानकारी जुटाना है। घोषणा में शोध की प्राथमिकताओं और वैज्ञानिकों के लिए उनके महत्व का विवरण दिया गया है। इस जानकारी का आधार एजेंसी का वक्तव्य है। पाठक संबंधित विवरण और संदर्भ के लिए मूल वक्तव्य देख सकते हैं। अभियान में वैज्ञानिक योजना, अवलोकन और विश्लेषण को शामिल किया गया है। शोधकर्ता चंद्रमा और उसके पर्यावरण से जुड़े सवालों पर अध्ययन करेंगे। आगे की जानकारी उपलब्ध होने पर कार्यक्रम की प्रगति को समझा जा सकेगा। घोषणा में बताए गए उद्देश्यों को अभी तक प्रकाशित नहीं हुए परिणामों से अलग समझना जरूरी है। एजेंसी का मूल वक्तव्य इस घोषणा के विवरण का स्रोत है।';
 const draft={translations:{en:{title:'NASA announces lunar research mission',summary:'NASA outlines its lunar scientific research mission.',body:en,metaTitle:'NASA lunar research mission',description:'NASA describes its lunar research announcement and scientific objectives.'},hi:{title:'नासा ने चंद्र अनुसंधान अभियान की घोषणा की',summary:'नासा ने चंद्र वैज्ञानिक अनुसंधान अभियान का विवरण दिया।',body:hi,metaTitle:'नासा का चंद्र अनुसंधान अभियान',description:'नासा की चंद्र अनुसंधान घोषणा और वैज्ञानिक उद्देश्यों का विवरण।'}},imageSearchQuery:'Moon lunar surface',warnings:[]};
-async function harness(t,{unknownPaid=false,credits=100,draftValue=draft,verifierValue={pass:true,unsupportedClaims:[],warnings:[]},publishedAt=new Date().toISOString()}={}){
+async function harness(t,{unknownPaid=false,credits=100,publicSourceHtml=null,draftValue=draft,verifierValue={pass:true,unsupportedClaims:[],warnings:[]},publishedAt=new Date().toISOString()}={}){
  const dir=await mkdtemp(path.join(tmpdir(),'dj-flow-')); t.after(()=>rm(dir,{recursive:true,force:true}));
  const store=await fileStore(path.join(dir,'state.json'),false,{dailyBudgetMicroUsd:900000});
  const packet={title:draft.translations.en.title,summary:en,category:'explained',canonicalUrl:'https://nasa.gov/news/lunar-test',newsPublishedAt:publishedAt,sources:[{url:'https://nasa.gov/news/lunar-test',title:draft.translations.en.title,summary:en,publishedAt,retrievedAt:new Date().toISOString()}]};
+ if(publicSourceHtml!==null){packet.canonicalUrl='https://theguardian.com/science/fixture';packet.sources[0].url=packet.canonicalUrl;packet.summary='Short original RSS snippet';packet.sources[0].summary=packet.summary;}
  const atomic=fn=>store.idempotent(randomUUID(),'fixture',fn);
  await atomic(()=>store.automation.enqueue({sourcePacket:packet,provenance:{sourceId:'nasa.gov',eventId:packet.canonicalUrl,sources:packet.sources.map(({summary,...s})=>s)}}));
  const data=new Map();let paid=0;
@@ -35,6 +36,7 @@ async function harness(t,{unknownPaid=false,credits=100,draftValue=draft,verifie
     if(url.endsWith('/api/v1/chat/credit'))value={code:200,data:credits};
     else if(url.includes('api.kie.ai')){paid++;assert.equal(url,'https://api.kie.ai/codex/v1/responses');assert.equal(body.model,'gpt-6-luna');assert.equal(body.stream,false);assert.equal(body.reasoning.effort,'low');assert.ok(body.input[0].content[0].text);if(unknownPaid)throw new Error('Unknown paid response');value={credits_consumed:0.15,usage:{input_tokens:1000,output_tokens:500},status:'completed',output:[{type:'reasoning',id:'rs-'+paid,summary:[]},{type:'message',role:'assistant',id:'msg-'+paid,status:'completed',content:[{type:'output_text',text:JSON.stringify(paid===1?draftValue:verifierValue)}]}]};}
     else if(url.includes('commons.wikimedia.org'))value={query:{pages:{}}};
+    else if(url.startsWith('https://www.theguardian.com/')){assert.equal(node.parameters.authentication,undefined);assert.equal(node.parameters.options.redirect.redirect.followRedirects,false);value={data:publicSourceHtml};}
     else{
      const pathname=new URL(url).pathname.replace('/api/v1/automation',''); const parts=pathname.split('/');
      value=await atomic(async()=>{let value;
@@ -88,4 +90,14 @@ test('stale queued news is quarantined before any paid call',async t=>{
 });
 test('low provider balance stops before any job is claimed or cost reserved',async t=>{
  const h=await harness(t,{credits:0});await assert.rejects(h.run(),/credit preflight/i);assert.equal(h.paid,0);const day=await h.store.automation.day();assert.equal(day.counts.claimed,0);assert.equal(day.spend.reservedMicroUsd,0);
+});
+
+test('public article evidence is saved once and shared unchanged by writer and checker',async t=>{
+ const html='<script>{"isAccessibleForFree":true}</script><div class="article-body-viewer-selector"><p>'+en+' '+en+'</p></div>';
+ const h=await harness(t,{publicSourceHtml:html});await h.run();assert.equal(h.paid,2);
+ const j=h.data.get('Complete durable job')[0].json.job;
+ const evidence=JSON.parse(j.checkpoint.draftRequest.input[1].content[0].text);
+ assert.ok(evidence.summary.includes('NASA'));assert.equal(evidence.summary,evidence.sources[0].summary);
+ assert.ok(j.checkpoint.factcheckRequest.input[0].content[0].text.includes(evidence.summary));
+ assert.equal(j.sourcePacket.summary,'Short original RSS snippet','Immutable queued source identity stays unchanged');
 });

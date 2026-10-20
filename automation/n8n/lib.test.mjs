@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canonicalizeSourceUrl, normalizeCandidates, clusterCandidates, rankClusters, validateDraft, validateDraftStructure, validateVerifier, selectCommonsImage } from './lib.mjs';
+import { canonicalizeSourceUrl, extractPublicEvidence, normalizeCandidates, clusterCandidates, rankClusters, validateDraft, validateDraftStructure, validateVerifier, selectCommonsImage } from './lib.mjs';
 
 const now = Date.parse('2026-10-20T12:00:00Z');
 const ago = (hours) => new Date(now - hours * 3600000).toISOString();
@@ -13,6 +13,16 @@ const draft = () => ({ translations: {
   hi: { title: 'नासा ने चंद्र अनुसंधान अभियान की घोषणा की', summary: 'नासा ने वैज्ञानिक अनुसंधान अभियान की जानकारी दी।', body: hi, metaTitle: 'नासा का चंद्र अनुसंधान अभियान', description: 'नासा की अनुसंधान घोषणा का सारांश।' },
 } });
 const sources = [{ url: 'https://www.nasa.gov/news/mission/', title: 'NASA announces lunar research mission', summary: en }];
+
+test('public evidence extractor requires a free Guardian article and excludes unrelated page content', () => {
+ const body=(en+' '+en).replaceAll('&','&amp;');
+ const html='<script type="application/ld+json">{"isAccessibleForFree":true}</script><p>Unrelated page copy</p><div class="article-body-viewer-selector other"><div><p>'+body+'</p></div><aside><p>Advert instruction</p></aside></div><p>Outside story</p>';
+ const result=extractPublicEvidence(html,'https://www.theguardian.com/science/fixture');assert.ok(result.includes('NASA'));assert.ok(!result.includes('Advert')&&!result.includes('Outside')&&!result.includes('Unrelated'));
+ assert.equal(extractPublicEvidence(html.replace(':true',':false'),'https://www.theguardian.com/science/fixture'),null);
+ assert.equal(extractPublicEvidence(html,'https://example.com/story'),null);
+ assert.equal(extractPublicEvidence(html.replace('article-body-viewer-selector','unrelated'),'https://www.theguardian.com/science/fixture'),null);
+ assert.equal(extractPublicEvidence(html.replace(body,'Too little evidence.'),'https://www.theguardian.com/science/fixture'),null);
+});
 const validate = (value, options = {}) => validateDraft(value, { verifier: approval, sources, ...options });
 
 test('source URLs require HTTPS publisher hosts and retain meaningful query parameters', () => {

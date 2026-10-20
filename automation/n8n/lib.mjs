@@ -27,6 +27,32 @@ export function canonicalizeSourceUrl(value) {
   } catch { return null; }
 }
 
+// A narrow extractor for the freely accessible Guardian layout verified on
+// 20 Oct 2026. No generic page text, navigation, paywall or script instructions.
+export function extractPublicEvidence(html, sourceUrl) {
+  const url = canonicalizeSourceUrl(sourceUrl);
+  if (!url || new URL(url).hostname !== 'theguardian.com' || typeof html !== 'string' || html.length > 2000000) return null;
+  if (!/"isAccessibleForFree"\s*:\s*true/.test(html) || /"isAccessibleForFree"\s*:\s*false/.test(html)) return null;
+  const start = /<div\b[^>]*class=["'][^"']*\barticle-body-viewer-selector\b[^"']*["'][^>]*>/i.exec(html);
+  if (!start) return null;
+  const tail = html.slice(start.index + start[0].length);
+  let depth = 1, end = -1;
+  for (const tag of tail.matchAll(/<\/?div\b[^>]*>/gi)) {
+    depth += /^<\//.test(tag[0]) ? -1 : 1;
+    if (!depth) { end = tag.index; break; }
+  }
+  if (end < 0) return null;
+  const body = tail.slice(0, end).replace(/<(aside|script|style|nav|footer|figure|form)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ');
+  const entities = {amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',rsquo:'’',lsquo:'‘',rdquo:'”',ldquo:'“',ndash:'–',mdash:'—',hellip:'…'};
+  const decode = text => text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (all, value) => {
+    if (value[0] !== '#') return entities[value.toLowerCase()] ?? all;
+    const n = parseInt(value.slice(value[1]?.toLowerCase() === 'x' ? 2 : 1), value[1]?.toLowerCase() === 'x' ? 16 : 10);
+    return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : ' ';
+  });
+  const text = [...body.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p\s*>/gi)].map(m => decode(m[1].replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n\n').slice(0, 8000);
+  return tokens(text).length >= 150 ? text : null;
+}
+
 export function normalizeCandidates(items, { now = Date.now() } = {}) {
   const clock = Number(new Date(now));
   if (!Array.isArray(items) || !Number.isFinite(clock)) return [];

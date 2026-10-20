@@ -10,6 +10,8 @@ Three importable n8n workflows collect and rank public news, prepare English/Hin
 
 The target is at least 100 distinct collected candidates and 100 completed review drafts daily. Evidence, source availability, paid provider availability and the spending cap may reduce completed drafts. The report records that shortfall; the workflow must not invent facts or overspend to meet a number. Thin source packets or failed verification stop for editorial investigation. An AI check against snippets is an evidence-consistency check, not independent reporting or a guarantee of truth.
 
+For Guardian candidates the worker reads the normal public HTTPS article once, without credentials or redirects. It accepts only the verified article-body container when the page explicitly marks access as free, excludes navigation/ad/sidebar elements and bounds the extracted text. That evidence packet is checkpointed inside the immutable draft request and reused by the checker; the queued identity is preserved. Failed reads, changed layouts, paywalled pages and other publishers fall back to existing source snippets and the same evidence gate. This is a narrow source adapter, not a paywall bypass or universal article scraper.
+
 ## Budget and text model
 
 User-authorized limit: **US$0.90 per Asia/Kolkata day**, for these workflows only. Configure `AUTOMATION_DAILY_BUDGET_MICRO_USD=900000` on the publication server. The default is zero (paid work paused). Other applications using the same Kie account are outside this ledger.
