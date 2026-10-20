@@ -1,0 +1,16 @@
+# Offline rendering/test settings only. These are not production credentials or routes.
+image:
+  repository: ghcr.io/example/digital-jagran
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+publicOrigin: https://news.example.com
+existingSecret: digital-jagran-runtime-test
+trustProxy: "10.42.0.0/16"
+ingress:
+  className: verification-controller
+  host: news.example.com
+  tlsSecretName: digital-jagran-tls-test
+networkPolicy:
+  ingressNamespace: verification-ingress
+  ingressPodSelector:
+    app.kubernetes.io/name: verification-controller
+  mongoCidrs: [192.0.2.0/24]

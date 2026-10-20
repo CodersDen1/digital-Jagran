@@ -1,0 +1,10 @@
+The chart references an external runtime Secret and TLS Secret; it never creates credentials.
+
+Validate probes, indexes, MongoDB replica set transaction support, ingress header trust,
+network policy egress, metrics scraping and rollback in staging before public traffic.
+
+Public origin: {{ .Values.publicOrigin }}
+Deployment: {{ include "dj.name" . }}
+Metrics service: {{ include "dj.name" . }}-metrics:9464 (not routed by public ingress)
+
+See docs/kubernetes-runbook.md in the repository for rollout and recovery commands.

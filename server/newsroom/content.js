@@ -1,0 +1,125 @@
+const categories = [
+  ["india", "India", "भारत"],
+  ["world", "World", "विश्व"],
+  ["politics", "Politics", "राजनीति"],
+  ["business", "Business", "व्यापार"],
+  ["technology", "Technology", "टेक्नोलॉजी"],
+  ["sports", "Sports", "खेल"],
+  ["culture", "Culture", "संस्कृति"],
+  ["explained", "Explained", "समझिए"],
+].map(([slug, en, hi]) => ({ slug, en, hi }));
+
+// Original demonstration copy, not reports of real events. Never seed a production store.
+function demoArticles() {
+  const stories = [
+    [
+      "india",
+      "The city we build together",
+      "हम मिलकर कैसा शहर बनाते हैं",
+      "A closer look at the everyday choices that make neighbourhoods more liveable.",
+      "पड़ोस को बेहतर बनाने वाले रोज़मर्रा के फैसलों पर एक नज़र।",
+      "photo-1519501025264-65ba15a82390",
+    ],
+    [
+      "technology",
+      "A more human conversation about artificial intelligence",
+      "कृत्रिम बुद्धिमत्ता पर एक ज़रूरी बातचीत",
+      "Beyond the headlines: asking better questions about the tools changing our work.",
+      "सुर्खियों से आगे: हमारे काम को बदलने वाले तकनीकी साधनों पर ज़रूरी सवाल।",
+      "photo-1485827404703-89b55fcc595e",
+    ],
+    [
+      "business",
+      "What a household budget tells us about the economy",
+      "घर का बजट अर्थव्यवस्था के बारे में क्या बताता है",
+      "Understanding the link between everyday spending, prices and long-term decisions.",
+      "रोज़मर्रा के खर्च, कीमतों और भविष्य के फैसलों का संबंध समझिए।",
+      "photo-1460925895917-afdab827c52f",
+    ],
+    [
+      "world",
+      "The shared spaces that connect us",
+      "वे सार्वजनिक जगहें जो हमें जोड़ती हैं",
+      "Libraries, parks and public transport offer a different way to think about a city.",
+      "पुस्तकालय, पार्क और सार्वजनिक परिवहन शहर को समझने का नया नज़रिया देते हैं।",
+      "photo-1449824913935-59a10b8d2000",
+    ],
+    [
+      "sports",
+      "The work behind the game",
+      "खेल के पीछे की मेहनत",
+      "Practice, access and community are the foundations of a sporting culture.",
+      "अभ्यास, अवसर और समुदाय एक मज़बूत खेल संस्कृति की बुनियाद हैं।",
+      "photo-1461896836934-ffe607ba8211",
+    ],
+    [
+      "culture",
+      "Finding the stories in our everyday traditions",
+      "रोज़मर्रा की परंपराओं में छिपी कहानियाँ",
+      "Food, language and craft keep local knowledge alive across generations.",
+      "भोजन, भाषा और शिल्प स्थानीय ज्ञान को पीढ़ियों तक जीवित रखते हैं।",
+      "photo-1516483638261-f4dbaf036963",
+    ],
+    [
+      "explained",
+      "How to read a news story critically",
+      "किसी खबर को ध्यान से कैसे पढ़ें",
+      "A practical guide to sources, evidence, context and the questions worth asking.",
+      "स्रोत, प्रमाण, संदर्भ और सही सवालों को समझने की आसान गाइड।",
+      "photo-1504711434969-e33886168f5c",
+    ],
+    [
+      "politics",
+      "Why local decisions deserve our attention",
+      "स्थानीय फैसलों पर ध्यान देना क्यों ज़रूरी है",
+      "Following public services starts with understanding who makes the decisions.",
+      "सार्वजनिक सेवाओं को समझने की शुरुआत निर्णय लेने की प्रक्रिया से होती है।",
+      "photo-1529107386315-e1a2ed48a620",
+    ],
+  ];
+  return stories.map(
+    ([category, titleEn, titleHi, summaryEn, summaryHi, image], i) => ({
+      id: `demo-${i + 1}`,
+      slug: [
+        "the-city-we-build-together",
+        "a-human-conversation-about-ai",
+        "understanding-the-household-budget",
+        "shared-spaces-that-connect-us",
+        "the-work-behind-the-game",
+        "stories-in-everyday-traditions",
+        "how-to-read-news-critically",
+        "why-local-decisions-matter",
+      ][i],
+      category,
+      status: i === 7 ? "draft" : "published",
+      publishedAt: new Date(Date.now() - i * 3600000).toISOString(),
+      createdAt: new Date(Date.now() - (i + 1) * 3600000).toISOString(),
+      updatedAt: new Date(Date.now() - i * 3600000).toISOString(),
+      author: "Digital Jagran Demo Desk",
+      authorBio: "Demonstration content for the local newsroom preview.",
+      image: `https://images.unsplash.com/${image}?auto=format&fit=crop&w=1600&q=85`,
+      imageAlt: titleEn,
+      imageCredit: "Unsplash · illustrative photograph",
+      featured: i === 0,
+      breaking: false,
+      views: 0,
+      translations: {
+        en: {
+          title: titleEn,
+          summary: summaryEn,
+          body: `${summaryEn}\n\nThis is an original demonstration article for the Digital Jagran rebuild. It illustrates how a story can introduce a subject, provide context and guide a reader towards useful questions. It does not report a current event.\n\nGood coverage starts with specific questions. Who is affected? What evidence is available? Which perspectives are missing? Clear attribution and an honest account of uncertainty help readers reach their own conclusions.\n\nBefore publishing, the newsroom should replace this example with verified reporting, attributed sources and appropriate photographs.`,
+          metaTitle: titleEn,
+          description: summaryEn,
+        },
+        hi: {
+          title: titleHi,
+          summary: summaryHi,
+          body: `${summaryHi}\n\nयह डिजिटल जागरण के नए संस्करण के लिए लिखा गया एक उदाहरण लेख है। यह दिखाता है कि किसी विषय का परिचय, उसका संदर्भ और पाठकों के लिए उपयोगी सवाल कैसे प्रस्तुत किए जा सकते हैं। यह किसी वर्तमान घटना की रिपोर्ट नहीं है।\n\nअच्छी पत्रकारिता स्पष्ट सवालों से शुरू होती है। कौन प्रभावित है? कौन से प्रमाण उपलब्ध हैं? किन लोगों की बात अभी नहीं सुनी गई है? स्रोतों की सही जानकारी और अनिश्चितता का ईमानदार उल्लेख पाठकों को अपनी समझ बनाने में मदद करते हैं।\n\nप्रकाशन से पहले इस उदाहरण की जगह सत्यापित रिपोर्टिंग, स्पष्ट स्रोत और उचित तस्वीरें जोड़ें।`,
+          metaTitle: titleHi,
+          description: summaryHi,
+        },
+      },
+    }),
+  );
+}
+module.exports = { categories, demoArticles };

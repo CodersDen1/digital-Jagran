@@ -1,0 +1,19 @@
+{{- if lt (int .Values.replicaCount) 2 }}{{ fail "Kubernetes deployment requires at least two replicas" }}{{ end -}}
+{{- if or (eq .Values.trustProxy "true") (eq .Values.trustProxy "1") }}{{ fail "Use ingress CIDRs, not blanket/hop-count proxy trust" }}{{ end -}}
+{{- if .Values.ingress.enabled -}}
+{{- $_ := required "Choose a supported installed ingress.className" .Values.ingress.className -}}
+{{- $host := required "ingress.host is required" .Values.ingress.host -}}
+{{- if ne (printf "https://%s" $host) .Values.publicOrigin }}{{ fail "publicOrigin must be https:// followed by ingress.host" }}{{ end -}}
+{{- $_ := required "ingress.tlsSecretName is required" .Values.ingress.tlsSecretName -}}
+{{- end -}}
+{{- if .Values.networkPolicy.enabled -}}
+{{- $_ := required "Set networkPolicy.ingressNamespace for your installed controller" .Values.networkPolicy.ingressNamespace -}}
+{{- if eq (len .Values.networkPolicy.ingressPodSelector) 0 }}{{ fail "Set networkPolicy.ingressPodSelector for your installed controller" }}{{ end -}}
+{{- end -}}
+{{- if and .Values.networkPolicy.enabled (eq (len .Values.networkPolicy.mongoCidrs) 0) }}{{ fail "Set managed MongoDB egress CIDRs before enabling networkPolicy" }}{{ end -}}
+{{- if gt (int .Values.mongo.minPoolSize) (int .Values.mongo.maxPoolSize) }}{{ fail "Mongo minPoolSize cannot exceed maxPoolSize" }}{{ end -}}
+{{- if and .Values.autoscaling.enabled (gt (int .Values.autoscaling.minReplicas) (int .Values.autoscaling.maxReplicas)) }}{{ fail "HPA minReplicas cannot exceed maxReplicas" }}{{ end -}}
+{{- range .Values.networkPolicy.mongoCidrs -}}
+{{- if or (eq . "0.0.0.0/0") (eq . "::/0") }}{{ fail "Use specific managed MongoDB endpoint ranges" }}{{ end -}}
+{{- end -}}
+{{- if or (contains "0.0.0.0/0" .Values.trustProxy) (contains "::/0" .Values.trustProxy) }}{{ fail "Do not trust forwarded headers from the entire internet" }}{{ end -}}

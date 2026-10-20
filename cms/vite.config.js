@@ -1,24 +1,14 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-// https://vite.dev/config/
-export default defineConfig(({ mode }) => ({
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+export default defineConfig({
   plugins: [react()],
+  base: "/newsroom/",
   server: {
-    host: '0.0.0.0',
+    host: "127.0.0.1",
     port: 5174,
-    allowedHosts: [
-      'crm.digitaljagran.com',
-      'cms.digitaljagran.com',
-      'localhost'
-    ],
-    hmr: mode === 'development' ? true : false,
+    strictPort: true,
+    proxy: { "/api": "http://localhost:5001" },
   },
-  preview: {
-    host: '0.0.0.0',
-    port: 5174,
-  },
-  build: {
-    sourcemap: false,
-  },
-}))
+  preview: { host: "127.0.0.1", port: 5174, strictPort: true },
+  build: { sourcemap: false },
+});

@@ -1,108 +1,155 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-require('dotenv').config();
-
-const articleController = require('./controllers/articleController');
-const layoutController = require('./controllers/layoutController');
-const freeformLayoutController = require('./controllers/freeformLayoutController');
-const sitemapController = require('./controllers/sitemapController');
-
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-// CORS Configuration
-const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5001',
-    'https://digitaljagran.com',
-    'https://www.digitaljagran.com',
-    'https://crm.digitaljagran.com',
-    'https://server.digitaljagran.com',
-    'https://cms.digitaljagran.com',
-    'https://dev.digitaljagran.com'
-];
-
-const corsOptions = {
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.log('Blocked by CORS:', origin);
-            callback(null, true); // Allow all origins in production for now, log blocked ones
+const path = require("node:path");
+require("dotenv").config({ quiet: true, path: path.join(__dirname, ".env") });
+const { fileStore, mongoStore } = require("./newsroom/store");
+const { createApp } = require("./newsroom/app");
+async function start() {
+  const production = process.env.NODE_ENV === "production";
+  if (
+    production &&
+    (!process.env.ADMIN_EMAIL ||
+      !process.env.ADMIN_PASSWORD ||
+      process.env.ADMIN_PASSWORD.length < 16 ||
+      !process.env.PUBLIC_ORIGIN)
+  )
+    throw new Error(
+      "Production requires ADMIN_EMAIL, a 16+ character ADMIN_PASSWORD and PUBLIC_ORIGIN.",
+    );
+  if (production && process.env.ADMIN_PASSWORD === "newsroom-local-2026")
+    throw new Error("Choose a unique production admin password.");
+  const mode = process.env.DATA_STORE || "file";
+  if (!["file", "mongo"].includes(mode))
+    throw new Error("DATA_STORE must be file or mongo.");
+  if (production && mode !== "mongo")
+    throw new Error(
+      "Production requires DATA_STORE=mongo with a replica set; file mode is development only.",
+    );
+  if (mode === "mongo" && !process.env.MONGODB_URI)
+    throw new Error("MONGODB_URI is required for mongo storage.");
+  const store =
+    mode === "mongo"
+      ? await mongoStore(process.env.MONGODB_URI)
+      : await fileStore(
+          path.resolve(
+            process.env.DATA_FILE || path.join(__dirname, "data/newsroom.json"),
+          ),
+          !production && process.env.SEED_DEMO !== "false",
+        );
+  if (production && store.demo)
+    throw new Error(
+      "The demo store cannot be served in production. Select MongoDB or a fresh production DATA_FILE.",
+    );
+  const port = Number(process.env.PORT || 5001);
+  const origin = (
+    process.env.PUBLIC_ORIGIN || `http://localhost:${port}`
+  ).replace(/\/$/, "");
+  const parsedOrigin = new URL(origin);
+  if (
+    !["http:", "https:"].includes(parsedOrigin.protocol) ||
+    parsedOrigin.pathname !== "/"
+  )
+    throw new Error("PUBLIC_ORIGIN must be an HTTP(S) origin without a path.");
+  if (production && parsedOrigin.protocol !== "https:")
+    throw new Error("Production PUBLIC_ORIGIN must use HTTPS.");
+  const host = process.env.HOST || "127.0.0.1";
+  if (
+    !production &&
+    !process.env.ADMIN_PASSWORD &&
+    !["127.0.0.1", "localhost", "::1"].includes(host)
+  )
+    throw new Error(
+      "Set ADMIN_PASSWORD before exposing development outside localhost.",
+    );
+  const app = createApp({
+    store,
+    production,
+    origin,
+    adminEmail: process.env.ADMIN_EMAIL || "editor@digitaljagran.local",
+    adminPassword: process.env.ADMIN_PASSWORD || "newsroom-local-2026",
+    trustProxy: process.env.TRUST_PROXY || false,
+    allowedOrigins: (
+      process.env.ALLOWED_ORIGINS ||
+      (!production ? "http://localhost:5173,http://localhost:5174" : "")
+    )
+      .split(",")
+      .filter(Boolean),
+  });
+  const http = require("node:http");
+  const server = http.createServer(
+    { requestTimeout: 15000, headersTimeout: 10000, keepAliveTimeout: 5000 },
+    app,
+  );
+  server.setTimeout(20000, (socket) => socket.destroy());
+  const metrics = http.createServer((req, res) => {
+    if (req.url !== "/metrics") {
+      res.writeHead(404);
+      return res.end();
+    }
+    res.writeHead(200, {
+      "Content-Type": "text/plain; version=0.0.4",
+      "Cache-Control": "no-store",
+    });
+    res.end(app.locals.metrics());
+  });
+  metrics.requestTimeout = 5000;
+  metrics.headersTimeout = 5000;
+  metrics.setTimeout(5000, (socket) => socket.destroy());
+  server.listen(port, host, () =>
+    console.log(
+      JSON.stringify({ event: "listening", port, host, storage: store.kind }),
+    ),
+  );
+  metrics.listen(
+    Number(process.env.METRICS_PORT || 9464),
+    process.env.METRICS_HOST || host,
+  );
+  let closing = false;
+  const close = () => {
+    if (closing) return;
+    closing = true;
+    app.locals.lifecycle.draining = true;
+    console.log(JSON.stringify({ event: "drain_started" }));
+    const timeout = Math.min(
+      35000,
+      Math.max(1000, Number(process.env.DRAIN_TIMEOUT_MS) || 30000),
+    );
+    const force = setTimeout(() => {
+      server.closeAllConnections();
+      metrics.closeAllConnections();
+      process.exit(1);
+    }, timeout);
+    force.unref();
+    // Allow ingress readiness observation before closing the HTTP listener.
+    setTimeout(() => {
+      metrics.close();
+      metrics.closeIdleConnections();
+      server.close(async () => {
+        try {
+          await store.close();
+          clearTimeout(force);
+          process.exit(0);
+        } catch {
+          process.exit(1);
         }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-    exposedHeaders: ['Content-Length', 'X-Request-Id'],
-    maxAge: 86400 // 24 hours preflight cache
-};
-
-// Middleware - CORS must be first
-app.use(cors(corsOptions));
-
-// Handle preflight requests explicitly
-app.options(/.*/, cors(corsOptions));
-
-app.use(bodyParser.json());
-
-// Database Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/digital_jagaran')
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
-
-// Article Routes
-const articleRouter = express.Router();
-articleRouter.post('/articles', (req, res) => articleController.createArticle(req, res));
-articleRouter.get('/articles', (req, res) => articleController.getAllArticles(req, res));
-articleRouter.get('/articles/trending', (req, res) => articleController.getTrendingArticles(req, res));
-articleRouter.get('/articles/:id', (req, res) => articleController.getArticleById(req, res));
-articleRouter.put('/articles/:id', (req, res) => articleController.updateArticle(req, res));
-articleRouter.delete('/articles/:id', (req, res) => articleController.deleteArticle(req, res));
-articleRouter.post('/articles/bulk-delete', (req, res) => articleController.bulkDeleteArticles(req, res));
-articleRouter.post('/articles/:id/view', (req, res) => articleController.incrementViews(req, res));
-articleRouter.post('/articles/:id/translate', (req, res) => articleController.translateArticle(req, res));
-articleRouter.post('/articles/:id/duplicate', (req, res) => articleController.duplicateArticle(req, res));
-
-// Layout Routes
-const layoutRouter = express.Router();
-layoutRouter.post('/layouts', (req, res) => layoutController.createLayout(req, res));
-layoutRouter.get('/layouts', (req, res) => layoutController.getAllLayouts(req, res));
-layoutRouter.get('/layouts/default', (req, res) => layoutController.getDefaultLayout(req, res));
-layoutRouter.get('/layouts/:id', (req, res) => layoutController.getLayoutById(req, res));
-layoutRouter.put('/layouts/:id', (req, res) => layoutController.updateLayout(req, res));
-layoutRouter.delete('/layouts/:id', (req, res) => layoutController.deleteLayout(req, res));
-layoutRouter.put('/layouts/:id/set-default', (req, res) => layoutController.setDefaultLayout(req, res));
-layoutRouter.post('/layouts/:id/duplicate', (req, res) => layoutController.duplicateLayout(req, res));
-layoutRouter.post('/layouts/:id/elements/:elementId/duplicate', (req, res) => layoutController.duplicateElement(req, res));
-
-app.use('/api', articleRouter);
-app.use('/api', layoutRouter);
-
-// Freeform Layout Routes (New Legacy Editor)
-const freeformLayoutRouter = express.Router();
-freeformLayoutRouter.post('/freeform-layouts', (req, res) => freeformLayoutController.createFreeformLayout(req, res));
-freeformLayoutRouter.get('/freeform-layouts', (req, res) => freeformLayoutController.getAllFreeformLayouts(req, res));
-freeformLayoutRouter.get('/freeform-layouts/default', (req, res) => freeformLayoutController.getDefaultFreeformLayout(req, res));
-freeformLayoutRouter.get('/freeform-layouts/:id', (req, res) => freeformLayoutController.getFreeformLayoutById(req, res));
-freeformLayoutRouter.put('/freeform-layouts/:id', (req, res) => freeformLayoutController.updateFreeformLayout(req, res));
-freeformLayoutRouter.post('/freeform-layouts/bulk-delete', (req, res) => freeformLayoutController.bulkDeleteFreeformLayouts(req, res));
-freeformLayoutRouter.delete('/freeform-layouts/:id', (req, res) => freeformLayoutController.deleteFreeformLayout(req, res));
-freeformLayoutRouter.put('/freeform-layouts/:id/set-default', (req, res) => freeformLayoutController.setDefaultFreeformLayout(req, res));
-freeformLayoutRouter.post('/freeform-layouts/:id/duplicate', (req, res) => freeformLayoutController.duplicateFreeformLayout(req, res));
-freeformLayoutRouter.patch('/freeform-layouts/:id/canvas', (req, res) => freeformLayoutController.saveCanvasState(req, res));
-app.use('/api', freeformLayoutRouter);
-
-// Sitemap Route (Root level)
-app.get('/sitemap.xml', (req, res) => sitemapController.generateSitemap(req, res));
-
-const HOST = process.env.HOST || '0.0.0.0';
-
-app.listen(PORT, HOST, () => {
-    console.log(`Server running on http://${HOST}:${PORT}`);
+      });
+      server.closeIdleConnections();
+    }, 1000);
+  };
+  server.on("error", (error) => {
+    console.error(
+      JSON.stringify({ event: "listener_error", code: error.code }),
+    );
+    close();
+  });
+  metrics.on("error", (error) => {
+    console.error(
+      JSON.stringify({ event: "metrics_listener_error", code: error.code }),
+    );
+    close();
+  });
+  process.on("SIGINT", close);
+  process.on("SIGTERM", close);
+}
+start().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
 });

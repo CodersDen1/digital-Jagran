@@ -1,54 +1,13 @@
+// The application server serves both built frontends and initial-response article HTML.
 module.exports = {
   apps: [
     {
-      name: 'client',
-      cwd: './client',
-      script: 'npm',
-      args: 'run preview -- --host',
-      env: {
-        PORT: 5173,
-        NODE_ENV: 'production'
-      },
-      env_development: {
-        PORT: 5173,
-        NODE_ENV: 'development'
-      },
-      watch: false,
-      autorestart: true
+      name: "digital-jagran",
+      cwd: "./server",
+      script: "index.js",
+      instances: 1,
+      autorestart: true,
+      env: { NODE_ENV: "production", PORT: 5001, HOST: "127.0.0.1" },
     },
-    {
-      name: 'cms',
-      cwd: './cms',
-      script: 'npm',
-      args: 'run preview -- --host',
-      env: {
-        PORT: 5174,
-        NODE_ENV: 'production'
-      },
-      env_development: {
-        PORT: 5174,
-        NODE_ENV: 'development'
-      },
-      watch: false,
-      autorestart: true
-    },
-    {
-      name: 'server',
-      cwd: './server',
-      script: 'npm',
-      args: 'start',
-      env: {
-        PORT: 5001,
-        HOST: '0.0.0.0',
-        NODE_ENV: 'production'
-      },
-      env_development: {
-        PORT: 5001,
-        HOST: 'localhost',
-        NODE_ENV: 'development'
-      },
-      watch: false,
-      autorestart: true
-    }
-  ]
+  ],
 };

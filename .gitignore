@@ -20,3 +20,15 @@ server/dist/
 server/build/
 server/.env
 server/logs/
+server/data/
+client/dist-server/
+cms/dist/
+client/.env
+cms/.env
+*.log
+
+# Workspace tools and generated verification output
+/node_modules/
+artifacts/tools/
+artifacts/helm/
+artifacts/docker/

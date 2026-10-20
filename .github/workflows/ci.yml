@@ -1,0 +1,99 @@
+name: Build and verify
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  application:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+            cms/package-lock.json
+            server/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix client --legacy-peer-deps
+      - run: npm ci --prefix cms --legacy-peer-deps
+      - run: npm ci --prefix server
+      - run: npm audit --omit=dev
+      - run: npm audit --prefix client --omit=dev
+      - run: npm audit --prefix cms --omit=dev
+      - run: npm audit --prefix server --omit=dev
+      - run: npm run check
+      - run: npm run build
+      - run: npm test
+  replica-set:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm ci --prefix server
+      - run: npm ci --prefix client --legacy-peer-deps
+      - run: npm run build --prefix client
+      - name: Start disposable Mongo replica set
+        shell: bash
+        run: |
+          docker run -d --name dj-ci-mongo -p 127.0.0.1:27028:27017 mongo:8 --replSet djtest --bind_ip_all
+          for attempt in {1..30}; do
+            if docker exec dj-ci-mongo mongosh --quiet --eval 'db.runCommand({ping:1})' >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          docker exec dj-ci-mongo mongosh --quiet --eval 'rs.initiate({_id:"djtest",members:[{_id:0,host:"localhost:27017"}]})'
+          for attempt in {1..30}; do
+            if docker exec dj-ci-mongo mongosh --quiet --eval 'quit(db.hello().isWritablePrimary?0:1)'; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - run: npm test --prefix server
+        env:
+          TEST_MONGODB_URI: mongodb://127.0.0.1:27028/dj_test_ci?replicaSet=djtest&directConnection=true
+      - if: always()
+        run: docker rm -f dj-ci-mongo
+  deployment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fetch verified Helm binary
+        shell: bash
+        run: |
+          curl --fail --show-error --location --output helm.tar.gz https://get.helm.sh/helm-v3.19.0-linux-amd64.tar.gz
+          curl --fail --show-error --location --output helm.sha256sum https://get.helm.sh/helm-v3.19.0-linux-amd64.tar.gz.sha256sum
+          printf '%s  helm.tar.gz\n' "$(cut -d ' ' -f 1 helm.sha256sum)" | sha256sum --check
+          tar -xzf helm.tar.gz
+          echo "HELM_BIN=$PWD/linux-amd64/helm" >> "$GITHUB_ENV"
+      - run: npm run check:deploy
+      - uses: docker/setup-buildx-action@v4
+      - name: Build runtime image without publishing
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max

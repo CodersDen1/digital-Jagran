@@ -1,0 +1,62 @@
+# Fill all empty required settings in an environment-specific values file.
+# Store that file outside Git if it includes private infrastructure addresses.
+image:
+  repository: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+publicOrigin: ""
+existingSecret: ""
+replicaCount: 2
+revisionHistoryLimit: 5
+terminationGracePeriodSeconds: 40
+trustProxy: ""
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+nodeOptions: "--max-old-space-size=320"
+mongo:
+  maxPoolSize: 20
+  minPoolSize: 0
+  waitQueueTimeoutMs: 2000
+  operationTimeoutMs: 5000
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+ingress:
+  enabled: true
+  # Explicitly choose an installed, supported controller.
+  className: ""
+  host: ""
+  tlsSecretName: ""
+  annotations: {}
+networkPolicy:
+  enabled: true
+  ingressNamespace: ""
+  ingressPodSelector: {}
+  monitoringNamespace: monitoring
+  # Operator-supplied managed MongoDB/private endpoint ranges. No broad default egress.
+  mongoCidrs: []
+  mongoPorts: [27017]
+monitoring:
+  serviceMonitor:
+    enabled: false
+    labels: {}
+    interval: 30s
+  prometheusRule:
+    enabled: false
+    labels: {}
+migration:
+  # Explicit opt-in. Index creation is never done by ordinary app startup.
+  enabled: false
+  activeDeadlineSeconds: 300
+  backoffLimit: 0
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []

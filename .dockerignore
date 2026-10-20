@@ -1,0 +1,15 @@
+.git
+.github
+**/node_modules
+**/dist
+**/dist-server
+**/build
+**/.env*
+**/*.log
+**/data
+artifacts
+research
+docs
+deploy
+**/.DS_Store
+**/coverage

@@ -1,0 +1,39 @@
+{{- if .Values.monitoring.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "dj.name" . }}
+  labels:
+    {{- include "dj.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: digital-jagran-candidate-alerts
+      rules:
+        - alert: DigitalJagranNoReadyReplica
+          expr: kube_deployment_status_replicas_available{namespace="{{ .Release.Namespace }}",deployment="{{ include "dj.name" . }}"} < 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: No Digital Jagran replica is ready
+            description: Inspect readiness, Mongo connectivity, rollout events and the deployment runbook.
+        - alert: DigitalJagranElevatedErrors
+          expr: sum(rate(dj_http_requests_total{namespace="{{ .Release.Namespace }}",service="{{ include "dj.name" . }}-metrics",status=~"5..",route!~"/health.*"}[5m])) / sum(rate(dj_http_requests_total{namespace="{{ .Release.Namespace }}",service="{{ include "dj.name" . }}-metrics",route!~"/health.*"}[5m])) > 0.01 and sum(rate(dj_http_requests_total{namespace="{{ .Release.Namespace }}",service="{{ include "dj.name" . }}-metrics",route!~"/health.*"}[5m])) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Digital Jagran server errors exceed the candidate threshold
+            description: Candidate threshold is 1 percent for 10 minutes; calibrate against agreed SLOs and traffic.
+        - alert: DigitalJagranHighP99Latency
+          expr: histogram_quantile(0.99, sum by (le) (rate(dj_http_request_duration_seconds_bucket{namespace="{{ .Release.Namespace }}",service="{{ include "dj.name" . }}-metrics",route!~"/health.*"}[5m]))) > 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Digital Jagran candidate P99 server latency exceeds one second
+            description: Inspect pool wait, CPU throttling and downstream timing; this is not a measured user-experience SLO.
+{{- end }}

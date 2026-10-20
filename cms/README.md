@@ -1,16 +1,17 @@
-# React + Vite
+# Digital Jagran newsroom
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The active application is `src/App.jsx` and `src/newsroom/`. Older designer components are retained as reference and are not mounted by the newsroom.
 
-Currently, two official plugins are available:
+The retired editor's `react-transliterate` dependency was removed because it requires React 16 and prevents normal dependency resolution with the active React 19 application. That retained reference component cannot be mounted without adapting its transliteration integration. The structured bilingual editor uses normal text inputs and remains fully available. Tailwind's PostCSS integration, PostCSS, autoprefixer and Vite are development/build dependencies; deployment serves the compiled static bundle.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Run `npm run dev` here for Vite on port 5174 at `/newsroom/`. Requests use `/api/v1` through the existing port-5001 proxy. Development publication links open `http://localhost:5001`; production links use the same origin. Optional build-time `VITE_NEWS_API_ORIGIN` and `VITE_PUBLIC_ORIGIN` override those origins. No environment file is required for the standard local setup.
 
-## React Compiler
+Run `npm run check`, `npm test`, and `npm run build` for active newsroom lint, focused transport/export checks, and the production bundle. `npm run lint` also inspects the retained legacy designer code.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Requests have a ten-second deadline per attempt. Safe reads and keyed content writes allow at most two retries, with exponential backoff, jitter and a bounded ten-second Retry-After. Login and unkeyed writes do not retry. Requests cancel when a view is replaced; export has a Cancel button. Authentication expiry returns the workspace to sign-in.
 
-## Expanding the ESLint configuration
+Editor writes and archives send a stable `Idempotency-Key`; archives include the article's `updatedAt` revision. Before saving, the editor records the original request body/key alongside its device recovery draft. An uncertain save freezes editing until **Retry original save** confirms the same request. The original body/key is reused after reload, sign-in and automatic retries. Confirmed responses clear the pending request. A 409 preserves local text and offers a server-version comparison before choosing the server version or explicitly reviewing local text against the latest revision. Storage is local to this browser/device; browser storage must be available for recovery across reloads.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Story search, workflow/section filters, counts and pages come from the API. Audience search and pages also come from the API. Export requests authenticated pages of 50 rows, reads at most 100 pages/5,000 unique rows, and labels truncated and filtered files. Cancellation or a page failure downloads no file. CSV cells escape quotes and formula-like prefixes. Export deduplicates emails but is not a point-in-time snapshot; concurrent signups or deletions can change the pages being read. Newsletter delivery remains unconnected.
+
+Cross-app integration checks should cover sign-in/session expiry, bilingual draft/preview/publish, source/search metadata preservation, stale revisions in two editor tabs, request replay after a lost response, failed/changed detail routes, archive/restore, both list pagers, filtered/cancelled/truncated exports, and keyboard plus narrow-screen layouts. No test connects to MongoDB.

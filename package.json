@@ -1,0 +1,20 @@
+{
+  "name": "digital-jagran",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Bilingual publication, structured newsroom and server-rendered news platform",
+  "scripts": {
+    "build": "node scripts/workspace.cjs build",
+    "dev": "node scripts/workspace.cjs dev",
+    "start": "npm start --prefix server",
+    "test": "node scripts/workspace.cjs test",
+    "check": "node scripts/check.cjs",
+    "check:deploy": "node scripts/check-deploy.cjs"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "devDependencies": {
+    "yaml": "^2.9.1"
+  }
+}
