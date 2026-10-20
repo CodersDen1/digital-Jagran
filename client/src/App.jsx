@@ -946,7 +946,9 @@ export default function App({ initialData }) {
         {page.kind === "home" ? (
           <FrontPage data={page} />
         ) : ["section", "search"].includes(page.kind) ? (
-          <Listing key={page.path} data={page} />
+          // Listing has no route-local state to reset. A keyed fragment here
+          // duplicates the server-rendered listing during hydration.
+          <Listing data={page} />
         ) : page.kind === "article" ? (
           <Article key={page.path} data={page} saved={saved} onSave={onSave} />
         ) : page.kind === "saved" ? (
